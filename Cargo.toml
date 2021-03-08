@@ -1,0 +1,12 @@
+cargo-features = ["edition2021"]
+
+[package]
+name = "arrowkv"
+version = "0.1.0"
+authors = ["devillove084 <786537003@qq.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[dependencies]
