@@ -1,5 +1,3 @@
-
-
 mod inner;
 
 use core::cell::{Cell, UnsafeCell};
@@ -10,19 +8,12 @@ use core::sync::atomic::Ordering;
 use super::common::thread::ThreadState;
 use super::common::LocalAccess;
 
-
-
 use super::global::{EPOCH, THREADS};
 use super::{Debra, Retired};
 
 use self::inner::LocalInner;
 
 type ThreadEntry = crate::debra::list::ListEntry<'static, ThreadState>;
-
-
-
-
-
 
 #[derive(Debug)]
 pub struct Local {
@@ -31,10 +22,7 @@ pub struct Local {
     inner: UnsafeCell<LocalInner>,
 }
 
-
-
 impl Local {
-    
     pub fn new() -> Self {
         let global_epoch = EPOCH.load(Ordering::SeqCst);
         let thread_epoch = ThreadState::new(global_epoch);
@@ -47,14 +35,11 @@ impl Local {
         }
     }
 
-    
     #[inline]
     pub fn try_flush(&self) {
         unsafe { &mut *self.inner.get() }.try_flush(&**self.state);
     }
 }
-
-
 
 impl<'a> LocalAccess for &'a Local {
     type Reclaimer = Debra;
@@ -67,8 +52,7 @@ impl<'a> LocalAccess for &'a Local {
     #[inline]
     fn set_active(self) {
         let count = self.guard_count.get();
-        
-        
+
         self.guard_count.set(count + 1);
 
         if count == 0 {
@@ -96,8 +80,6 @@ impl<'a> LocalAccess for &'a Local {
     }
 }
 
-
-
 impl Default for Local {
     #[inline]
     fn default() -> Self {
@@ -105,12 +87,9 @@ impl Default for Local {
     }
 }
 
-
-
 impl Drop for Local {
     #[inline]
     fn drop(&mut self) {
-        
         let state = unsafe { ptr::read(&*self.state) };
         let entry = THREADS.remove(state);
 

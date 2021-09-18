@@ -6,10 +6,7 @@ use crate::debra::reclaim::pointer::{
 };
 use crate::debra::reclaim::MarkedPointer;
 
-
-
 impl<T: MarkedNonNullable> Marked<T> {
-    
     #[inline]
     pub fn is_value(&self) -> bool {
         match *self {
@@ -18,7 +15,6 @@ impl<T: MarkedNonNullable> Marked<T> {
         }
     }
 
-    
     #[inline]
     pub fn is_null(&self) -> bool {
         match *self {
@@ -27,7 +23,6 @@ impl<T: MarkedNonNullable> Marked<T> {
         }
     }
 
-    
     #[inline]
     pub fn as_ref(&self) -> Marked<&T> {
         match self {
@@ -36,7 +31,6 @@ impl<T: MarkedNonNullable> Marked<T> {
         }
     }
 
-    
     #[inline]
     pub fn as_mut(&mut self) -> Marked<&mut T> {
         match self {
@@ -45,7 +39,6 @@ impl<T: MarkedNonNullable> Marked<T> {
         }
     }
 
-    
     #[inline]
     pub fn unwrap_value(self) -> T {
         match self {
@@ -54,7 +47,6 @@ impl<T: MarkedNonNullable> Marked<T> {
         }
     }
 
-    
     #[inline]
     pub fn unwrap_null(self) -> usize {
         match self {
@@ -63,7 +55,6 @@ impl<T: MarkedNonNullable> Marked<T> {
         }
     }
 
-    
     #[inline]
     pub fn unwrap_value_or_else(self, func: impl (FnOnce(usize) -> T)) -> T {
         match self {
@@ -72,8 +63,6 @@ impl<T: MarkedNonNullable> Marked<T> {
         }
     }
 
-    
-    
     #[inline]
     pub fn map<U: MarkedNonNullable>(self, func: impl (FnOnce(T) -> U)) -> Marked<U> {
         match self {
@@ -82,8 +71,6 @@ impl<T: MarkedNonNullable> Marked<T> {
         }
     }
 
-    
-    
     #[inline]
     pub fn map_or_else<U: MarkedNonNullable>(
         self,
@@ -96,7 +83,6 @@ impl<T: MarkedNonNullable> Marked<T> {
         }
     }
 
-    
     #[inline]
     pub fn value(self) -> Option<T> {
         match self {
@@ -105,15 +91,11 @@ impl<T: MarkedNonNullable> Marked<T> {
         }
     }
 
-    
-    
     #[inline]
     pub fn take(&mut self) -> Self {
         mem::replace(self, Null(0))
     }
 
-    
-    
     #[inline]
     pub fn replace(&mut self, value: T) -> Self {
         mem::replace(self, Value(value))
@@ -121,7 +103,6 @@ impl<T: MarkedNonNullable> Marked<T> {
 }
 
 impl<T: MarkedNonNullable + MarkedPointer> Marked<T> {
-    
     #[inline]
     pub fn decompose_tag(&self) -> usize {
         match self {
@@ -131,16 +112,12 @@ impl<T: MarkedNonNullable + MarkedPointer> Marked<T> {
     }
 }
 
-
-
 impl<T: MarkedNonNullable> Default for Marked<T> {
     #[inline]
     fn default() -> Self {
         Null(0)
     }
 }
-
-
 
 impl<T: MarkedNonNullable> From<Option<T>> for Marked<T> {
     #[inline]

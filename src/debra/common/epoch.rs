@@ -1,23 +1,18 @@
-
 #[allow(deprecated)]
-
 use core::fmt;
 use core::ops::{Add, Sub};
 use core::sync::atomic::{AtomicUsize, Ordering};
 
 const EPOCH_INCREMENT: usize = 2;
 
-
 #[derive(Copy, Clone, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Epoch(usize);
-
 
 impl Epoch {
     #[inline]
     pub fn new() -> Self {
         Self(0)
     }
-
 
     #[inline]
     pub fn relative_age(self, global_epoch: Epoch) -> Result<PossibleAge, Undetermined> {
@@ -41,7 +36,6 @@ impl Epoch {
     }
 }
 
-
 impl Add<usize> for Epoch {
     type Output = Self;
 
@@ -51,7 +45,6 @@ impl Add<usize> for Epoch {
     }
 }
 
-
 impl Sub<usize> for Epoch {
     type Output = Self;
 
@@ -60,7 +53,6 @@ impl Sub<usize> for Epoch {
         Self(self.0.wrapping_sub(rhs * EPOCH_INCREMENT))
     }
 }
-
 
 impl fmt::Display for Epoch {
     #[inline]
@@ -72,18 +64,15 @@ impl fmt::Display for Epoch {
 pub struct AtomicEpoch(AtomicUsize);
 
 impl AtomicEpoch {
-    
     #[inline]
     pub const fn new() -> Self {
         Self(AtomicUsize::new(0))
     }
 
-
     #[inline]
     pub fn load(&self, order: Ordering) -> Epoch {
         Epoch(self.0.load(order))
     }
-
 
     #[inline]
     pub fn compare_and_swap(&self, current: Epoch, new: Epoch, order: Ordering) -> Epoch {
@@ -91,35 +80,34 @@ impl AtomicEpoch {
     }
 }
 
-
-
 impl fmt::Debug for AtomicEpoch {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("AtomicEpoch").field("epoch", &self.0.load(Ordering::SeqCst)).finish()
+        f.debug_struct("AtomicEpoch")
+            .field("epoch", &self.0.load(Ordering::SeqCst))
+            .finish()
     }
 }
-
-
 
 impl fmt::Display for AtomicEpoch {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "epoch {}", self.0.load(Ordering::SeqCst) / EPOCH_INCREMENT)
+        write!(
+            f,
+            "epoch {}",
+            self.0.load(Ordering::SeqCst) / EPOCH_INCREMENT
+        )
     }
 }
 
-
 #[derive(Debug, Copy, Clone, Eq, Ord, PartialEq, PartialOrd)]
 pub enum PossibleAge {
-    
     SameEpoch,
-    
+
     OneEpoch,
-    
+
     TwoEpochs,
 }
-
 
 impl fmt::Display for PossibleAge {
     #[inline]
@@ -131,7 +119,6 @@ impl fmt::Display for PossibleAge {
         }
     }
 }
-
 
 #[derive(Debug, Default, Copy, Clone, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Undetermined;

@@ -10,44 +10,30 @@ use typenum::Unsigned;
 
 use crate::debra::reclaim::internal::{Compare, GuardRef, Internal, Store};
 use crate::debra::reclaim::leak::Leaking;
-use crate::debra::reclaim::pointer::{AtomicMarkedPtr, Marked, MarkedNonNull, MarkedPointer, MarkedPtr};
-use crate::debra::reclaim::{AcquireResult, NotEqualError, Owned, Reclaim, Shared, Unlinked, Unprotected};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+use crate::debra::reclaim::pointer::{
+    AtomicMarkedPtr, Marked, MarkedNonNull, MarkedPointer, MarkedPtr,
+};
+use crate::debra::reclaim::{
+    AcquireResult, NotEqualError, Owned, Reclaim, Shared, Unlinked, Unprotected,
+};
 
 pub struct Atomic<T, R, N> {
     inner: AtomicMarkedPtr<T, N>,
     _marker: PhantomData<(T, R)>,
 }
 
-
-
 unsafe impl<T, R: Reclaim, N: Unsigned> Send for Atomic<T, R, N> where T: Send + Sync {}
 unsafe impl<T, R: Reclaim, N: Unsigned> Sync for Atomic<T, R, N> where T: Send + Sync {}
 
-
-
 impl<T, R, N> Atomic<T, R, N> {
-    
     #[inline]
     pub const fn null() -> Self {
-        Self { inner: AtomicMarkedPtr::null(), _marker: PhantomData }
+        Self {
+            inner: AtomicMarkedPtr::null(),
+            _marker: PhantomData,
+        }
     }
 
-    
     #[inline]
     pub const fn as_raw(&self) -> &AtomicMarkedPtr<T, N> {
         &self.inner
@@ -55,133 +41,37 @@ impl<T, R, N> Atomic<T, R, N> {
 }
 
 impl<T, R: Reclaim, N: Unsigned> Atomic<T, R, N> {
-    
-    
     #[inline]
     pub fn new(val: T) -> Self {
         Self::from(Owned::from(val))
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
     #[inline]
     pub unsafe fn from_raw(ptr: MarkedPtr<T, N>) -> Self {
-        Self { inner: AtomicMarkedPtr::new(ptr), _marker: PhantomData }
+        Self {
+            inner: AtomicMarkedPtr::new(ptr),
+            _marker: PhantomData,
+        }
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     #[inline]
     pub fn load_raw(&self, order: Ordering) -> MarkedPtr<T, N> {
         self.inner.load(order)
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     #[inline]
     pub fn load_unprotected(&self, order: Ordering) -> Option<Unprotected<T, R, N>> {
         self.load_marked_unprotected(order).value()
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     #[inline]
     pub fn load_marked_unprotected(&self, order: Ordering) -> Marked<Unprotected<T, R, N>> {
-        MarkedNonNull::new(self.inner.load(order))
-            .map(|ptr| Unprotected { inner: ptr, _marker: PhantomData })
+        MarkedNonNull::new(self.inner.load(order)).map(|ptr| Unprotected {
+            inner: ptr,
+            _marker: PhantomData,
+        })
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     #[inline]
     pub fn load<'g>(
         &self,
@@ -191,22 +81,6 @@ impl<T, R: Reclaim, N: Unsigned> Atomic<T, R, N> {
         guard.load_protected(self, order).value()
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     #[inline]
     pub fn load_if_equal<'g>(
         &self,
@@ -214,29 +88,11 @@ impl<T, R: Reclaim, N: Unsigned> Atomic<T, R, N> {
         order: Ordering,
         guard: impl GuardRef<'g, Reclaimer = R>,
     ) -> Result<Option<Shared<'g, T, R, N>>, NotEqualError> {
-        guard.load_protected_if_equal(self, expected, order).map(Marked::value)
+        guard
+            .load_protected_if_equal(self, expected, order)
+            .map(Marked::value)
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     #[inline]
     pub fn load_marked<'g>(
         &self,
@@ -246,27 +102,6 @@ impl<T, R: Reclaim, N: Unsigned> Atomic<T, R, N> {
         guard.load_protected(self, order)
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     #[inline]
     pub fn load_marked_if_equal<'g>(
         &self,
@@ -277,43 +112,11 @@ impl<T, R: Reclaim, N: Unsigned> Atomic<T, R, N> {
         guard.load_protected_if_equal(self, expected, order)
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     #[inline]
     pub fn store(&self, ptr: impl Store<Item = T, MarkBits = N, Reclaimer = R>, order: Ordering) {
         self.inner.store(MarkedPointer::into_marked_ptr(ptr), order);
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     #[inline]
     pub fn swap(
         &self,
@@ -321,43 +124,10 @@ impl<T, R: Reclaim, N: Unsigned> Atomic<T, R, N> {
         order: Ordering,
     ) -> Option<Unlinked<T, R, N>> {
         let res = self.inner.swap(MarkedPointer::into_marked_ptr(ptr), order);
-        
-        
+
         unsafe { Option::from_marked_ptr(res) }
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     #[inline]
     pub fn compare_exchange<C, S>(
         &self,
@@ -383,41 +153,6 @@ impl<T, R: Reclaim, N: Unsigned> Atomic<T, R, N> {
             })
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     #[inline]
     pub fn compare_exchange_weak<C, S>(
         &self,
@@ -443,61 +178,28 @@ impl<T, R: Reclaim, N: Unsigned> Atomic<T, R, N> {
             })
     }
 
-    
-    
-    
-    
-    
-    
     #[inline]
     pub fn take(&mut self) -> Option<Owned<T, R, N>> {
-        
         MarkedNonNull::new(self.inner.swap(MarkedPtr::null(), Ordering::Relaxed))
             .map(|ptr| unsafe { Owned::from_marked_non_null(ptr) })
             .value()
     }
 }
 
-
-
 impl<T, N: Unsigned> Atomic<T, Leaking, N> {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     #[inline]
     pub fn load_shared(&self, order: Ordering) -> Option<Shared<T, Leaking, N>> {
         self.load_marked_shared(order).value()
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     #[inline]
     pub fn load_marked_shared(&self, order: Ordering) -> Marked<Shared<T, Leaking, N>> {
-        MarkedNonNull::new(self.inner.load(order))
-            .map(|ptr| Shared { inner: ptr, _marker: PhantomData })
+        MarkedNonNull::new(self.inner.load(order)).map(|ptr| Shared {
+            inner: ptr,
+            _marker: PhantomData,
+        })
     }
 }
-
-
 
 impl<T, R: Reclaim, N: Unsigned> Default for Atomic<T, R, N> {
     #[inline]
@@ -505,8 +207,6 @@ impl<T, R: Reclaim, N: Unsigned> Default for Atomic<T, R, N> {
         Self::null()
     }
 }
-
-
 
 impl<T, R: Reclaim, N: Unsigned> From<T> for Atomic<T, R, N> {
     #[inline]
@@ -518,21 +218,23 @@ impl<T, R: Reclaim, N: Unsigned> From<T> for Atomic<T, R, N> {
 impl<T, R: Reclaim, N: Unsigned> From<Owned<T, R, N>> for Atomic<T, R, N> {
     #[inline]
     fn from(owned: Owned<T, R, N>) -> Self {
-        Self { inner: AtomicMarkedPtr::from(Owned::into_marked_ptr(owned)), _marker: PhantomData }
+        Self {
+            inner: AtomicMarkedPtr::from(Owned::into_marked_ptr(owned)),
+            _marker: PhantomData,
+        }
     }
 }
-
-
 
 impl<T, R: Reclaim, N: Unsigned> fmt::Debug for Atomic<T, R, N> {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let (ptr, tag) = self.inner.load(Ordering::SeqCst).decompose();
-        f.debug_struct("Atomic").field("ptr", &ptr).field("tag", &tag).finish()
+        f.debug_struct("Atomic")
+            .field("ptr", &ptr)
+            .field("tag", &tag)
+            .finish()
     }
 }
-
-
 
 impl<T, R: Reclaim, N: Unsigned> fmt::Pointer for Atomic<T, R, N> {
     #[inline]
@@ -541,15 +243,7 @@ impl<T, R: Reclaim, N: Unsigned> fmt::Pointer for Atomic<T, R, N> {
     }
 }
 
-
-
 impl<T, R: Reclaim, N: Unsigned> Internal for Atomic<T, R, N> {}
-
-
-
-
-
-
 
 #[derive(Debug)]
 pub struct CompareExchangeFailure<T, R, S, N>
@@ -558,10 +252,9 @@ where
     S: Store<Item = T, MarkBits = N, Reclaimer = R>,
     N: Unsigned,
 {
-    
     pub loaded: Option<Unprotected<T, R, N>>,
-    
+
     pub input: S,
-    
+
     _marker: PhantomData<R>,
 }

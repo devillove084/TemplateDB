@@ -1,8 +1,10 @@
 #![allow(dead_code)]
+#![feature(result_copied)]
 
 mod bloom;
 mod checksum;
 mod db;
+mod debra;
 mod entry;
 mod error;
 mod format;

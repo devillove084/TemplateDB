@@ -1,4 +1,3 @@
-
 extern crate alloc;
 
 #[cfg(not(feature = "std"))]
@@ -6,10 +5,9 @@ use alloc::boxed::Box;
 
 use core::mem;
 
+use crate::debra::reclaim::{Reclaim, Retired};
 use arrayvec::ArrayVec;
 use cfg_if::cfg_if;
-use crate::debra::reclaim::{Reclaim, Retired};
-
 
 use super::epoch::PossibleAge;
 
@@ -39,17 +37,10 @@ cfg_if! {
     }
 }
 
-
-
-
-
 const BAG_POOL_SIZE: usize = 16;
-
 
 #[derive(Debug)]
 pub struct BagPool<R: Reclaim + 'static>(ArrayVec<Box<BagNode<R>>, BAG_POOL_SIZE>);
-
-
 
 impl<R: Reclaim + 'static> Default for BagPool<R> {
     #[inline]
@@ -58,30 +49,22 @@ impl<R: Reclaim + 'static> Default for BagPool<R> {
     }
 }
 
-
-
 impl<R: Reclaim + 'static> BagPool<R> {
-    
     #[inline]
     pub fn new() -> Self {
         Self(ArrayVec::default())
     }
 
-    
     #[inline]
     pub fn with_bags() -> Self {
         Self((0..BAG_POOL_SIZE).map(|_| BagNode::boxed()).collect())
     }
 
-    
-    
     #[inline]
     fn allocate_bag(&mut self) -> Box<BagNode<R>> {
         self.0.pop().unwrap_or_else(BagNode::boxed)
     }
 
-    
-    
     #[inline]
     fn recycle_bag(&mut self, bag: Box<BagNode<R>>) {
         debug_assert!(bag.is_empty());
@@ -91,24 +74,13 @@ impl<R: Reclaim + 'static> BagPool<R> {
     }
 }
 
-
-
-
-
 const BAG_QUEUE_COUNT: usize = 3;
-
-
-
-
-
 
 #[derive(Debug)]
 pub struct EpochBagQueues<R: Reclaim + 'static> {
     queues: [BagQueue<R>; BAG_QUEUE_COUNT],
     curr_idx: usize,
 }
-
-
 
 impl<R: Reclaim + 'static> Default for EpochBagQueues<R> {
     #[inline]
@@ -117,17 +89,15 @@ impl<R: Reclaim + 'static> Default for EpochBagQueues<R> {
     }
 }
 
-
-
 impl<R: Reclaim + 'static> EpochBagQueues<R> {
-    
     #[inline]
     pub fn new() -> Self {
-        Self { queues: [BagQueue::new(), BagQueue::new(), BagQueue::new()], curr_idx: 0 }
+        Self {
+            queues: [BagQueue::new(), BagQueue::new(), BagQueue::new()],
+            curr_idx: 0,
+        }
     }
 
-    
-    
     #[inline]
     pub fn into_sorted(self) -> [BagQueue<R>; BAG_QUEUE_COUNT] {
         let [a, b, c] = self.queues;
@@ -139,14 +109,11 @@ impl<R: Reclaim + 'static> EpochBagQueues<R> {
         }
     }
 
-    
     #[inline]
     pub fn retire_record(&mut self, record: Retired<R>, bag_pool: &mut BagPool<R>) {
         self.retire_record_by_age(record, PossibleAge::SameEpoch, bag_pool);
     }
 
-    
-    
     #[inline]
     pub fn retire_record_by_age(
         &mut self,
@@ -163,29 +130,12 @@ impl<R: Reclaim + 'static> EpochBagQueues<R> {
         queue.retire_record(record, bag_pool);
     }
 
-    
-    
-    
-    
-    
-    
-    
     #[inline]
     pub unsafe fn retire_final_record(&mut self, record: Retired<R>) {
         let curr = &mut self.queues[self.curr_idx];
         curr.head.retired_records.push_unchecked(record);
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     #[inline]
     pub unsafe fn rotate_and_reclaim(&mut self, bag_pool: &mut BagPool<R>) {
         self.curr_idx = (self.curr_idx + 1) % BAG_QUEUE_COUNT;
@@ -193,30 +143,12 @@ impl<R: Reclaim + 'static> EpochBagQueues<R> {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Debug)]
 pub struct BagQueue<R: Reclaim + 'static> {
     head: Box<BagNode<R>>,
 }
 
-
-
 impl<R: Reclaim + 'static> BagQueue<R> {
-    
-    
     #[inline]
     pub fn into_non_empty(self) -> Option<Box<BagNode<R>>> {
         if !self.is_empty() {
@@ -226,25 +158,20 @@ impl<R: Reclaim + 'static> BagQueue<R> {
         }
     }
 
-    
     #[inline]
     fn new() -> Self {
-        Self { head: BagNode::boxed() }
+        Self {
+            head: BagNode::boxed(),
+        }
     }
 
-    
     #[inline]
     fn is_empty(&self) -> bool {
         self.head.is_empty()
     }
 
-    
-    
-    
-    
     #[inline]
     fn retire_record(&mut self, record: Retired<R>, bag_pool: &mut BagPool<R>) {
-        
         unsafe { self.head.retired_records.push_unchecked(record) };
         if self.head.retired_records.is_full() {
             let mut old_head = bag_pool.allocate_bag();
@@ -253,12 +180,6 @@ impl<R: Reclaim + 'static> BagQueue<R> {
         }
     }
 
-    
-    
-    
-    
-    
-    
     #[inline]
     unsafe fn reclaim_full_bags(&mut self, bag_pool: &mut BagPool<R>) {
         let mut node = self.head.next.take();
@@ -270,30 +191,13 @@ impl<R: Reclaim + 'static> BagQueue<R> {
     }
 }
 
-
-
-
-
-
-
-
-
-
 #[derive(Debug)]
 pub struct BagNode<R: Reclaim + 'static> {
     next: Option<Box<BagNode<R>>>,
     retired_records: ArrayVec<Retired<R>, BAG_SIZE>,
 }
 
-
-
 impl<R: Reclaim> BagNode<R> {
-    
-    
-    
-    
-    
-    
     #[inline]
     pub unsafe fn reclaim_all(&mut self) {
         self.reclaim_inner();
@@ -305,13 +209,14 @@ impl<R: Reclaim> BagNode<R> {
         }
     }
 
-    
     #[inline]
     fn boxed() -> Box<Self> {
-        Box::new(Self { next: None, retired_records: ArrayVec::default() })
+        Box::new(Self {
+            next: None,
+            retired_records: ArrayVec::default(),
+        })
     }
 
-    
     #[inline]
     fn is_empty(&self) -> bool {
         self.next.is_none() && self.retired_records.len() == 0
@@ -324,8 +229,6 @@ impl<R: Reclaim> BagNode<R> {
         }
     }
 }
-
-
 
 impl<R: Reclaim + 'static> Drop for BagNode<R> {
     #[inline]

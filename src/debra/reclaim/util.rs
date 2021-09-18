@@ -1,5 +1,3 @@
-
-
 use core::hint::unreachable_unchecked;
 use core::ptr::{self, NonNull};
 
@@ -8,22 +6,11 @@ use crate::debra::reclaim::pointer::{
     MarkedNonNullable,
 };
 
-
-
-
-
-
-
 pub trait UnwrapPtr {
-    
     type Item: Sized;
 
-    
-    
     fn unwrap_ptr(self) -> *const Self::Item;
 }
-
-
 
 impl<'a, T> UnwrapPtr for Option<&'a T> {
     type Item = T;
@@ -61,19 +48,9 @@ impl<T> UnwrapPtr for Option<NonNull<T>> {
     }
 }
 
-
-
-
-
-
-
 pub trait UnwrapMutPtr: UnwrapPtr {
-    
-    
     fn unwrap_mut_ptr(self) -> *mut <Self as UnwrapPtr>::Item;
 }
-
-
 
 impl<'a, T> UnwrapMutPtr for Option<&'a mut T> {
     #[inline]
@@ -89,31 +66,11 @@ impl<T> UnwrapMutPtr for Option<NonNull<T>> {
     }
 }
 
-
-
-
-
-
 pub trait UnwrapUnchecked {
-    
     type Item: Sized;
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     unsafe fn unwrap_unchecked(self) -> Self::Item;
 }
-
-
 
 impl<T> UnwrapUnchecked for Option<T> {
     type Item = T;

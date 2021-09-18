@@ -18,138 +18,49 @@ use crate::debra::reclaim::internal::Internal;
 
 use self::Marked::{Null, Value};
 
-
-
-
-
-
 pub trait MarkedPointer: Sized + Internal {
-    
     type Pointer: MarkedNonNullable<Item = Self::Item, MarkBits = Self::MarkBits>;
-    
+
     type Item: Sized;
-    
+
     type MarkBits: Unsigned;
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     fn as_marked_ptr(&self) -> MarkedPtr<Self::Item, Self::MarkBits>;
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     fn into_marked_ptr(self) -> MarkedPtr<Self::Item, Self::MarkBits>;
 
-    
-    
     fn marked(_: Self, tag: usize) -> Marked<Self::Pointer>;
 
-    
     fn unmarked(_: Self) -> Self;
 
-    
-    
     fn decompose(_: Self) -> (Self, usize);
 
-    
-    
-    
-    
-    
-    
-    
     unsafe fn from_marked_ptr(marked: MarkedPtr<Self::Item, Self::MarkBits>) -> Self;
 
-    
-    
-    
-    
-    
-    
     unsafe fn from_marked_non_null(marked: MarkedNonNull<Self::Item, Self::MarkBits>) -> Self;
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct MarkedPtr<T, N> {
     inner: *mut T,
     _marker: PhantomData<N>,
 }
 
-
-
-
-
-
-
-
-
 pub struct MarkedNonNull<T, N> {
     inner: NonNull<T>,
     _marker: PhantomData<N>,
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub struct AtomicMarkedPtr<T, N> {
     inner: AtomicUsize,
     _marker: PhantomData<(*mut T, N)>,
 }
 
-
-
-
-
-
-
-
-
 #[derive(Copy, Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum Marked<T: MarkedNonNullable> {
-    
     Value(T),
-    
-    
+
     Null(usize),
 }
-
-
 
 impl<U, T, N: Unsigned> MarkedPointer for Option<U>
 where
@@ -203,7 +114,9 @@ where
     #[inline]
     unsafe fn from_marked_ptr(marked: MarkedPtr<Self::Item, Self::MarkBits>) -> Self {
         if !marked.is_null() {
-            Some(Self::Pointer::from_marked_non_null(MarkedNonNull::new_unchecked(marked)))
+            Some(Self::Pointer::from_marked_non_null(
+                MarkedNonNull::new_unchecked(marked),
+            ))
         } else {
             None
         }
@@ -278,16 +191,8 @@ where
     }
 }
 
-
-
-
-
-
-
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct InvalidNullError;
-
-
 
 impl fmt::Display for InvalidNullError {
     #[inline]
@@ -296,36 +201,16 @@ impl fmt::Display for InvalidNullError {
     }
 }
 
-
-
 #[cfg(feature = "std")]
 impl Error for InvalidNullError {}
 
-
-
-
-
-
 pub trait MarkedNonNullable: Sized + Internal {
-    
     type Item: Sized;
-    
+
     type MarkBits: Unsigned;
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     fn into_marked_non_null(self) -> MarkedNonNull<Self::Item, Self::MarkBits>;
 }
-
-
 
 impl<'a, T> MarkedNonNullable for &'a T {
     type Item = T;
@@ -357,8 +242,6 @@ impl<T> MarkedNonNullable for NonNull<T> {
     }
 }
 
-
-
 impl<U, T, N: Unsigned> Internal for Option<U> where
     U: MarkedPointer<Item = T, MarkBits = N> + MarkedNonNullable<Item = T, MarkBits = N>
 {
@@ -369,37 +252,28 @@ impl<U, T, N: Unsigned> Internal for Marked<U> where
 {
 }
 
-
-
-
-
 #[inline]
 const fn decompose<T>(marked: usize, mark_bits: usize) -> (*mut T, usize) {
-    (decompose_ptr::<T>(marked, mark_bits), decompose_tag::<T>(marked, mark_bits))
+    (
+        decompose_ptr::<T>(marked, mark_bits),
+        decompose_tag::<T>(marked, mark_bits),
+    )
 }
-
-
 
 #[inline]
 const fn decompose_ptr<T>(marked: usize, mark_bits: usize) -> *mut T {
     (marked & !mark_mask::<T>(mark_bits)) as *mut _
 }
 
-
-
 #[inline]
 const fn decompose_tag<T>(marked: usize, mark_bits: usize) -> usize {
     marked & mark_mask::<T>(mark_bits)
 }
 
-
-
 #[inline]
 const fn lower_bits<T>() -> usize {
     mem::align_of::<T>().trailing_zeros() as usize
 }
-
-
 
 #[deny(const_err)]
 #[inline]
@@ -407,9 +281,6 @@ const fn mark_mask<T>(mark_bits: usize) -> usize {
     let _assert_sufficient_alignment = lower_bits::<T>() - mark_bits;
     (1 << mark_bits) - 1
 }
-
-
-
 
 #[inline]
 fn compose<T, N: Unsigned>(ptr: *mut T, tag: usize) -> *mut T {

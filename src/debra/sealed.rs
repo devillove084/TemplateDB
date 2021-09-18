@@ -1,4 +1,3 @@
-
 extern crate alloc;
 
 #[cfg(not(feature = "std"))]
@@ -10,22 +9,12 @@ use crate::debra::common::arrayvec::ArrayVec;
 
 use super::common::epoch::Epoch;
 
-
-
 type BagNode = crate::debra::common::bag::BagNode<crate::debra::Debra>;
 type BagQueue = crate::debra::common::bag::BagQueue<crate::debra::Debra>;
 type EpochBagQueues = crate::debra::common::bag::EpochBagQueues<crate::debra::Debra>;
 
-
-
-
-
-
-
 #[derive(Debug)]
 pub(crate) struct SealedList(NonNull<Sealed>, NonNull<Sealed>);
-
-
 
 impl SealedList {
     #[inline]
@@ -48,12 +37,6 @@ impl SealedList {
     }
 }
 
-
-
-
-
-
-
 #[derive(Debug)]
 pub(crate) struct Sealed {
     pub(crate) next: Option<NonNull<Sealed>>,
@@ -61,18 +44,18 @@ pub(crate) struct Sealed {
     queue: Box<BagNode>,
 }
 
-
-
 impl Sealed {
     #[inline]
     fn from_queue(queue: BagQueue, epoch: Epoch) -> Option<NonNull<Self>> {
         queue.into_non_empty().map(|queue| {
-            NonNull::from(Box::leak(Box::new(Self { next: None, seal: epoch, queue })))
+            NonNull::from(Box::leak(Box::new(Self {
+                next: None,
+                seal: epoch,
+                queue,
+            })))
         })
     }
 }
-
-
 
 impl Drop for Sealed {
     #[inline]

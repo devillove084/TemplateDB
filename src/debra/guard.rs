@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 use core::sync::atomic::Ordering;
 
 use crate::debra::common::LocalAccess;
@@ -19,21 +8,11 @@ use crate::debra::local::Local;
 use crate::debra::typenum::Unsigned;
 use crate::debra::{Atomic, Debra, Shared};
 
-
-
-
-
-
-
 pub struct Guard<L: LocalAccess> {
     local_access: L,
 }
 
-
-
 impl<'a> Guard<&'a Local> {
-    
-    
     #[inline]
     pub fn new_with_local(local_access: &'a Local) -> Self {
         Self::with_local_access(local_access)
@@ -41,7 +20,6 @@ impl<'a> Guard<&'a Local> {
 }
 
 impl<L: LocalAccess> Guard<L> {
-    
     #[inline]
     pub fn with_local_access(local_access: L) -> Self {
         local_access.set_active();
@@ -49,17 +27,15 @@ impl<L: LocalAccess> Guard<L> {
     }
 }
 
-
-
 impl<L: LocalAccess> Clone for Guard<L> {
     #[inline]
     fn clone(&self) -> Self {
         self.local_access.set_active();
-        Self { local_access: self.local_access }
+        Self {
+            local_access: self.local_access,
+        }
     }
 }
-
-
 
 impl<L: LocalAccess + Default> Default for Guard<L> {
     #[inline]
@@ -68,16 +44,12 @@ impl<L: LocalAccess + Default> Default for Guard<L> {
     }
 }
 
-
-
 impl<L: LocalAccess> Drop for Guard<L> {
     #[inline]
     fn drop(&mut self) {
         self.local_access.set_inactive();
     }
 }
-
-
 
 unsafe impl<L: LocalAccess<Reclaimer = Debra>> Protect for Guard<L> {
     type Reclaimer = Debra;
@@ -108,7 +80,4 @@ unsafe impl<L: LocalAccess<Reclaimer = Debra>> Protect for Guard<L> {
     }
 }
 
-
-
 unsafe impl<L: LocalAccess<Reclaimer = Debra>> ProtectRegion for Guard<L> {}
-

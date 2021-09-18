@@ -1,6 +1,3 @@
-
-
-
 pub use self::Aligned64 as CacheAligned;
 
 use core::borrow::{Borrow, BorrowMut};
@@ -15,7 +12,7 @@ macro_rules! impl_align {
             pub struct $wrapper<T>(pub T);
 
             impl<T> $wrapper<T> {
-                
+
                 pub fn get(aligned: &Self) -> &T {
                     &aligned.0
                 }

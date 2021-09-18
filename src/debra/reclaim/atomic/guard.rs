@@ -1,7 +1,3 @@
-
-
-
-
 use core::sync::atomic::Ordering;
 
 use typenum::Unsigned;
@@ -10,8 +6,6 @@ use crate::debra::reclaim::atomic::Atomic;
 use crate::debra::reclaim::internal::GuardRef;
 use crate::debra::reclaim::pointer::{Marked, MarkedPointer, MarkedPtr};
 use crate::debra::reclaim::{AcquireResult, Protect, ProtectRegion, Shared};
-
-
 
 impl<'g, G> GuardRef<'g> for &'g mut G
 where

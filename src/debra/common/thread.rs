@@ -1,8 +1,5 @@
-
-
 use core::fmt;
 use core::sync::atomic::{AtomicUsize, Ordering};
-
 
 use super::epoch::Epoch;
 
@@ -10,61 +7,29 @@ use self::State::{Active, Inactive};
 
 const INACTIVE_BIT: usize = 0b1;
 
-
-
-
-
-
-
 #[derive(Debug)]
 pub struct ThreadState(AtomicUsize);
 
-
-
 impl ThreadState {
-    
-    
     #[inline]
     pub fn new(global_epoch: Epoch) -> Self {
         Self(AtomicUsize::new(global_epoch.into_inner() | INACTIVE_BIT))
     }
 
-    
     #[inline]
     pub fn is_same(&self, other: &Self) -> bool {
         self as *const Self == other as *const Self
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     #[inline]
     pub fn load(&self, order: Ordering) -> (Epoch, State) {
         let state = self.0.load(order);
-        (Epoch::with_epoch(state & !INACTIVE_BIT), State::from(state & INACTIVE_BIT == 0))
+        (
+            Epoch::with_epoch(state & !INACTIVE_BIT),
+            State::from(state & INACTIVE_BIT == 0),
+        )
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     #[inline]
     pub fn store(&self, epoch: Epoch, state: State, order: Ordering) {
         match state {
@@ -74,8 +39,6 @@ impl ThreadState {
     }
 }
 
-
-
 impl fmt::Display for ThreadState {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -84,22 +47,12 @@ impl fmt::Display for ThreadState {
     }
 }
 
-
-
-
-
-
 #[derive(Debug, Copy, Clone, Eq, Ord, PartialEq, PartialOrd)]
 pub enum State {
-    
-    
     Active,
-    
-    
+
     Inactive,
 }
-
-
 
 impl From<bool> for State {
     #[inline]
@@ -111,8 +64,6 @@ impl From<bool> for State {
         }
     }
 }
-
-
 
 impl fmt::Display for State {
     #[inline]
@@ -128,7 +79,6 @@ impl fmt::Display for State {
 mod tests {
     use std::sync::atomic::Ordering::Relaxed;
 
-    
     use super::Epoch;
 
     use super::{

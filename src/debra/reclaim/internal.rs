@@ -1,6 +1,3 @@
-
-
-
 use core::ptr::NonNull;
 use core::sync::atomic::Ordering;
 
@@ -9,17 +6,6 @@ use typenum::Unsigned;
 use crate::debra::reclaim::atomic::Atomic;
 use crate::debra::reclaim::pointer::{Marked, MarkedPointer, MarkedPtr};
 use crate::debra::reclaim::{AcquireResult, Reclaim, Shared};
-
-
-
-
-
-
-
-
-
-
-
 
 pub trait GuardRef<'g> {
     type Reclaimer: Reclaim;
@@ -38,30 +24,14 @@ pub trait GuardRef<'g> {
     ) -> AcquireResult<'g, T, Self::Reclaimer, N>;
 }
 
-
-
-
-
-
-
 pub trait Compare: MarkedPointer + Sized {
     type Reclaimer: Reclaim;
     type Unlinked: MarkedPointer<Item = Self::Item, MarkBits = Self::MarkBits>;
 }
 
-
-
-
-
-
 pub trait Store: MarkedPointer + Sized {
     type Reclaimer: Reclaim;
 }
-
-
-
-
-
 
 pub trait Internal {}
 

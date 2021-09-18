@@ -1,7 +1,4 @@
-
-
 extern crate alloc;
-
 
 #[cfg(not(feature = "std"))]
 use alloc::boxed::Box;
@@ -14,27 +11,19 @@ use core::sync::atomic::{
 
 use super::sealed::{Sealed, SealedList};
 
-
-
-
-
-
-
 #[derive(Debug)]
 pub(crate) struct AbandonedQueue {
     head: AtomicPtr<Sealed>,
 }
 
-
-
 impl AbandonedQueue {
-    
     #[inline]
     pub const fn new() -> Self {
-        Self { head: AtomicPtr::new(ptr::null_mut()) }
+        Self {
+            head: AtomicPtr::new(ptr::null_mut()),
+        }
     }
 
-    
     #[inline]
     pub fn push(&self, sealed: SealedList) {
         let (head, mut tail) = sealed.into_inner();
@@ -43,34 +32,29 @@ impl AbandonedQueue {
             let curr_head = self.head.load(Relaxed);
             unsafe { tail.as_mut().next = NonNull::new(curr_head) };
 
-            
-            if self.head.compare_exchange_weak(curr_head, head.as_ptr(), Release, Relaxed).is_ok() {
+            if self
+                .head
+                .compare_exchange_weak(curr_head, head.as_ptr(), Release, Relaxed)
+                .is_ok()
+            {
                 return;
             }
         }
     }
 
-    
     #[inline]
     pub fn take_all(&self) -> Iter {
-        
         let head = self.head.swap(ptr::null_mut(), Acquire);
-        Iter { curr: NonNull::new(head) }
+        Iter {
+            curr: NonNull::new(head),
+        }
     }
 }
-
-
-
-
-
-
 
 #[derive(Debug)]
 pub(crate) struct Iter {
     curr: Option<NonNull<Sealed>>,
 }
-
-
 
 impl Iterator for Iter {
     type Item = Box<Sealed>;

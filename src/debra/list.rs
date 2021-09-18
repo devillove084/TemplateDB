@@ -1,6 +1,3 @@
-
-
-
 extern crate alloc;
 
 #[cfg(not(feature = "std"))]
@@ -14,50 +11,32 @@ use core::sync::atomic::Ordering::{Acquire, Relaxed, Release};
 
 use crate::debra::reclaim::align::CacheAligned;
 use crate::debra::reclaim::prelude::*;
-use typenum::U1;
 use crate::debra::reclaim::{MarkedNonNull, MarkedPtr};
+use typenum::U1;
 
 type AtomicMarkedPtr<T> = crate::debra::reclaim::AtomicMarkedPtr<T, U1>;
 
 const REMOVE_TAG: usize = 0b1;
-
-
-
-
-
-
-
-
-
-
 
 #[derive(Debug)]
 pub(crate) struct List<T> {
     head: AtomicMarkedPtr<Node<T>>,
 }
 
-
-
 impl<T> List<T> {
-    
     pub const fn new() -> Self {
-        Self { head: AtomicMarkedPtr::null() }
+        Self {
+            head: AtomicMarkedPtr::null(),
+        }
     }
 
-    
-    
-    
-    
     #[inline]
     pub fn insert(&self, entry: T) -> ListEntry<T> {
         let entry = Box::leak(Box::new(Node::new(entry)));
         loop {
-            
             let head = self.head.load(Acquire);
             entry.next().store(head, Relaxed);
 
-            
-            
             if self
                 .head
                 .compare_exchange_weak(head, MarkedPtr::new(entry), Release, Relaxed)
@@ -68,16 +47,6 @@ impl<T> List<T> {
         }
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     #[inline]
     pub fn remove(&self, entry: ListEntry<T>) -> NonNull<Node<T>> {
         let entry = entry.into_inner();
@@ -92,14 +61,18 @@ impl<T> List<T> {
             let next = MarkedPtr::new(pos.next.unwrap_ptr());
             let next_marked = MarkedPtr::compose(pos.next.unwrap_ptr(), REMOVE_TAG);
 
-            
-            if curr.next.compare_exchange(next, next_marked, Acquire, Relaxed).is_err() {
+            if curr
+                .next
+                .compare_exchange(next, next_marked, Acquire, Relaxed)
+                .is_err()
+            {
                 continue;
             }
 
-            
-            
-            if prev.compare_exchange(MarkedPtr::from(curr), next, Release, Relaxed).is_err() {
+            if prev
+                .compare_exchange(MarkedPtr::from(curr), next, Release, Relaxed)
+                .is_err()
+            {
                 self.repeat_remove(entry);
             }
 
@@ -107,13 +80,11 @@ impl<T> List<T> {
         }
     }
 
-    
     #[inline]
     pub fn iter(&self) -> Iter<T> {
         Iter::new(self, &self.head)
     }
 
-    
     #[inline]
     fn repeat_remove(&self, entry: NonNull<Node<T>>) {
         loop {
@@ -126,21 +97,21 @@ impl<T> List<T> {
             let curr = MarkedPtr::new(pos.curr.as_ptr());
             let next = MarkedPtr::new(pos.next.unwrap_ptr());
 
-            
             if prev.compare_exchange(curr, next, Release, Relaxed).is_ok() {
                 return;
             }
         }
     }
 
-    
     #[inline]
     fn iter_inner(&self, ignore: Option<NonNull<Node<T>>>) -> IterInner<T> {
-        IterInner { head: &self.head, prev: NonNull::from(&self.head), ignore }
+        IterInner {
+            head: &self.head,
+            prev: NonNull::from(&self.head),
+            ignore,
+        }
     }
 }
-
-
 
 impl<T> Drop for List<T> {
     #[inline]
@@ -155,16 +126,9 @@ impl<T> Drop for List<T> {
     }
 }
 
-
-
-
-
-
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct ListEntry<'a, T>(NonNull<Node<T>>, PhantomData<&'a List<T>>);
-
-
 
 impl<T> ListEntry<'_, T> {
     #[inline]
@@ -174,8 +138,6 @@ impl<T> ListEntry<'_, T> {
         inner
     }
 }
-
-
 
 impl<T> Deref for ListEntry<'_, T> {
     type Target = T;
@@ -187,8 +149,6 @@ impl<T> Deref for ListEntry<'_, T> {
     }
 }
 
-
-
 impl<T> Drop for ListEntry<'_, T> {
     #[inline]
     fn drop(&mut self) {
@@ -196,74 +156,56 @@ impl<T> Drop for ListEntry<'_, T> {
     }
 }
 
-
-
-
-
-
 #[derive(Debug, Default)]
 pub(crate) struct Node<T> {
     elem: CacheAligned<T>,
     next: CacheAligned<AtomicMarkedPtr<Node<T>>>,
 }
 
-
-
 impl<T> Node<T> {
-    
     #[inline]
     fn elem(&self) -> &T {
         &*self.elem
     }
 
-    
     #[inline]
     fn next(&self) -> &AtomicMarkedPtr<Node<T>> {
         &*self.next
     }
 
-    
     #[inline]
     fn new(elem: T) -> Self {
-        Self { elem: CacheAligned(elem), next: CacheAligned(AtomicMarkedPtr::null()) }
+        Self {
+            elem: CacheAligned(elem),
+            next: CacheAligned(AtomicMarkedPtr::null()),
+        }
     }
 }
 
-
-
-
-
-
 #[derive(Debug)]
 pub(crate) struct Iter<'a, T>(IterInner<'a, T>);
-
-
 
 impl<'a, T> Iterator for Iter<'a, T> {
     type Item = &'a T;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|IterPos { curr, .. }| unsafe { &*curr.as_ptr() }.elem())
+        self.0
+            .next()
+            .map(|IterPos { curr, .. }| unsafe { &*curr.as_ptr() }.elem())
     }
 }
 
-
-
 impl<'a, T> Iter<'a, T> {
-    
-    
     #[inline]
     pub fn new(list: &'a List<T>, start: &AtomicMarkedPtr<Node<T>>) -> Self {
-        Self(IterInner { head: &list.head, prev: NonNull::from(start), ignore: None })
+        Self(IterInner {
+            head: &list.head,
+            prev: NonNull::from(start),
+            ignore: None,
+        })
     }
 
-    
-    
-    
-    
-    
-    
     #[inline]
     pub fn load_current_acquire(&self) -> Result<Option<&'a T>, IterError> {
         let (curr, tag) = unsafe { self.0.prev.as_ref().load(Acquire).decompose_ref() };
@@ -273,28 +215,15 @@ impl<'a, T> Iter<'a, T> {
         }
     }
 
-    
     #[inline]
     pub fn load_head_acquire(&self) -> Option<&'a T> {
         unsafe { self.0.head.load(Acquire).as_ref().map(|node| node.elem()) }
     }
 }
 
-
-
-
-
-
 pub(crate) enum IterError {
-    
-    
     Retry,
 }
-
-
-
-
-
 
 #[derive(Debug)]
 struct IterInner<'a, T> {
@@ -303,14 +232,11 @@ struct IterInner<'a, T> {
     ignore: Option<NonNull<Node<T>>>,
 }
 
-
-
 impl<T> Iterator for IterInner<'_, T> {
     type Item = IterPos<T>;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        
         while let Value(curr) = unsafe { MarkedNonNull::new(self.prev.as_ref().load(Acquire)) } {
             let (curr, curr_tag) = unsafe { curr.decompose_ref_unbounded() };
             if curr_tag == REMOVE_TAG {
@@ -319,7 +245,7 @@ impl<T> Iterator for IterInner<'_, T> {
             }
 
             let curr_next = curr.next();
-            
+
             let next = curr_next.load(Acquire);
 
             if unsafe { self.prev.as_ref().load(Relaxed) } != MarkedPtr::from(curr) {
@@ -334,14 +260,16 @@ impl<T> Iterator for IterInner<'_, T> {
 
             let prev = self.prev;
             self.prev = NonNull::from(curr_next);
-            return Some(IterPos { prev, curr: NonNull::from(curr), next: NonNull::new(next) });
+            return Some(IterPos {
+                prev,
+                curr: NonNull::from(curr),
+                next: NonNull::new(next),
+            });
         }
 
         None
     }
 }
-
-
 
 impl<T> IterInner<'_, T> {
     #[inline]
@@ -358,10 +286,6 @@ impl<T> IterInner<'_, T> {
     }
 }
 
-
-
-
-
 #[derive(Copy, Clone, Debug)]
 struct IterPos<T> {
     prev: NonNull<AtomicMarkedPtr<Node<T>>>,
@@ -369,17 +293,11 @@ struct IterPos<T> {
     next: Option<NonNull<Node<T>>>,
 }
 
-
-
-
-
 trait UnwrapPtr {
     type Item;
 
     fn unwrap_ptr(self) -> *mut Self::Item;
 }
-
-
 
 impl<T> UnwrapPtr for Option<NonNull<T>> {
     type Item = T;
@@ -409,7 +327,7 @@ mod tests {
                 .map(|_| {
                     thread::spawn(|| {
                         let token = LIST.insert(thread::current().id());
-                        let _ = LIST.remove(token); 
+                        let _ = LIST.remove(token);
                     })
                 })
                 .collect();

@@ -1,11 +1,10 @@
-
-use std::marker::PhantomData;
 use super::common::LocalAccess;
-use crate::debra::reclaim::{GlobalReclaim, MarkedPointer, Reclaim};
 use super::guard::Guard;
 use super::local::Local;
 use super::typenum::Unsigned;
 use super::{Debra, Retired, Unlinked};
+use crate::debra::reclaim::{GlobalReclaim, MarkedPointer, Reclaim};
+use std::marker::PhantomData;
 
 thread_local!(static LOCAL: Local = Local::new());
 
@@ -51,19 +50,8 @@ impl Guard<DefaultAccess> {
     }
 }
 
-
-
-
-
-
-
-
-
-
 #[derive(Copy, Clone, Debug, Default)]
 pub struct DefaultAccess(PhantomData<*mut ()>);
-
-
 
 impl LocalAccess for DefaultAccess {
     type Reclaimer = Debra;
