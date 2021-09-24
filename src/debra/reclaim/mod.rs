@@ -1,5 +1,5 @@
 #![cfg_attr(not(any(test, feature = "std")), no_std)]
-#![warn(missing_docs)]
+#![allow(missing_docs)]
 
 #[cfg(not(feature = "std"))]
 extern crate alloc;

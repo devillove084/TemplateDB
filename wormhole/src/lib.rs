@@ -1,3 +1,8 @@
+#![feature(allocator_api)]
+#![feature(alloc_layout_extra)]
+#![feature(ptr_as_uninit)]
+#![feature(slice_ptr_len)]
+
 use bytes::Bytes;
 
 pub mod kv;
