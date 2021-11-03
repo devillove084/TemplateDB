@@ -1,21 +1,20 @@
-#![feature(allocator_api)]
-#![feature(alloc_layout_extra)]
-#![feature(ptr_as_uninit)]
-#![feature(slice_ptr_len)]
+#[cfg(feature = "serde")]
+#[macro_use]
+extern crate serde;
+#[cfg(feature = "serde")]
+mod serialization;
 
-use bytes::Bytes;
+mod entry;
+mod iter;
+mod node;
+mod sparse;
+mod subtrie;
+mod trie;
+mod util;
 
-pub mod kv;
-pub mod sst;
-pub mod wh;
-pub mod wormhole;
+pub mod wrapper;
 
-pub const WH_KPN: u32 = 128u32;
-
-pub fn kv_crc32(key: &Bytes, value: &Bytes) -> u32{
-    todo!()
-}
-
-pub fn kv_crc_extend(lo: u32) -> u64 {
-    todo!()
-}
+pub use entry::{Entry, OccupiedEntry, VacantEntry};
+pub use iter::{IntoIter, Iter, IterMut};
+pub use subtrie::SubTrie;
+pub use trie::{Break, Trie};
