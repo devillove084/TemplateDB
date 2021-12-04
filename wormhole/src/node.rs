@@ -227,7 +227,6 @@ impl<K: fmt::Debug, V: fmt::Debug> fmt::Debug for Node<K, V> {
 }
 
 impl<K: Borrow<[u8]>, V> Node<K, V> {
-
     #[inline]
     pub unsafe fn unwrap_leaf(self) -> Leaf<K, V> {
         match self {

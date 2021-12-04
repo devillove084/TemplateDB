@@ -6,7 +6,7 @@ use super::iter::Iter;
 use super::node::Node;
 
 pub struct SubTrie<'a, K: 'a, V: 'a> {
-    pub(crate) root: Option<&'a Node<K, V>>,
+    pub root: Option<&'a Node<K, V>>,
 }
 
 impl<'a, K: fmt::Debug, V: fmt::Debug> fmt::Debug for SubTrie<'a, K, V> {

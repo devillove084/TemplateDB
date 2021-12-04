@@ -1,4 +1,4 @@
-use trie::Trie;
+use super::trie::Trie;
 
 use std::borrow::Borrow;
 use std::fmt;

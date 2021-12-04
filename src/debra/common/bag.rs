@@ -5,9 +5,18 @@ use alloc::boxed::Box;
 
 use core::mem;
 
-use crate::debra::reclaim::{Reclaim, Retired};
+use crate::debra::{
+    self,
+    guard::Guard,
+    reclaim::{Reclaim, Retired},
+    Atomic,
+};
 use arrayvec::ArrayVec;
 use cfg_if::cfg_if;
+use std::sync::{
+    atomic::{AtomicUsize, Ordering::Relaxed},
+    Arc,
+};
 
 use super::epoch::PossibleAge;
 

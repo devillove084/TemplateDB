@@ -5,6 +5,8 @@
 #![feature(slice_ptr_len)]
 #![feature(core_intrinsics)]
 #![feature(exclusive_range_pattern)]
+#![feature(associated_type_defaults)]
+#![feature(associated_type_bounds)]
 
 mod bloom;
 mod checksum;
@@ -24,7 +26,7 @@ mod util;
 mod value;
 mod value_log;
 mod wal;
-pub mod alloc;
+//pub mod alloc;
 
 pub use format::{get_ts, key_with_ts};
 pub use opt::ChecksumVerificationMode;
@@ -37,7 +39,6 @@ pub use db::{Agate, AgateOptions};
 pub use error::{Error, Result};
 pub use iterator_trait::AgateIterator;
 pub use skiplist::Skiplist;
-
 
 #[macro_use]
 extern crate lazy_static;

@@ -32,7 +32,7 @@ use crate::local::Local;
 use crate::debra::common::LocalAccess;
 use cfg_if::cfg_if;
 use reclaim::prelude::*;
-use typenum::{Unsigned};
+use typenum::Unsigned;
 
 pub type U0 = u32;
 

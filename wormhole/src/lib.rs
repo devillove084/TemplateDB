@@ -1,7 +1,3 @@
-#[cfg(feature = "serde")]
-#[macro_use]
-extern crate serde;
-#[cfg(feature = "serde")]
 mod serialization;
 
 mod entry;
@@ -11,6 +7,7 @@ mod sparse;
 mod subtrie;
 mod trie;
 mod util;
+mod my;
 
 pub mod wrapper;
 
