@@ -1,0 +1,27 @@
+[package]
+name = "kernel"
+version = "0.4.0"
+edition = "2021"
+license = "Apache-2.0"
+homepage = "https://arrowkv.io"
+repository = "https://github.com/devillove084/arrowkv"
+description = "An arrowkv module that provides stateful environment abstractions and implementations."
+
+[dependencies]
+journal = { version = "0.4.0", path = "../journal" }
+storage = { version = "0.4.0", path = "../storage" }
+runtime = { version = "0.4.0", path = "../runtime" }
+
+thiserror = "1.0"
+async-trait = "0.1"
+futures = "0.3"
+tokio = { version = "1.14", features = ["full"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+tonic = "0.6"
+prost = "0.9"
+
+[dev-dependencies]
+tempfile = "3"
+
+[build-dependencies]
+tonic-build = "0.6"

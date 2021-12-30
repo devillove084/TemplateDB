@@ -12,22 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod arrow {
-    pub use arrow_engine::*;
-}
+mod async_read;
+mod async_read_ext;
+mod read;
+mod read_exact;
 
-pub mod kernel {
-    pub use kernel::*;
-}
+pub use self::{async_read::AsyncRead, async_read_ext::AsyncReadExt};
 
-pub mod journal {
-    pub use journal::*;
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-pub mod storage {
-    pub use storage::*;
-}
-
-pub mod runtime {
-    pub use runtime::*;
+    #[tokio::test]
+    async fn random() {
+        let data = vec![0u8; 4];
+        let mut buf = vec![0u8; 3];
+        let n = data.as_slice().read(&mut buf, 0).await.unwrap();
+        assert_eq!(n, 3);
+        let n = data.as_slice().read(&mut buf, 2).await.unwrap();
+        assert_eq!(n, 2);
+    }
 }

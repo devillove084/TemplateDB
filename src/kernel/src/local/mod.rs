@@ -12,22 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod arrow {
-    pub use arrow_engine::*;
-}
+mod kernel;
 
-pub mod kernel {
-    pub use kernel::*;
-}
+pub use self::{kernel::Kernel, mem::Kernel as MemKernel};
 
-pub mod journal {
-    pub use journal::*;
-}
+mod mem {
+    use journal::mem::Journal;
+    use storage::mem::Storage;
 
-pub mod storage {
-    pub use storage::*;
-}
+    use crate::Result;
 
-pub mod runtime {
-    pub use runtime::*;
+    pub type Kernel<T> = super::Kernel<Journal<T>, Storage>;
+
+    impl<T> Kernel<T> {
+        pub async fn open() -> Result<Self> {
+            let journal = Journal::default();
+            let storage = Storage::default();
+            Self::init(journal, storage).await
+        }
+    }
 }

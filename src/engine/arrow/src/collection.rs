@@ -12,22 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod arrow {
-    pub use arrow_engine::*;
+pub type CollectionId = u64;
+
+#[derive(Clone)]
+pub struct Collection {
+    id: CollectionId,
 }
 
-pub mod kernel {
-    pub use kernel::*;
-}
+impl Collection {
+    pub fn new(id: CollectionId) -> Self {
+        Self { id }
+    }
 
-pub mod journal {
-    pub use journal::*;
-}
-
-pub mod storage {
-    pub use storage::*;
-}
-
-pub mod runtime {
-    pub use runtime::*;
+    pub fn id(&self) -> CollectionId {
+        self.id
+    }
 }

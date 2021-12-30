@@ -12,22 +12,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod arrow {
-    pub use arrow_engine::*;
-}
+//! An arrowkv module that provides object storage abstractions and
+//! implementations.
+//!
+//! # Abstraction
+//!
+//! [`Storage`] is an abstraction to store data objects.
+//!
+//! # Implementation
+//!
+//! Some built-in implementations of [`Storage`]:
+//!
+//! - [`mem`](crate::mem)
+//! - [`file`](crate::file)
+//! - [`grpc`](crate::grpc)
+//!
+//! [`Storage`]: crate::Storage
 
-pub mod kernel {
-    pub use kernel::*;
-}
+#![feature(type_alias_impl_trait)]
 
-pub mod journal {
-    pub use journal::*;
-}
+mod error;
+mod storage;
 
-pub mod storage {
-    pub use storage::*;
-}
+// pub mod file;
+// pub mod grpc;
+pub mod mem;
 
-pub mod runtime {
-    pub use runtime::*;
-}
+pub use async_trait::async_trait;
+
+pub use self::{
+    error::{Error, Result},
+    storage::Storage,
+};

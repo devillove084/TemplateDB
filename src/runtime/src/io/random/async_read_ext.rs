@@ -12,22 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod arrow {
-    pub use arrow_engine::*;
+use super::{read::Read, read_exact::ReadExact, AsyncRead};
+
+pub trait AsyncReadExt: AsyncRead {
+    fn read<'a>(&'a mut self, buf: &'a mut [u8], pos: usize) -> Read<'a, Self>
+    where
+        Self: Unpin,
+    {
+        Read::new(self, buf, pos)
+    }
+
+    fn read_exact<'a>(&'a mut self, buf: &'a mut [u8], pos: usize) -> ReadExact<'a, Self>
+    where
+        Self: Unpin,
+    {
+        ReadExact::new(self, buf, pos)
+    }
 }
 
-pub mod kernel {
-    pub use kernel::*;
-}
-
-pub mod journal {
-    pub use journal::*;
-}
-
-pub mod storage {
-    pub use storage::*;
-}
-
-pub mod runtime {
-    pub use runtime::*;
-}
+impl<R: AsyncRead + ?Sized> AsyncReadExt for R {}

@@ -12,22 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod arrow {
-    pub use arrow_engine::*;
+use thiserror::Error;
+
+/// Errors for all journal operations.
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("{0} is not found")]
+    NotFound(String),
+    #[error("{0} already exists")]
+    AlreadyExists(String),
+    #[error("{0}")]
+    InvalidArgument(String),
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+    #[error(transparent)]
+    Unknown(Box<dyn std::error::Error + Send>),
 }
 
-pub mod kernel {
-    pub use kernel::*;
-}
-
-pub mod journal {
-    pub use journal::*;
-}
-
-pub mod storage {
-    pub use storage::*;
-}
-
-pub mod runtime {
-    pub use runtime::*;
-}
+pub type Result<T> = std::result::Result<T, Error>;

@@ -12,22 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod arrow {
-    pub use arrow_engine::*;
-}
+pub use crate::{Version, VersionUpdate};
 
-pub mod kernel {
-    pub use kernel::*;
-}
-
-pub mod journal {
-    pub use journal::*;
-}
-
-pub mod storage {
-    pub use storage::*;
-}
-
-pub mod runtime {
-    pub use runtime::*;
-}
+tonic::include_proto!("arrowkv.kernel.v1");
