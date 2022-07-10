@@ -3,10 +3,6 @@
 version = 3
 
 [[package]]
-name = "bin"
-version = "0.1.0"
-
-[[package]]
 name = "client"
 version = "0.1.0"
 
