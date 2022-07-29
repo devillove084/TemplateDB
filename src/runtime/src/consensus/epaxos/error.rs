@@ -12,10 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod accelerate;
-pub mod allocator;
-pub mod analysis;
-pub mod consensus;
-pub mod gc;
-pub mod network;
-pub mod storage;
+use std::io;
+
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum CommitError {}
+
+#[derive(Debug, Error)]
+pub enum ExecuteError {
+    #[error("invalid command {0} ")]
+    InvalidCommand(String),
+    #[error("meet io related error")]
+    IOError(#[from] io::Error),
+}
+
+#[derive(Debug, Error)]
+pub enum RpcError {
+    #[error("meet io related error")]
+    IOError(#[from] io::Error),
+}
