@@ -22,6 +22,9 @@ thiserror = "1.0.31"
 tokio = { version = "1.19.2", features = ["full"] }
 yaml-rust = "0.4.5"
 pro-macro = {path = "../util/pro-macro"}
+derivative = "2.2.0"
+prost = "0.11.0"
+tonic = "0.8.0"
 
 [build-dependencies]
 tonic-build = "0.8.0"

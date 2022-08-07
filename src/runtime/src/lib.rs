@@ -19,3 +19,43 @@ pub mod consensus;
 pub mod gc;
 pub mod network;
 pub mod storage;
+pub mod stream;
+
+#[macro_use]
+extern crate derivative;
+
+pub mod node {
+    pub use v1::*;
+
+    pub mod v1 {
+        tonic::include_proto!("runtime.node.v1");
+    }
+}
+
+pub use node::*;
+
+pub mod store {
+    pub use v1::*;
+
+    pub mod meta {
+        pub use v1::*;
+
+        pub mod v1 {
+            tonic::include_proto!("runtime.store.meta.v1");
+        }
+    }
+
+    pub mod manifest {
+        pub use v1::*;
+
+        pub mod v1 {
+            tonic::include_proto!("runtime.store.manifest.v1");
+        }
+    }
+
+    pub mod v1 {
+        tonic::include_proto!("runtime.store.v1");
+    }
+}
+
+pub use store::{manifest, meta::v1::*, v1::*};

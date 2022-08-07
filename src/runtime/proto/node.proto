@@ -18,8 +18,8 @@ package runtime.node.v1;
 
 service Node {
   rpc Tenant(TenantRequest) returns (TenantResponse) {}
-  rpc Stream(stream StreamRequest) returns (stream StreamResponse) {}
-  rpc Segment(stream SegmentRequest) returns (stream SegmentResponse) {}
+  rpc Stream(StreamRequest) returns (StreamResponse) {}
+  rpc Segment(SegmentRequest) returns (SegmentResponse) {}
   rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse) {}
 }
 
