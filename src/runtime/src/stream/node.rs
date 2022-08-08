@@ -16,9 +16,11 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use tokio::sync::Mutex;
 
+use super::{
+    error::{Error, Result},
+    tenant::Tenant,
+};
 use crate::TenantDesc;
-
-use super::{tenant::Tenant, error::{Result, Error}};
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -53,7 +55,6 @@ pub struct NodeInner {
     tenants: HashMap<String, Tenant>,
 }
 
-
 /// This node may will be master
 pub struct Node {
     pub config: Config,
@@ -79,7 +80,11 @@ impl Node {
 
     pub async fn tenant(&self, name: &str) -> Result<Tenant> {
         let inner = self.inner.lock().await;
-        inner.tenants.get(name).cloned().ok_or_else(|| Error::NotFound(format!("tenant {}", name)))
+        inner
+            .tenants
+            .get(name)
+            .cloned()
+            .ok_or_else(|| Error::NotFound(format!("tenant {}", name)))
     }
 
     pub async fn tenants(&self) -> Result<Vec<Tenant>> {

@@ -51,7 +51,6 @@ impl Entry {
     }
 }
 
-
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(C)]
 pub struct Sequence {
@@ -61,10 +60,7 @@ pub struct Sequence {
 
 impl Sequence {
     pub fn new(epoch: u32, index: u32) -> Self {
-        Sequence {
-            epoch,
-            index,
-        }
+        Sequence { epoch, index }
     }
 
     pub fn is_continuously(lhs: &Sequence, rhs: &Sequence) -> bool {

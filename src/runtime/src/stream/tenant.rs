@@ -12,14 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{sync::Arc, collections::HashMap};
+use std::{collections::HashMap, sync::Arc};
 
 use tokio::sync::Mutex;
 
-use crate::{TenantDesc, StreamDesc};
-
-use super::{streams::StreamInfo, error::Error};
-use super::error::Result;
+use super::{
+    error::{Error, Result},
+    streams::StreamInfo,
+};
+use crate::{StreamDesc, TenantDesc};
 
 pub struct TenantInner {
     desc: TenantDesc,
@@ -51,30 +52,50 @@ impl Tenant {
 
     pub async fn stream_desc(&self, name: &str) -> Result<StreamDesc> {
         let inner = self.inner.lock().await;
-        inner.streams.values().find(|info| info.stream_name == name).map(StreamInfo::stream_desc).ok_or_else(|| Error::NotFound(format!("stream {}", name)))
+        inner
+            .streams
+            .values()
+            .find(|info| info.stream_name == name)
+            .map(StreamInfo::stream_desc)
+            .ok_or_else(|| Error::NotFound(format!("stream {}", name)))
     }
 
     pub async fn stream_descs(&self) -> Result<Vec<StreamDesc>> {
         let inner = self.inner.lock().await;
-        let descs = inner.streams.values().map(StreamInfo::stream_desc).collect();
+        let descs = inner
+            .streams
+            .values()
+            .map(StreamInfo::stream_desc)
+            .collect();
         Ok(descs)
     }
 
     pub async fn stream(&self, stream_id: u64) -> Result<StreamInfo> {
         let inner = self.inner.lock().await;
-        inner.streams.get(&stream_id).cloned().ok_or_else(|| Error::NotFound(format!("stream_id {}", stream_id)))
+        inner
+            .streams
+            .get(&stream_id)
+            .cloned()
+            .ok_or_else(|| Error::NotFound(format!("stream_id {}", stream_id)))
     }
 
     pub async fn create_stream(&self, mut desc: StreamDesc) -> Result<StreamDesc> {
         let mut inner = self.inner.lock().await;
-        if inner.streams.values().any(|info| info.stream_name == desc.name) {
+        if inner
+            .streams
+            .values()
+            .any(|info| info.stream_name == desc.name)
+        {
             return Err(Error::AlreadyExists(format!("stream {}", desc.name)));
         }
 
         desc.id = inner.next_id;
         inner.next_id += 1;
         desc.parent_id = inner.desc.id;
-        inner.streams.insert(desc.id, StreamInfo::new(desc.parent_id, desc.id, desc.name.clone()));
+        inner.streams.insert(
+            desc.id,
+            StreamInfo::new(desc.parent_id, desc.id, desc.name.clone()),
+        );
         Ok(desc)
     }
 }

@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod types;
 pub mod convert;
 pub mod error;
 pub mod node;
+pub mod server;
 pub mod streams;
 pub mod tenant;
-pub mod server;
+pub mod types;

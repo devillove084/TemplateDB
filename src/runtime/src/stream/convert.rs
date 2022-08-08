@@ -14,8 +14,29 @@
 
 use futures::channel::oneshot;
 
-use super::{types::Sequence, error::Error};
+use super::{error::Error, types::Sequence};
+use crate::{ObserverState, Role};
 
+impl From<i32> for Role {
+    fn from(role: i32) -> Self {
+        Role::from_i32(role).unwrap_or(Role::Follower)
+    }
+}
+
+impl From<i32> for ObserverState {
+    fn from(s: i32) -> Self {
+        ObserverState::from_i32(s).unwrap_or(ObserverState::Following)
+    }
+}
+
+impl From<ObserverState> for Role {
+    fn from(s: ObserverState) -> Self {
+        match s {
+            ObserverState::Following => Role::Follower,
+            ObserverState::Recovering | ObserverState::Leading => Role::Leader,
+        }
+    }
+}
 
 impl From<u64> for Sequence {
     fn from(v: u64) -> Self {
@@ -34,7 +55,10 @@ impl From<Sequence> for u64 {
 
 impl From<oneshot::Canceled> for Error {
     fn from(_: oneshot::Canceled) -> Self {
-        Error::IO(std::io::Error::new(std::io::ErrorKind::TimedOut, "task has been canceled"))
+        Error::IO(std::io::Error::new(
+            std::io::ErrorKind::TimedOut,
+            "task has been canceled",
+        ))
     }
 }
 

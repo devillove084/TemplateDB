@@ -80,6 +80,7 @@ pub struct ObserverMeta {
 #[derive(Debug)]
 pub struct ObserverInfo {
     meta: ObserverMeta,
+    #[allow(dead_code)]
     role: Role,
     last_heartbeat: Instant,
 }
