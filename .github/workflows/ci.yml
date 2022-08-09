@@ -39,6 +39,10 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
+    - uses: abelfodil/protoc-action@v1
+      with:
+        protoc-version: '3.19.4'
+        enable-dart: false
     - name: Checkout repository
       uses: actions/checkout@v2
     - uses: Swatinem/rust-cache@v1
@@ -48,6 +52,10 @@ jobs:
         command: build
     - name: Check diff
       run: git diff --exit-code
+    - name: Setup | Toolchain
+      uses: actions-rs/toolchain@v1.0.6
+      with:
+        components: rustfmt, clippy
     - name: Check clippy
       uses: actions-rs/cargo@v1
       with:
