@@ -11,3 +11,18 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+use std::collections::{BTreeMap, HashMap};
+
+use super::version::StreamVersion;
+use crate::{stream::types::Sequence, Entry};
+
+pub(crate) struct PartialStream<R> {
+    stream_id: u64,
+    version: StreamVersion,
+    sealed: HashMap<u32, u32>,
+    stabled_tables: HashMap<u64, BTreeMap<Sequence, Entry>>,
+    initial_seq: Sequence,
+    acked_seq: Sequence,
+    log_file_releaser: R,
+}

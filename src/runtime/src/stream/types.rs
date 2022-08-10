@@ -67,3 +67,9 @@ impl Sequence {
         lhs.epoch == rhs.epoch && lhs.index + 1 == rhs.index
     }
 }
+
+impl std::fmt::Display for Sequence {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", <Sequence as Into<u64>>::into(*self))
+    }
+}

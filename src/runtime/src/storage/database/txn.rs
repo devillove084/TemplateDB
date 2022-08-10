@@ -12,6 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod streamdb;
-pub mod txn;
-pub mod version;
+use crate::{stream::types::Sequence, Entry};
+
+pub enum TxnContext {
+    Write {
+        segment_epoch: u32,
+        first_index: u32,
+        acked_seq: Sequence,
+        entries: Vec<Entry>,
+    },
+    Sealed {
+        segment_epoch: u32,
+        writer_epoch: u32,
+        prev_epoch: Option<u32>,
+    },
+}

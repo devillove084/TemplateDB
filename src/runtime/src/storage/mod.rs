@@ -13,3 +13,5 @@
 // limitations under the License.
 
 pub mod database;
+pub mod log;
+pub mod util;
