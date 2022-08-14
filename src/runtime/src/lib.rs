@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #![allow(clippy::all)]
+#![feature(hash_drain_filter)]
 
 pub mod accelerate;
 pub mod allocator;

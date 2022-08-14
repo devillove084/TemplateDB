@@ -31,6 +31,10 @@ impl<T> AtomicArcPtr<T> {
         AtomicArcPtr(Arc::new(AtomicPtr::new(Box::leak(t))))
     }
 
+    pub fn try_deref(&self) -> Option<&T> {
+        unsafe { self.0.load(std::sync::atomic::Ordering::Acquire).as_ref() }
+    }
+
     pub fn compare_store(&self, t: Box<T>) -> std::result::Result<(), Box<T>> {
         self.0
             .compare_exchange(

@@ -12,6 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod logoption;
-pub mod logwriter;
-pub mod manager;
+pub const LOG_FILE_SIZE: usize = 512 * 1024 * 1024;
+pub const MAX_LOG_FILES: usize = 16;
+
+pub struct LogOption {
+    /// Sync data before response
+    ///
+    /// DEFAULT: true
+    pub sync_data: bool,
+
+    /// The number of bytes per log file, it must equals to exp of 2.
+    ///
+    /// DEFAULT: `LOG_FILE_SIZE`
+    pub log_file_size: usize,
+
+    /// The maximum number of log files.
+    ///
+    /// DEFAULT: MAX_LOG_FILES
+    pub max_log_files: usize,
+}

@@ -12,6 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod logoption;
-pub mod logwriter;
-pub mod manager;
+use crate::storage::log::logoption::LogOption;
+
+pub struct DBOption {
+    /// Create stream db if not exists.
+    /// DEFAULT: false
+    pub create_if_missing: bool,
+    pub log: LogOption,
+}

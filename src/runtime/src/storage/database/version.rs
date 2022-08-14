@@ -296,19 +296,49 @@ pub(crate) struct VersionBuilder {
 
 impl VersionBuilder {
     pub fn apply(&mut self, edit: crate::manifest::VersionEdit) {
-        todo!()
+        if !edit.streams.is_empty() {
+            // This is a snapshot edit
+            self.version.streams = edit
+                .streams
+                .iter()
+                .map(|s| (s.stream_id, s.clone()))
+                .collect();
+        }
+        Self::apply_edit(&mut self.version, &edit)
     }
 
     pub fn finalize(self) -> Version {
-        todo!()
+        self.version
     }
 
     pub fn try_applt_edits(version: &mut Version) -> bool {
-        todo!()
+        // Do fast return, to avoid increaing reference count
+        if version.next_edit.try_deref().is_none() {
+            return false;
+        }
+
+        let mut next_edit = version.next_edit.clone();
+        while let Some(edit) = next_edit.try_deref() {
+            Self::apply_edit(version, &edit.raw_edit);
+            next_edit = edit.next_edit.clone();
+            version.next_edit = next_edit.clone();
+        }
+        true
     }
 
     pub fn try_apply_edits_on_stream(version: &mut StreamVersion) -> bool {
-        todo!()
+        // Do fast return, to avoid increasing reference count
+        if version.next_edit.try_deref().is_none() {
+            return false;
+        }
+
+        let mut next_edit = version.next_edit.clone();
+        while let Some(edit) = next_edit.try_deref() {
+            Self::apply_edits_on_stream(version, &edit.raw_edit);
+            next_edit = edit.next_edit.clone();
+            version.next_edit = next_edit.clone();
+        }
+        true
     }
 
     fn apply_edit(version: &mut Version, edit: &crate::manifest::VersionEdit) {
@@ -316,17 +346,48 @@ impl VersionBuilder {
     }
 
     fn apply_edits_on_stream(version: &mut StreamVersion, edit: &crate::manifest::VersionEdit) {
-        todo!()
+        for recycle_log in edit.recycled_logs.iter() {
+            version
+                .log_num_record
+                .recycled_log_number
+                .insert(recycle_log.log_number);
+            for update in recycle_log.updated_streams.iter() {
+                if update.stream_id != version.stream_id {
+                    continue;
+                }
+                Self::merge_stream(&mut version.stream_meta, update);
+            }
+        }
+        Self::advance_min_log_number(&mut version.log_num_record, edit);
     }
 
     fn advance_min_log_number(record: &mut LogNumberRecord, edit: &crate::manifest::VersionEdit) {
-        todo!()
+        if let Some(min_log_number) = edit.min_log_number {
+            if record.min_log_number < min_log_number {
+                record.min_log_number = min_log_number;
+                record
+                    .recycled_log_number
+                    .drain_filter(|log_number| *log_number < record.min_log_number);
+            }
+        }
     }
 
     fn merge_stream(
         stream_meta: &mut crate::manifest::StreamMeta,
-        update: &mut crate::manifest::StreamMeta,
+        update: &crate::manifest::StreamMeta,
     ) {
-        todo!()
+        let mut sealing_epochs = update
+            .replicas
+            .iter()
+            .map(|r| (r.epoch, r.promised_epoch))
+            .collect::<HashMap<_, _>>();
+
+        for replica in stream_meta.replicas.iter_mut() {
+            if let Some(sp) = sealing_epochs.remove(&replica.epoch).flatten() {
+                replica.promised_epoch = Some(sp);
+            }
+        }
+        stream_meta.initial_seq = update.initial_seq;
+        stream_meta.acked_seq = update.acked_seq;
     }
 }
