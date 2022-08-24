@@ -13,17 +13,17 @@
 // limitations under the License.
 
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, HashMap, VecDeque},
     io::ErrorKind,
-    mem::swap,
+    mem::{swap, replace}, ops::Range,
 };
 
 use log::warn;
 
-use super::{txn::TxnContext, version::StreamVersion};
+use super::{txn::TxnContext, version::StreamVersion, memtable::MemtableIter};
 use crate::{
     storage::log::manager::ReleaseReferringLogFile,
-    stream::{error::IOKindResult, types::Sequence},
+    stream::{error::{IOKindResult, Result}, types::Sequence},
     Entry,
 };
 
@@ -145,7 +145,8 @@ impl<R: ReleaseReferringLogFile> PartialStream<R> {
         Ok(Some(TxnContext::Write {
             segment_epoch,
             first_index,
-            acked_seq: prev_acked_seq,
+            acked_seq,
+            prev_acked_seq,
             entries,
         }))
     }
@@ -178,8 +179,34 @@ impl<R: ReleaseReferringLogFile> PartialStream<R> {
         first_index: u32,
         entries: Vec<Entry>,
     ) {
-        //let mut delta_table = BTreeMap::new();
-        todo!()
+        let mut delta_table = BTreeMap::new();
+        for (offset, entry) in entries.into_iter().enumerate() {
+            let seq = Sequence::new(segment_epoch, first_index + offset as u32);
+            delta_table.insert(seq, entry);
+        }
+
+        if self.active_table.is_none() {
+            self.active_table = Some((log_number, delta_table));
+            return ;
+        }
+
+        let (active_log_number, active_mem_table) = self.active_table.as_mut().unwrap();
+        if *active_log_number == log_number {
+            active_mem_table.append(&mut delta_table);
+            return ;
+        }
+
+        // switch memtable because log file is switched
+        for mem_table in self.stabled_tables.values_mut() {
+            mem_table.drain_filter(|seq, _| active_mem_table.contains_key(seq));
+        }
+
+        for (log_number, _) in self.stabled_tables.drain_filter(|_, mem_table| mem_table.is_empty()) {
+            self.log_file_releaser.release(self.stream_id, log_number);
+        }
+
+        self.stabled_tables.insert(*active_log_number, replace(active_mem_table, delta_table));
+        *active_log_number = log_number;
     }
 
     pub fn commit(&mut self, log_number: u64, txn: TxnContext) {
@@ -189,6 +216,7 @@ impl<R: ReleaseReferringLogFile> PartialStream<R> {
                 first_index,
                 acked_seq,
                 entries,
+                ..
             } => {
                 self.commit_write_txn(log_number, segment_epoch, first_index, entries);
                 if self.acked_seq < acked_seq {
@@ -198,7 +226,7 @@ impl<R: ReleaseReferringLogFile> PartialStream<R> {
             TxnContext::Sealed {
                 segment_epoch,
                 writer_epoch,
-                prev_epoch,
+                ..
             } => {
                 if !self
                     .sealed
@@ -210,5 +238,64 @@ impl<R: ReleaseReferringLogFile> PartialStream<R> {
                 }
             }
         }
+    }
+
+    pub fn rollback(&mut self, txn: TxnContext) {
+        match txn {
+            TxnContext::Write { prev_acked_seq, .. } => {
+                self.acked_seq = prev_acked_seq;
+            },
+            TxnContext::Sealed { segment_epoch, prev_epoch, .. } => {
+                if let Some(prev_epoch) = prev_epoch {
+                    self.sealed.insert(segment_epoch, prev_epoch);
+                } else {
+                    self.sealed.remove(&segment_epoch);
+                }
+            },
+        }
+    }
+
+    pub fn acked_index(&self, epoch: u32) -> u32 {
+        match self.acked_seq.epoch.cmp(&epoch) {
+            std::cmp::Ordering::Less => 0,
+            std::cmp::Ordering::Equal => self.acked_seq.index,
+            std::cmp::Ordering::Greater => {
+                // found the maximum entry of the corresponding epoch
+                todo!()
+            },
+        }
+    }
+
+    fn seek(&self, start_seq: Sequence) -> MemtableIter {
+        let mut iters = self.stabled_tables.iter().map(|(_, m)| m.range(start_seq..).peekable()).collect::<Vec<_>>();
+        if let Some((_, m)) = &self.active_table {
+            iters.push(m.range(start_seq..).peekable());
+        }
+        MemtableIter::new(start_seq, iters)
+    }
+
+    pub fn continuous_index(&self, epoch: u32, hole: Range<u32>) -> u32 {
+        let mut index = if hole.start == 1 {
+            debug_assert!(hole.end > 0);
+            hole.end - 1
+        } else {
+            0
+        };
+
+        let iter = self.seek(Sequence::new(epoch, 0));
+        for (seq, _) in iter {
+            if seq.epoch != epoch || seq.index != index + 1 {
+                break;
+            }
+            index += 1;
+            if hole.start == index + 1 {
+                index = hole.end - 1;
+            }
+        }
+        index
+    }
+
+    pub fn scan_entries(&self, segment_epoch: u32, first_index: u32, limit: usize, require_acked: bool) -> Result<Option<VecDeque<(u32, Entry)>>> {
+        todo!()
     }
 }

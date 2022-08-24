@@ -16,3 +16,4 @@ pub mod dboption;
 pub mod streamdb;
 pub mod txn;
 pub mod version;
+pub mod memtable;

@@ -13,6 +13,7 @@
 // limitations under the License.
 #![allow(clippy::all)]
 #![feature(hash_drain_filter)]
+#![feature(btree_drain_filter)]
 
 pub mod accelerate;
 pub mod allocator;

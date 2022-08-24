@@ -19,6 +19,7 @@ pub enum TxnContext {
         segment_epoch: u32,
         first_index: u32,
         acked_seq: Sequence,
+        prev_acked_seq: Sequence,
         entries: Vec<Entry>,
     },
     Sealed {
