@@ -1,5 +1,6 @@
 use std::{collections::btree_map::Range, iter::Peekable};
 
+use crate::stream::types::Entry;
 // Copyright 2022 The template Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +14,7 @@ use std::{collections::btree_map::Range, iter::Peekable};
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use crate::{stream::types::Sequence, Entry};
+use crate::stream::types::Sequence;
 
 pub struct MemtableIter<'a> {
     next_seq: Sequence,
@@ -23,14 +24,11 @@ pub struct MemtableIter<'a> {
 
 impl<'a> MemtableIter<'a> {
     pub fn new(next_seq: Sequence, iters: Vec<Peekable<Range<'a, Sequence, Entry>>>) -> Self {
-        MemtableIter {
-            next_seq,
-            iters,
-        }
+        MemtableIter { next_seq, iters }
     }
 }
 
-impl<'a> Iterator for MemtableIter<'a> {
+impl<'a> std::iter::Iterator for MemtableIter<'a> {
     type Item = (&'a Sequence, &'a Entry);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -54,6 +52,9 @@ impl<'a> Iterator for MemtableIter<'a> {
                     }
                 }
             }
+        }
+        if let Some((seq, _)) = &cached {
+            self.next_seq = Sequence::new(seq.epoch, seq.index + 1);
         }
         cached
     }

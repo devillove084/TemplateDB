@@ -18,9 +18,9 @@ use std::{
     sync::Arc,
 };
 
-use tokio::sync::Mutex;
+use tokio::{sync::Mutex, task::JoinHandle};
 
-use crate::storage::database::dboption::DBOption;
+use crate::{storage::database::dboption::DBOption, stream::channel::Channel};
 
 pub(crate) trait ReleaseReferringLogFile {
     /// All entries in the corresponding log file are acked or over written, so
@@ -39,4 +39,14 @@ pub struct LogFileManager {
     opt: Arc<DBOption>,
     base_dir: PathBuf,
     inner: Arc<Mutex<LogFileManagerInner>>,
+}
+
+pub struct LogEngine {
+    channel: Channel,
+    log_file_manager: LogFileManager,
+    core: Arc<Mutex<LogEngineCore>>,
+}
+
+struct LogEngineCore {
+    work_handle: Option<JoinHandle<()>>,
 }

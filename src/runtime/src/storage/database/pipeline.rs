@@ -12,11 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod channel;
-pub mod convert;
-pub mod error;
-pub mod node;
-pub mod server;
-pub mod streams;
-pub mod tenant;
-pub mod types;
+use std::{collections::HashMap, io::ErrorKind, task::Waker};
+
+use super::txn::TxnContext;
+use crate::storage::log::manager::LogEngine;
+
+pub(crate) struct PipelinedWriter {
+    stream_id: u64,
+    log: LogEngine,
+    last_error_kind: Option<ErrorKind>,
+    next_waiter_index: usize,
+    waked_waiter_index: usize,
+    txn_table: HashMap<usize, TxnContext>,
+    waiter_table: HashMap<usize, Waker>,
+    reading_waiters: Vec<Waker>,
+}

@@ -13,7 +13,9 @@
 // limitations under the License.
 
 pub mod dboption;
+pub mod memtable;
+pub mod pipeline;
 pub mod streamdb;
+pub mod tributary;
 pub mod txn;
 pub mod version;
-pub mod memtable;

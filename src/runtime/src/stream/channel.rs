@@ -12,11 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod channel;
-pub mod convert;
-pub mod error;
-pub mod node;
-pub mod server;
-pub mod streams;
-pub mod tenant;
-pub mod types;
+use std::sync::{Arc, Condvar};
+
+use futures::channel::oneshot;
+use tokio::sync::Mutex;
+
+use super::error::IOKindResult;
+use crate::Record;
+
+struct Request {
+    sender: oneshot::Sender<IOKindResult<u64>>,
+    record: Option<Record>,
+}
+
+struct ChannelCore {
+    requests: Vec<Request>,
+    waitting: bool,
+}
+
+pub struct Channel {
+    core: Arc<(Mutex<ChannelCore>, Condvar)>,
+}
