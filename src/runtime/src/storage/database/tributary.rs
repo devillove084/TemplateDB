@@ -21,7 +21,7 @@ use std::{
 
 use log::warn;
 
-use super::{memtable::MemtableIter, txn::TxnContext, version::StreamVersion};
+use super::{memtableiter::MemtableIter, txn::TxnContext, version::StreamVersion};
 use crate::{
     storage::log::manager::ReleaseReferringLogFile,
     stream::{
@@ -30,7 +30,7 @@ use crate::{
     },
 };
 
-pub(crate) struct PartialStream<R> {
+pub struct PartialStream<R> {
     stream_id: u64,
     version: StreamVersion,
     /// segment epoch => writer epoch
@@ -424,8 +424,9 @@ mod tests {
 
     struct MockReleaser {}
 
+    #[async_trait::async_trait]
     impl ReleaseReferringLogFile for MockReleaser {
-        fn release(&self, stream_id: u64, log_number: u64) {}
+        async fn release(&self, stream_id: u64, log_number: u64) {}
     }
 
     fn make_entries(len: usize) -> Vec<Entry> {

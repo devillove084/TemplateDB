@@ -12,9 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+pub mod dblayout;
 pub mod dboption;
-pub mod memtable;
+pub mod memtableiter;
 pub mod pipeline;
+pub mod reader;
 pub mod streamdb;
 pub mod tributary;
 pub mod txn;

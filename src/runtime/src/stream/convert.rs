@@ -14,7 +14,10 @@
 
 use futures::channel::oneshot;
 
-use super::{error::Error, types::Sequence};
+use super::{
+    error::Error,
+    types::{Entry, Sequence},
+};
 use crate::{ObserverState, Role};
 
 impl From<i32> for Role {
@@ -111,6 +114,41 @@ impl From<std::io::ErrorKind> for Error {
             Error::Staled("from std::io::ErrorKind::Others".to_string())
         } else {
             Error::IO(kind.into())
+        }
+    }
+}
+
+impl From<Entry> for crate::Entry {
+    fn from(e: Entry) -> Self {
+        match e {
+            Entry::Hole => crate::Entry {
+                entry_type: crate::EntryType::Hole as i32,
+                epoch: 0,
+                event: vec![],
+            },
+            Entry::Event { epoch, event } => crate::Entry {
+                entry_type: crate::EntryType::Event as i32,
+                epoch,
+                event: event.into(),
+            },
+            Entry::Bridge { epoch } => crate::Entry {
+                entry_type: crate::EntryType::Bridge as i32,
+                epoch,
+                event: vec![],
+            },
+        }
+    }
+}
+
+impl From<crate::Entry> for Entry {
+    fn from(e: crate::Entry) -> Self {
+        match crate::EntryType::from_i32(e.entry_type) {
+            Some(crate::EntryType::Event) => Entry::Event {
+                event: e.event.into(),
+                epoch: e.epoch,
+            },
+            Some(crate::EntryType::Bridge) => Entry::Bridge { epoch: e.epoch },
+            _ => Entry::Hole,
         }
     }
 }

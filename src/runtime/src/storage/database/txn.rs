@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::stream::types::{Entry, Sequence};
+use crate::{
+    stream::types::{Entry, Sequence},
+    Record,
+};
 
 pub enum TxnContext {
     Write {
@@ -27,4 +30,28 @@ pub enum TxnContext {
         writer_epoch: u32,
         prev_epoch: Option<u32>,
     },
+}
+
+pub fn convert_to_txn_context(record: &Record) -> (u64, TxnContext) {
+    if let Some(writer_epoch) = &record.writer_epoch {
+        (
+            record.stream_id,
+            TxnContext::Sealed {
+                segment_epoch: record.epoch,
+                writer_epoch: *writer_epoch,
+                prev_epoch: None,
+            },
+        )
+    } else {
+        (
+            record.stream_id,
+            TxnContext::Write {
+                segment_epoch: record.epoch,
+                first_index: record.first_index(),
+                acked_seq: record.acked_seq().into(),
+                prev_acked_seq: Sequence::new(0, 0),
+                entries: record.entries.iter().cloned().map(Into::into).collect(),
+            },
+        )
+    }
 }

@@ -14,10 +14,10 @@
 
 use std::{collections::HashMap, io::ErrorKind, task::Waker};
 
-use super::txn::TxnContext;
-use crate::storage::log::manager::LogEngine;
+use super::{tributary::PartialStream, txn::TxnContext};
+use crate::storage::log::manager::{LogEngine, LogFileManager};
 
-pub(crate) struct PipelinedWriter {
+pub struct PipelinedWriter {
     stream_id: u64,
     log: LogEngine,
     last_error_kind: Option<ErrorKind>,
@@ -26,4 +26,10 @@ pub(crate) struct PipelinedWriter {
     txn_table: HashMap<usize, TxnContext>,
     waiter_table: HashMap<usize, Waker>,
     reading_waiters: Vec<Waker>,
+}
+
+pub trait WriterOwner {
+    fn borrow_pipelined_writer_mut(
+        &mut self,
+    ) -> (&mut PartialStream<LogFileManager>, &mut PipelinedWriter);
 }
