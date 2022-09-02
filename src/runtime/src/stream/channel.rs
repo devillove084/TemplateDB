@@ -30,6 +30,7 @@ struct ChannelCore {
     waitting: bool,
 }
 
+#[derive(Clone)]
 pub struct Channel {
     core: Arc<(Mutex<ChannelCore>, Condvar)>,
 }

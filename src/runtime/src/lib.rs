@@ -14,6 +14,7 @@
 #![allow(clippy::all)]
 #![feature(hash_drain_filter)]
 #![feature(btree_drain_filter)]
+#![feature(async_closure)]
 
 pub mod accelerate;
 pub mod allocator;

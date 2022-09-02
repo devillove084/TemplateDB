@@ -26,8 +26,9 @@ use crate::{
     storage::log::manager::ReleaseReferringLogFile,
     stream::{
         error::{IOKindResult, Result},
-        types::{Entry, Sequence},
+        types::Sequence,
     },
+    Entry,
 };
 
 pub struct PartialStream<R> {
@@ -375,7 +376,8 @@ impl<R: ReleaseReferringLogFile> PartialStream<R> {
         }
 
         // 2. an bridge record is acked
-        if let Entry::Bridge { .. } = entry {
+        if entry.entry_type == 2 {
+            // TODO(luhuanbing): entry cast is invalid, 2 means bridge
             if *seq <= &self.acked_seq {
                 return true;
             }
@@ -430,7 +432,14 @@ mod tests {
     }
 
     fn make_entries(len: usize) -> Vec<Entry> {
-        (0..len).into_iter().map(|_| Entry::Hole).collect()
+        (0..len)
+            .into_iter()
+            .map(|_| Entry {
+                entry_type: 0,
+                epoch: 0,
+                event: Vec::new(),
+            })
+            .collect()
     }
 
     fn make_sequences(epoch: u32, first: u32, len: usize) -> Vec<Sequence> {

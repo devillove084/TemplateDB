@@ -95,6 +95,7 @@ impl ReleaseReferringLogFile for LogFileManager {
     }
 }
 
+#[derive(Clone)]
 pub struct LogEngine {
     channel: Channel,
     log_file_manager: LogFileManager,
@@ -109,6 +110,10 @@ impl LogEngine {
         reader: &mut F,
     ) -> Result<LogEngine> {
         todo!()
+    }
+
+    pub fn log_file_manager(&self) -> LogFileManager {
+        self.log_file_manager.clone()
     }
 }
 

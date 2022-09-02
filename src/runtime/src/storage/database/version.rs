@@ -211,7 +211,7 @@ pub(crate) struct VersionSet {
 }
 
 impl VersionSet {
-    pub fn create<P: AsRef<Path>>(base_dir: P) -> Result<()> {
+    pub async fn create<P: AsRef<Path>>(base_dir: P) -> Result<()> {
         let manifest_number = 1;
         let version = Version::default();
         create_new_manifest(base_dir, &version, manifest_number)?;

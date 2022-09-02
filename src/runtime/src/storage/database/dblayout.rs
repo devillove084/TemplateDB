@@ -25,13 +25,16 @@ use crate::{
     stream::error::{Error, Result},
 };
 
-struct DBLayout {
-    max_file_number: u64,
-    log_numbers: Vec<u64>,
+pub struct DBLayout {
+    pub max_file_number: u64,
+    pub log_numbers: Vec<u64>,
     obsoleted_files: Vec<OsString>,
 }
 
-fn analyze_db_layout<P: AsRef<Path>>(base_dir: P, manifest_file_number: u64) -> Result<DBLayout> {
+pub async fn analyze_db_layout<P: AsRef<Path>>(
+    base_dir: P,
+    manifest_file_number: u64,
+) -> Result<DBLayout> {
     let mut max_file_number = 0;
     let mut log_numbers = vec![];
     let mut obsoleted_files = vec![];

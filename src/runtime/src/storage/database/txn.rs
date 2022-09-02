@@ -12,10 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{
-    stream::types::{Entry, Sequence},
-    Record,
-};
+use crate::{stream::types::Sequence, Entry, Record};
 
 pub enum TxnContext {
     Write {
