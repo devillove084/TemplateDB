@@ -15,6 +15,8 @@
 #![feature(hash_drain_filter)]
 #![feature(btree_drain_filter)]
 #![feature(async_closure)]
+#![feature(pin_macro)]
+#![feature(write_all_vectored)]
 
 pub mod accelerate;
 pub mod allocator;

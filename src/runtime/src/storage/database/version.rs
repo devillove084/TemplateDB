@@ -232,7 +232,7 @@ impl VersionSet {
             .open(&manifest)
             .unwrap();
         file.seek(SeekFrom::Start(initial_offset as u64)).unwrap();
-        let writer = LogWriter::new(file, 0, MAX_DESCRIPTOR_FILE_SIZE).unwrap();
+        let writer = LogWriter::new(file, 0, 0, MAX_DESCRIPTOR_FILE_SIZE).unwrap();
         Ok(VersionSet {
             core: Arc::new(Mutex::new(VersionSetCore {
                 base_dir: base_dir.as_ref().to_owned(),

@@ -20,7 +20,7 @@ use tokio::sync::Mutex;
 use super::error::IOKindResult;
 use crate::Record;
 
-struct Request {
+pub struct Request {
     sender: oneshot::Sender<IOKindResult<u64>>,
     record: Option<Record>,
 }
@@ -33,4 +33,22 @@ struct ChannelCore {
 #[derive(Clone)]
 pub struct Channel {
     core: Arc<(Mutex<ChannelCore>, Condvar)>,
+}
+
+impl Channel {
+    pub fn new() -> Self {
+        todo!()
+    }
+
+    pub fn take(&self) -> Vec<Request> {
+        todo!()
+    }
+
+    pub fn append(&self, record: Record) -> oneshot::Receiver<IOKindResult<u64>> {
+        todo!()
+    }
+
+    pub fn shutdown(&self) {
+        todo!()
+    }
 }

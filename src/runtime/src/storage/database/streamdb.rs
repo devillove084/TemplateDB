@@ -31,7 +31,7 @@ use super::{
     version::{Version, VersionSet},
 };
 use crate::{
-    manifest::StreamMeta,
+    manifest::{ReplicaMeta, StreamMeta},
     storage::{
         log::manager::{LogEngine, LogFileManager},
         util::{current, recover_log_engine},
@@ -255,14 +255,49 @@ impl StreamFlow {
     }
 
     async fn seal(&self, segment_epoch: u32, writer_epoch: u32) -> Result<u32> {
-        todo!()
+        let (acked_index, waiter) = {
+            let mut core = self.core.lock().await;
+            let txn = core.storage.seal(segment_epoch, writer_epoch);
+            let acked_index = core.storage.acked_index(segment_epoch);
+            let w = core.writer.submit(self.core.clone(), txn).await;
+            (acked_index, w)
+        };
+
+        waiter.await?;
+        Ok(acked_index)
     }
 
     async fn stream_meta(&self, keep_seq: Sequence) -> Result<StreamMeta> {
-        todo!()
+        // Read the memory state and wait until all previous txn are committed
+        let (acked_index, sealed_table, waiter) = {
+            let mut core = self.core.lock().await;
+            let acked_seq = core.storage.acked_seq();
+            let sealed_table = core.storage.sealed_epoches();
+            (
+                acked_seq,
+                sealed_table,
+                // ? Ok(None) is that ok?
+                core.writer.submit(self.core.clone(), Ok(None)).await,
+            )
+        };
+        waiter.await?;
+
+        Ok(StreamMeta {
+            stream_id: self.stream_id,
+            acked_seq: acked_index.into(),
+            initial_seq: keep_seq.into(),
+            replicas: sealed_table
+                .into_iter()
+                .map(|(epoch, promised)| ReplicaMeta {
+                    epoch,
+                    promised_epoch: Some(promised),
+                    set_files: Vec::default(),
+                })
+                .collect(),
+        })
     }
 
-    pub fn poll_entries(
+    pub async fn poll_entries(
         &self,
         cx: &mut Context<'_>,
         required_epoch: u32,
@@ -270,7 +305,16 @@ impl StreamFlow {
         limit: usize,
         require_acked: bool,
     ) -> Result<Option<VecDeque<(u32, Entry)>>> {
-        todo!()
+        let mut core = self.core.lock().await;
+        if let Some(entries_container) =
+            core.storage
+                .scan_entries(required_epoch, start_index, limit, require_acked)?
+        {
+            Ok(Some(entries_container))
+        } else {
+            core.writer.register_reading_waiter(cx.waker().clone());
+            Ok(None)
+        }
     }
 }
 

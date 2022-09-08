@@ -19,14 +19,16 @@ use std::{
     sync::Arc,
 };
 
+use futures::channel::oneshot;
 use tokio::{sync::Mutex, task::JoinHandle};
 
 use crate::{
     storage::database::dboption::DBOption,
     stream::{
         channel::Channel,
-        error::{IOResult, Result},
+        error::{IOKindResult, IOResult, Result},
     },
+    Record,
 };
 
 #[async_trait::async_trait]
@@ -114,6 +116,10 @@ impl LogEngine {
 
     pub fn log_file_manager(&self) -> LogFileManager {
         self.log_file_manager.clone()
+    }
+
+    pub fn add_record(&self, record: Record) -> oneshot::Receiver<IOKindResult<u64>> {
+        self.channel.append(record)
     }
 }
 

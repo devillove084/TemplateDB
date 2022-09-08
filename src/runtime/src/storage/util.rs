@@ -20,15 +20,21 @@ use std::{
 
 use super::{
     database::{
-        dblayout::DBLayout, dboption::DBOption, tributary::PartialStream,
-        txn::convert_to_txn_context, version::Version,
+        dblayout::DBLayout,
+        dboption::DBOption,
+        tributary::PartialStream,
+        txn::{convert_to_txn_context, TxnContext},
+        version::Version,
     },
     log::{
         logwriter::LogWriter,
         manager::{LogEngine, LogFileManager},
     },
 };
-use crate::stream::error::{Error, Result};
+use crate::{
+    stream::error::{Error, Result},
+    Record,
+};
 
 /// For multi thread share one atomic ptr, and
 /// simplfy the compare code.
@@ -194,4 +200,35 @@ pub async fn recover_log_engine<P: AsRef<Path>>(
         &mut applier,
     )?;
     Ok((log_engine, streams))
+}
+
+pub fn convert_to_record(stream_id: u64, txn: &TxnContext) -> Record {
+    match txn {
+        TxnContext::Write {
+            segment_epoch,
+            first_index,
+            acked_seq,
+            entries,
+            ..
+        } => Record {
+            stream_id,
+            epoch: *segment_epoch,
+            writer_epoch: None,
+            acked_seq: Some((*acked_seq).into()),
+            first_index: Some(*first_index),
+            entries: entries.iter().cloned().map(Into::into).collect(),
+        },
+        TxnContext::Sealed {
+            segment_epoch,
+            writer_epoch,
+            ..
+        } => Record {
+            stream_id,
+            epoch: *segment_epoch,
+            writer_epoch: Some(*writer_epoch),
+            acked_seq: None,
+            first_index: None,
+            entries: vec![],
+        },
+    }
 }
