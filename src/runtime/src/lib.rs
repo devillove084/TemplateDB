@@ -17,6 +17,7 @@
 #![feature(async_closure)]
 #![feature(pin_macro)]
 #![feature(write_all_vectored)]
+#![feature(drain_filter)]
 
 pub mod accelerate;
 pub mod allocator;

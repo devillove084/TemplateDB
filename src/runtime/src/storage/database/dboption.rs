@@ -14,6 +14,7 @@
 
 use crate::storage::log::logoption::LogOption;
 
+#[derive(Default)]
 pub struct DBOption {
     /// Create stream db if not exists.
     /// DEFAULT: false

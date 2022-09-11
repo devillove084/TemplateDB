@@ -21,8 +21,8 @@ use super::error::IOKindResult;
 use crate::Record;
 
 pub struct Request {
-    sender: oneshot::Sender<IOKindResult<u64>>,
-    record: Option<Record>,
+    pub sender: oneshot::Sender<IOKindResult<u64>>,
+    pub record: Option<Record>,
 }
 
 struct ChannelCore {
@@ -37,18 +37,51 @@ pub struct Channel {
 
 impl Channel {
     pub fn new() -> Self {
-        todo!()
+        Channel {
+            core: Arc::new((
+                Mutex::new(ChannelCore {
+                    requests: Vec::new(),
+                    waitting: false,
+                }),
+                Condvar::new(),
+            )),
+        }
     }
 
-    pub fn take(&self) -> Vec<Request> {
-        todo!()
+    pub async fn take(&self) -> Vec<Request> {
+        let mut core = self.core.0.lock().await;
+        while core.requests.is_empty() {
+            core.waitting = true;
+            //core = self.core.1.wait(core).unwrap();
+            //TODO:core = self.core.1.wait(core.into()).unwrap();
+        }
+        std::mem::take(&mut core.requests)
     }
 
-    pub fn append(&self, record: Record) -> oneshot::Receiver<IOKindResult<u64>> {
-        todo!()
+    pub async fn append(&self, record: Record) -> oneshot::Receiver<IOKindResult<u64>> {
+        let (sender, receiver) = oneshot::channel();
+        let mut core = self.core.0.lock().await;
+        core.requests.push(Request {
+            sender,
+            record: Some(record),
+        });
+        if core.waitting {
+            core.waitting = false;
+            self.core.1.notify_one();
+        }
+        receiver
     }
 
-    pub fn shutdown(&self) {
-        todo!()
+    pub async fn shutdown(&self) {
+        let (sender, _) = oneshot::channel();
+        let mut core = self.core.0.lock().await;
+        core.requests.push(Request {
+            sender,
+            record: None,
+        });
+        if core.waitting {
+            core.waitting = false;
+            self.core.1.notify_one();
+        }
     }
 }

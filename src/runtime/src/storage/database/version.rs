@@ -155,7 +155,7 @@ impl Version {
         }
     }
 
-    fn snapshot(&self) -> crate::manifest::VersionEdit {
+    pub fn snapshot(&self) -> crate::manifest::VersionEdit {
         crate::manifest::VersionEdit {
             streams: self.streams.values().cloned().collect(),
             min_log_number: if self.log_number_record.min_log_number == MIN_AVAIL_LOG_NUMBER {
@@ -206,6 +206,7 @@ impl VersionSetCore {
     }
 }
 
+#[derive(Clone)]
 pub(crate) struct VersionSet {
     core: Arc<Mutex<VersionSetCore>>,
 }
@@ -290,6 +291,7 @@ impl VersionSet {
     }
 }
 
+#[derive(Default)]
 pub(crate) struct VersionBuilder {
     version: Version,
 }
@@ -342,7 +344,20 @@ impl VersionBuilder {
     }
 
     fn apply_edit(version: &mut Version, edit: &crate::manifest::VersionEdit) {
-        todo!()
+        for recycle_log in &edit.recycled_logs {
+            version
+                .log_number_record
+                .recycled_log_number
+                .insert(recycle_log.log_number);
+            for update in &recycle_log.updated_streams {
+                let stream_meta = version
+                    .streams
+                    .entry(update.stream_id)
+                    .or_insert_with(Default::default);
+                Self::merge_stream(stream_meta, update);
+            }
+        }
+        Self::advance_min_log_number(&mut version.log_number_record, edit);
     }
 
     fn apply_edits_on_stream(version: &mut StreamVersion, edit: &crate::manifest::VersionEdit) {

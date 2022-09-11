@@ -19,7 +19,10 @@ use std::{
 
 use super::format::{MAX_BLOCK_SIZE, PAGE_SIZE, RECORD_HEADER_SIZE, RECORD_PAGE_ALIGN};
 use crate::{
-    storage::log::format::{RECORD_FULL, RECORD_HEAD, RECORD_MID, RECORD_TAIL, RECORD_ZERO},
+    storage::{
+        fs::FileExt,
+        log::format::{RECORD_FULL, RECORD_HEAD, RECORD_MID, RECORD_TAIL, RECORD_ZERO},
+    },
     stream::error::{IOResult, Result},
 };
 
@@ -140,7 +143,7 @@ impl LogWriter {
         Ok(())
     }
 
-    pub fn fill_entire_avail_space(&mut self) -> Result<()> {
+    pub fn fill_entire_avail_space(&mut self) -> IOResult<()> {
         if self.block_offset > 0 {
             self.switch_block(true)?;
         }
@@ -150,7 +153,7 @@ impl LogWriter {
         Ok(())
     }
 
-    pub fn flush(&mut self) -> Result<()> {
+    pub fn flush(&mut self) -> IOResult<()> {
         self.ensure_page_aligned()?;
 
         let offset = self.consumed_bytes();
@@ -188,8 +191,8 @@ impl LogWriter {
         if sync_data && self.synced_offset + PAGE_SIZE <= size {
             let len = size - self.synced_offset;
             debug_assert_eq!(len % PAGE_SIZE, 0);
-            //self.file.sync_range(self.synced_offset, len)?;
-            self.file.sync_all()?;
+            self.file.sync_range(self.synced_offset, len)?;
+            //self.file.sync_all()?;
             self.synced_offset += len;
         }
         Ok(())

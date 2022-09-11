@@ -70,21 +70,23 @@ pub async fn analyze_db_layout<P: AsRef<Path>>(
     })
 }
 
-fn recover_log_engine<P: AsRef<Path>>(
+async fn recover_log_engine<P: AsRef<Path>>(
     base_dir: P,
     opt: Arc<DBOption>,
     version: Version,
     db_layout: &mut DBLayout,
 ) -> Result<(LogEngine, HashMap<u64, PartialStream<LogFileManager>>)> {
     let log_file_mgr = LogFileManager::new(&base_dir, db_layout.max_file_number + 1, opt);
-    log_file_mgr.recycle_all(
-        version
-            .log_number_record
-            .recycled_log_number
-            .iter()
-            .cloned()
-            .collect(),
-    );
+    log_file_mgr
+        .recycle_all(
+            version
+                .log_number_record
+                .recycled_log_number
+                .iter()
+                .cloned()
+                .collect(),
+        )
+        .await;
 
     let mut streams = HashMap::new();
     for stream_id in version.streams.keys() {
@@ -108,6 +110,7 @@ fn recover_log_engine<P: AsRef<Path>>(
         db_layout.log_numbers.clone(),
         log_file_mgr.clone(),
         &mut applier,
-    )?;
+    )
+    .await?;
     Ok((log_engine, streams))
 }

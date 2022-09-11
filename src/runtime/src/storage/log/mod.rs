@@ -14,5 +14,7 @@
 
 pub mod format;
 pub mod logoption;
+pub mod logreader;
+pub mod logwoker;
 pub mod logwriter;
 pub mod manager;

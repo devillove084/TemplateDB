@@ -13,10 +13,16 @@
 // limitations under the License.
 
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
+    ffi::OsStr,
+    fs::{rename, write, File},
+    os::unix::prelude::OsStrExt,
     path::{Path, PathBuf},
     sync::{atomic::AtomicPtr, Arc},
 };
+
+use log::error;
+use prost::Message;
 
 use super::{
     database::{
@@ -24,16 +30,19 @@ use super::{
         dboption::DBOption,
         tributary::PartialStream,
         txn::{convert_to_txn_context, TxnContext},
-        version::Version,
+        version::{Version, VersionBuilder, MAX_DESCRIPTOR_FILE_SIZE},
     },
+    fs::FileExt,
     log::{
+        logreader::LogReader,
         logwriter::LogWriter,
         manager::{LogEngine, LogFileManager},
     },
 };
 use crate::{
+    manifest::VersionEdit,
     stream::error::{Error, Result},
-    Record,
+    Record, RecordGroup,
 };
 
 /// For multi thread share one atomic ptr, and
@@ -138,7 +147,11 @@ pub fn parse_file_name<P: AsRef<Path>>(path: P) -> Result<FileType> {
 /// Some log and file writer helper funcs.
 
 pub fn write_snapshot(writer: &mut LogWriter, version: &Version) -> Result<()> {
-    todo!()
+    let snapshot = version.snapshot();
+    let content = snapshot.encode_to_vec();
+    writer.add_record(content.as_slice())?;
+    writer.flush()?;
+    Ok(())
 }
 
 pub fn create_new_manifest<P: AsRef<Path>>(
@@ -146,19 +159,60 @@ pub fn create_new_manifest<P: AsRef<Path>>(
     version: &Version,
     manifest_number: u64,
 ) -> Result<LogWriter> {
-    todo!()
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .open(descriptor(&base_dir, manifest_number))?;
+
+    file.preallocate(MAX_DESCRIPTOR_FILE_SIZE)?;
+    let mut writer = LogWriter::new(file, 0, 0, MAX_DESCRIPTOR_FILE_SIZE)?;
+    write_snapshot(&mut writer, version)?;
+    switch_current_file(&base_dir, manifest_number)?;
+    Ok(writer)
 }
 
 pub fn parse_current_file<P: AsRef<Path>>(base_dir: P) -> Result<PathBuf> {
-    todo!()
+    let content = match std::fs::read_to_string(current(&base_dir)) {
+        Ok(c) => c,
+        Err(e) => {
+            error!("read CURRENT file: {:?}", e);
+            return Err(e.into());
+        }
+    };
+    let content = match content.as_bytes().strip_suffix(&[b'\n']) {
+        Some(c) => c,
+        None => {
+            return Err(Error::Corruption(
+                "CURRENT file does not end with newline".to_owned(),
+            ))
+        }
+    };
+
+    Ok(base_dir
+        .as_ref()
+        .join(Path::new(OsStr::from_bytes(content))))
 }
 
 pub fn recover_manifest<P: AsRef<Path>>(manifest: P) -> Result<(usize, Version)> {
-    todo!()
+    let file = std::fs::File::open(manifest)?;
+    let mut reader = LogReader::new(file, 0, true)?;
+    let mut builder = VersionBuilder::default();
+    // FIXME(luhuanbing): handle partial write or corruption
+    while let Some(content) = reader.read_record()? {
+        let edit = VersionEdit::decode(content.as_slice()).expect("corrupted version edit");
+        builder.apply(edit);
+    }
+    let v = builder.finalize();
+    Ok((reader.next_record_offset(), v))
 }
 
 pub fn switch_current_file<P: AsRef<Path>>(base_dir: P, manifest_number: u64) -> Result<()> {
-    todo!()
+    let tmp = temp(&base_dir, manifest_number);
+    let content = format!("{}\n", manifest(manifest_number));
+    write(&tmp, content)?;
+    rename(&tmp, current(&base_dir))?;
+    std::fs::File::open(&base_dir)?.sync_all()?;
+    Ok(())
 }
 
 pub async fn recover_log_engine<P: AsRef<Path>>(
@@ -198,7 +252,8 @@ pub async fn recover_log_engine<P: AsRef<Path>>(
         db_layout.log_numbers.clone(),
         log_file_mgr.clone(),
         &mut applier,
-    )?;
+    )
+    .await?;
     Ok((log_engine, streams))
 }
 
@@ -231,4 +286,23 @@ pub fn convert_to_record(stream_id: u64, txn: &TxnContext) -> Record {
             entries: vec![],
         },
     }
+}
+
+pub async fn recover_log_file<P: AsRef<Path>, F: FnMut(u64, Record) -> Result<()>>(
+    base_dir: P,
+    log_number: u64,
+    callback: &mut F,
+) -> Result<(u64, HashSet<u64>)> {
+    let file = File::open(log(base_dir, log_number))?;
+    let mut reader = LogReader::new(file, log_number, true)?;
+    let mut refer_streams = HashSet::new();
+    while let Some(record) = reader.read_record()? {
+        let rg: RecordGroup = Message::decode(record.as_slice())?;
+        for r in rg.records {
+            let stream_id = r.stream_id;
+            callback(log_number, r)?;
+            refer_streams.insert(stream_id);
+        }
+    }
+    Ok((reader.next_record_offset() as u64, refer_streams))
 }

@@ -27,6 +27,7 @@ derivative = "2.2.0"
 prost = "0.11.0"
 tonic = "0.8.0"
 crc32fast = "1.3.2"
+libc = "0.2.132"
 
 [dev-dependencies]
 clap = { version = "3.2.16", features = ["derive"] }

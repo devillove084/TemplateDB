@@ -43,6 +43,7 @@ use crate::{
     Entry,
 };
 
+#[derive(Clone)]
 pub struct StreamDB {
     log: LogEngine,
     version_set: VersionSet,

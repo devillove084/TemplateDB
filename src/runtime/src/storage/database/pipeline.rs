@@ -64,7 +64,7 @@ impl PipelinedWriter {
         result: IOKindResult<Option<TxnContext>>,
     ) -> WriterWaiter<T> {
         match result {
-            Ok(txn) => self.submit_txn(owner, txn),
+            Ok(txn) => self.submit_txn(owner, txn).await,
             Err(err) => self.submit_barrier(owner, err),
         }
     }
@@ -79,7 +79,7 @@ impl PipelinedWriter {
         WriterWaiter::failed(owner, waiter_index, err_kind)
     }
 
-    pub fn submit_txn<T: WriterOwner>(
+    pub async fn submit_txn<T: WriterOwner>(
         &mut self,
         owner: Arc<Mutex<T>>,
         txn: Option<TxnContext>,
@@ -88,7 +88,7 @@ impl PipelinedWriter {
         self.next_waiter_index += 1;
         if let Some(txn) = txn {
             let record = convert_to_record(self.stream_id, &txn);
-            let receiver = self.log.add_record(record);
+            let receiver = self.log.add_record(record).await;
             self.txn_table.insert(waiter_index, txn);
             WriterWaiter::new(owner, waiter_index, receiver)
         } else {

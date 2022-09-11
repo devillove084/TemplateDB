@@ -15,6 +15,7 @@
 pub const LOG_FILE_SIZE: usize = 512 * 1024 * 1024;
 pub const MAX_LOG_FILES: usize = 16;
 
+#[derive(Default)]
 pub struct LogOption {
     /// Sync data before response
     ///
