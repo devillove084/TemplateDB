@@ -15,7 +15,8 @@
 use std::{collections::HashMap, ops::DerefMut, sync::Arc};
 
 use log::{debug, info};
-use tokio::{sync::Mutex, time::Instant};
+use parking_lot::Mutex;
+use tokio::time::Instant;
 
 use super::{error::Result, node::Config, types::Sequence};
 use crate::{
@@ -155,7 +156,7 @@ impl StreamInfo {
     }
 
     pub async fn segment(&self, segment_epoch: u32) -> Option<SegmentDesc> {
-        let inner = self.inner.lock().await;
+        let inner = self.inner.lock();
         inner
             .segments
             .get(&segment_epoch)
@@ -163,7 +164,7 @@ impl StreamInfo {
     }
 
     pub async fn seal(&self, segment_epoch: u32) -> Result<()> {
-        let mut inner = self.inner.lock().await;
+        let mut inner = self.inner.lock();
         if let Some(segment) = inner.segments.get_mut(&segment_epoch) {
             if segment.state != SegmentState::Sealed {
                 segment.state = SegmentState::Sealed;
@@ -190,7 +191,7 @@ impl StreamInfo {
             last_heartbeat: Instant::now(),
         };
 
-        let mut stream = self.inner.lock().await;
+        let mut stream = self.inner.lock();
         let stream = stream.deref_mut();
         if stream.epoch < writer_epoch && stream.epoch != INITIAL_EPOCH {
             return Err(Error::InvalidArgument("too large epoch".into()));

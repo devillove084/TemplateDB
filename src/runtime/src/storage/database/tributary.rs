@@ -99,7 +99,7 @@ impl<R: ReleaseReferringLogFile> PartialStream<R> {
     }
 
     pub fn refresh_versions(&mut self) {
-        if !self.version.try_applt_edits() {
+        if !self.version.try_apply_edits() {
             return;
         }
 

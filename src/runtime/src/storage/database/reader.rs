@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::VecDeque;
+use std::{collections::VecDeque, task::Poll};
 
 use futures::Stream;
 
@@ -49,8 +49,35 @@ impl SegmentReader {
     }
 
     pub fn take_cached_entry(&mut self) -> Option<ReadResponse> {
-        todo!()
+        if let Some((index, entry)) = self.cached_entries.pop_front() {
+            // is end of segment?
+            let entry_clone = entry.clone();
+            let entry_into = entry.into();
+            if let crate::stream::types::Entry::Bridge { epoch: _ } = &entry_into {
+                self.finished = true;
+            }
+            self.next_index = index + 1;
+            self.limit -= 1;
+            if self.limit == 0 {
+                self.finished = true;
+            }
+            Some(ReadResponse {
+                index,
+                entry: Some(entry_clone),
+            })
+        } else {
+            None
+        }
     }
+
+    // pub fn poll_entry(
+    //     &self,
+    //     sf: StreamFlow,
+    // ) -> std::task::Poll<Option<std::result::Result<ReadResponse, tonic::Status>>> {
+    //     match sf. {
+
+    //     }
+    // }
 }
 
 impl Stream for SegmentReader {
@@ -60,6 +87,37 @@ impl Stream for SegmentReader {
         self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Option<Self::Item>> {
-        todo!()
+        let this = self.get_mut();
+        loop {
+            if this.finished {
+                return Poll::Ready(None);
+            }
+            if let Some(resp) = this.take_cached_entry() {
+                return Poll::Ready(Some(Ok(resp)));
+            }
+
+            match this.stream.poll_entries(
+                cx,
+                this.required_epoch,
+                this.next_index,
+                this.limit,
+                this.require_acked,
+            ) {
+                Err(err) => {
+                    this.finished = true;
+                    return Poll::Ready(Some(Err(err.into())));
+                }
+                Ok(None) => {
+                    return Poll::Pending;
+                }
+                Ok(Some(cached_entries)) => {
+                    if cached_entries.is_empty() {
+                        this.finished = true;
+                    } else {
+                        this.cached_entries = cached_entries;
+                    }
+                }
+            }
+        }
     }
 }

@@ -14,7 +14,8 @@
 
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use tokio::sync::Mutex;
+// use tokio::sync::Mutex;
+use parking_lot::Mutex;
 
 use super::{
     error::{Error, Result},
@@ -79,7 +80,7 @@ impl Node {
     }
 
     pub async fn tenant(&self, name: &str) -> Result<Tenant> {
-        let inner = self.inner.lock().await;
+        let inner = self.inner.lock();
         inner
             .tenants
             .get(name)
@@ -88,13 +89,13 @@ impl Node {
     }
 
     pub async fn tenants(&self) -> Result<Vec<Tenant>> {
-        let inner = self.inner.lock().await;
+        let inner = self.inner.lock();
         let tenants = inner.tenants.values().cloned().collect();
         Ok(tenants)
     }
 
     pub async fn create_tenant(&self, mut desc: TenantDesc) -> Result<TenantDesc> {
-        let mut inner = self.inner.lock().await;
+        let mut inner = self.inner.lock();
         if inner.tenants.contains_key(&desc.name) {
             return Err(Error::AlreadyExists(format!("tenant {}", desc.name)));
         }

@@ -12,10 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::{Arc, Condvar};
+use std::sync::Arc;
 
+// use async_condvar_fair::Condvar;
+//use tokio::sync::oneshot;
 use futures::channel::oneshot;
-use tokio::sync::Mutex;
+// use tokio::sync::Mutex;
+use parking_lot::Condvar;
+use parking_lot::Mutex;
 
 use super::error::IOKindResult;
 use crate::Record;
@@ -49,18 +53,18 @@ impl Channel {
     }
 
     pub async fn take(&self) -> Vec<Request> {
-        let mut core = self.core.0.lock().await;
+        let mut core = self.core.0.lock();
         while core.requests.is_empty() {
             core.waitting = true;
-            //core = self.core.1.wait(core).unwrap();
+            self.core.1.wait(&mut core);
             //TODO:core = self.core.1.wait(core.into()).unwrap();
         }
         std::mem::take(&mut core.requests)
     }
 
-    pub async fn append(&self, record: Record) -> oneshot::Receiver<IOKindResult<u64>> {
+    pub fn append(&self, record: Record) -> oneshot::Receiver<IOKindResult<u64>> {
         let (sender, receiver) = oneshot::channel();
-        let mut core = self.core.0.lock().await;
+        let mut core = self.core.0.lock();
         core.requests.push(Request {
             sender,
             record: Some(record),
@@ -74,7 +78,7 @@ impl Channel {
 
     pub async fn shutdown(&self) {
         let (sender, _) = oneshot::channel();
-        let mut core = self.core.0.lock().await;
+        let mut core = self.core.0.lock();
         core.requests.push(Request {
             sender,
             record: None,

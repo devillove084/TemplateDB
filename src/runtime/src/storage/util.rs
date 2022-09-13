@@ -215,7 +215,7 @@ pub fn switch_current_file<P: AsRef<Path>>(base_dir: P, manifest_number: u64) ->
     Ok(())
 }
 
-pub async fn recover_log_engine<P: AsRef<Path>>(
+pub fn recover_log_engine<P: AsRef<Path>>(
     base_dir: P,
     opt: Arc<DBOption>,
     version: Version,
@@ -252,8 +252,7 @@ pub async fn recover_log_engine<P: AsRef<Path>>(
         db_layout.log_numbers.clone(),
         log_file_mgr.clone(),
         &mut applier,
-    )
-    .await?;
+    )?;
     Ok((log_engine, streams))
 }
 
@@ -288,7 +287,7 @@ pub fn convert_to_record(stream_id: u64, txn: &TxnContext) -> Record {
     }
 }
 
-pub async fn recover_log_file<P: AsRef<Path>, F: FnMut(u64, Record) -> Result<()>>(
+pub fn recover_log_file<P: AsRef<Path>, F: FnMut(u64, Record) -> Result<()>>(
     base_dir: P,
     log_number: u64,
     callback: &mut F,

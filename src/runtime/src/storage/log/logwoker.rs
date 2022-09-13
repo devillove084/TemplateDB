@@ -38,7 +38,7 @@ pub struct LogWorker {
 }
 
 impl LogWorker {
-    pub async fn new(
+    pub fn new(
         channel: Channel,
         writer: Option<LogWriter>,
         log_file_mgr: LogFileManager,
@@ -47,7 +47,7 @@ impl LogWorker {
         let writer = match writer {
             Some(w) => w,
             None => {
-                let (log_number, new_log_file) = log_file_mgr.allocate_file().await?;
+                let (log_number, new_log_file) = log_file_mgr.allocate_file()?;
                 LogWriter::new(new_log_file, log_number, 0, opt.log.log_file_size)?
             }
         };
@@ -128,7 +128,7 @@ impl LogWorker {
             std::mem::take(&mut self.refer_streams),
         );
 
-        let (log_number, new_log_file) = self.log_file_mgr.allocate_file().await?;
+        let (log_number, new_log_file) = self.log_file_mgr.allocate_file()?;
         self.writer = LogWriter::new(new_log_file, log_number, 0, self.opt.log.log_file_size)?;
         Ok(())
     }

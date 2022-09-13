@@ -20,7 +20,8 @@ use std::{
 };
 
 use futures::channel::oneshot;
-use tokio::{sync::Mutex, task::JoinHandle};
+use parking_lot::Mutex;
+use tokio::task::JoinHandle;
 
 use super::{logwoker::LogWorker, logwriter::LogWriter};
 use crate::{
@@ -70,14 +71,14 @@ impl LogFileManager {
         }
     }
 
-    pub async fn recycle_all(&self, log_numbers: Vec<u64>) {
-        let mut inner = self.inner.lock().await;
+    pub fn recycle_all(&self, log_numbers: Vec<u64>) {
+        let mut inner = self.inner.lock();
         inner.recycled_log_files.extend(log_numbers.into_iter());
     }
 
-    pub async fn allocate_file(&self) -> IOResult<(u64, File)> {
+    pub fn allocate_file(&self) -> IOResult<(u64, File)> {
         let (log_number, prev_log_number) = {
-            let mut inner = self.inner.lock().await;
+            let mut inner = self.inner.lock();
             let log_number = inner.next_log_number;
             inner.next_log_number += 1;
             (log_number, inner.recycled_log_files.pop_front())
@@ -102,15 +103,15 @@ impl LogFileManager {
         Ok((log_number, file))
     }
 
-    pub async fn delegate(&self, log_number: u64, refer_streams: HashSet<u64>) {
-        let mut inner = self.inner.lock().await;
-        assert!(
-            inner
-                .refer_streams
-                .insert(log_number, refer_streams)
-                .is_none(),
-            "each file only allow delegate once"
-        );
+    pub fn delegate(&self, log_number: u64, refer_streams: HashSet<u64>) {
+        let mut inner = self.inner.lock();
+        // assert!(
+        //     inner
+        //         .refer_streams
+        //         .insert(log_number, refer_streams)
+        //         .is_none(),
+        //     "each file only allow delegate once"
+        // );
     }
 
     pub fn option(&self) -> Arc<DBOption> {
@@ -121,7 +122,7 @@ impl LogFileManager {
 #[async_trait::async_trait]
 impl ReleaseReferringLogFile for LogFileManager {
     async fn release(&self, stream_id: u64, log_number: u64) {
-        let mut inner = self.inner.lock().await;
+        let mut inner = self.inner.lock();
         if let Some(stream_set) = inner.refer_streams.get_mut(&log_number) {
             stream_set.remove(&stream_id);
             if stream_set.is_empty() {
@@ -141,7 +142,7 @@ pub struct LogEngine {
 }
 
 impl LogEngine {
-    pub async fn recover<P: AsRef<Path>, F: FnMut(u64, Record) -> Result<()>>(
+    pub fn recover<P: AsRef<Path>, F: FnMut(u64, Record) -> Result<()>>(
         base_dir: P,
         mut log_numbers: Vec<u64>,
         log_file_mgr: LogFileManager,
@@ -150,8 +151,7 @@ impl LogEngine {
         let mut last_file_info = None;
         log_numbers.sort_unstable();
         for ln in log_numbers {
-            let (next_record_offset, refer_streams) =
-                recover_log_file(&base_dir, ln, reader).await?;
+            let (next_record_offset, refer_streams) = recover_log_file(&base_dir, ln, reader)?;
             last_file_info = Some((ln, next_record_offset));
             log_file_mgr.delegate(ln, refer_streams);
         }
@@ -171,7 +171,7 @@ impl LogEngine {
             }
         }
         let channel = Channel::new();
-        let mut log_worker = LogWorker::new(channel.clone(), writer, log_file_mgr.clone()).await?;
+        let mut log_worker = LogWorker::new(channel.clone(), writer, log_file_mgr.clone())?;
         let worker_handle = tokio::spawn(async move { log_worker.run().await });
 
         Ok(LogEngine {
@@ -187,8 +187,8 @@ impl LogEngine {
         self.log_file_manager.clone()
     }
 
-    pub async fn add_record(&self, record: Record) -> oneshot::Receiver<IOKindResult<u64>> {
-        self.channel.append(record).await
+    pub fn add_record(&self, record: Record) -> oneshot::Receiver<IOKindResult<u64>> {
+        self.channel.append(record)
     }
 }
 

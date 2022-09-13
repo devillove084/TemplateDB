@@ -19,8 +19,8 @@ use std::{
     sync::Arc,
 };
 
+use parking_lot::Mutex;
 use prost::Message;
-use tokio::sync::Mutex;
 
 use crate::{
     manifest::{RecycleLog, StreamMeta},
@@ -103,9 +103,8 @@ impl StreamVersion {
         self.log_num_record.is_log_recycled(log_number)
     }
 
-    pub fn try_applt_edits(&mut self) -> bool {
-        todo!()
-        //VersionBuilder::try_applt_edits_about_stream(self)
+    pub fn try_apply_edits(&mut self) -> bool {
+        VersionBuilder::try_apply_edits_on_stream(self)
     }
 }
 
@@ -245,22 +244,22 @@ impl VersionSet {
         })
     }
 
-    pub async fn manifest_number(&self) -> u64 {
-        self.core.lock().await.manifest_number
+    pub fn manifest_number(&self) -> u64 {
+        self.core.lock().manifest_number
     }
 
-    pub async fn current(&self) -> Version {
-        self.core.lock().await.version.clone()
+    pub fn current(&self) -> Version {
+        self.core.lock().version.clone()
     }
 
-    pub async fn set_next_file_number(&self, file_number: u64) {
-        let mut core = self.core.lock().await;
+    pub fn set_next_file_number(&self, file_number: u64) {
+        let mut core = self.core.lock();
         debug_assert!(core.next_file_number < file_number);
         core.next_file_number = file_number;
     }
 
-    pub async fn truncate_stream(&self, stream_meta: StreamMeta) -> Result<()> {
-        let mut core = self.core.lock().await;
+    pub fn truncate_stream(&self, stream_meta: StreamMeta) -> Result<()> {
+        let mut core = self.core.lock();
         // Ensure there no any edit would be added before this one is finished.
         core.version.try_applt_edits();
 

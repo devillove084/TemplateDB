@@ -21,8 +21,8 @@ use std::{
     task::{Poll, Waker},
 };
 
-use futures::{channel::oneshot, future::BoxFuture, Future};
-use tokio::sync::{Mutex, MutexGuard};
+use futures::{channel::oneshot, Future};
+use parking_lot::Mutex;
 
 use super::{tributary::PartialStream, txn::TxnContext};
 use crate::{
@@ -58,13 +58,13 @@ impl PipelinedWriter {
         }
     }
 
-    pub async fn submit<T: WriterOwner>(
+    pub fn submit<T: WriterOwner>(
         &mut self,
         owner: Arc<Mutex<T>>,
         result: IOKindResult<Option<TxnContext>>,
     ) -> WriterWaiter<T> {
         match result {
-            Ok(txn) => self.submit_txn(owner, txn).await,
+            Ok(txn) => self.submit_txn(owner, txn),
             Err(err) => self.submit_barrier(owner, err),
         }
     }
@@ -79,7 +79,7 @@ impl PipelinedWriter {
         WriterWaiter::failed(owner, waiter_index, err_kind)
     }
 
-    pub async fn submit_txn<T: WriterOwner>(
+    pub fn submit_txn<T: WriterOwner>(
         &mut self,
         owner: Arc<Mutex<T>>,
         txn: Option<TxnContext>,
@@ -88,7 +88,7 @@ impl PipelinedWriter {
         self.next_waiter_index += 1;
         if let Some(txn) = txn {
             let record = convert_to_record(self.stream_id, &txn);
-            let receiver = self.log.add_record(record).await;
+            let receiver = self.log.add_record(record);
             self.txn_table.insert(waiter_index, txn);
             WriterWaiter::new(owner, waiter_index, receiver)
         } else {
@@ -213,7 +213,7 @@ impl<T: WriterOwner> Future for WriterWaiter<T> {
                     }
                 }
                 WaiterState::Received(result) => {
-                    let mut owner = this.owner.blocking_lock();
+                    let mut owner = this.owner.lock();
                     let (stream, writer) = owner.borrow_pipelined_writer_mut();
                     if writer.waked_waiter_index + 1 == this.waiter_index {
                         return Poll::Ready(writer.apply_txn(

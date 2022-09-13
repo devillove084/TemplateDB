@@ -17,3 +17,38 @@ pub mod fs;
 pub mod log;
 pub mod server;
 pub mod util;
+
+#[cfg(debug_assertions)]
+pub use tests::build_store;
+
+#[cfg(debug_assertions)]
+mod tests {
+    use tokio::net::TcpListener;
+    use tokio_stream::wrappers::TcpListenerStream;
+
+    use super::{
+        database::{dboption::DBOption, streamdb::StreamDB},
+        server::StorageServer,
+    };
+    use crate::stream::error::Result;
+
+    pub async fn build_store() -> Result<String> {
+        let tmp = tempfile::tempdir()?;
+        let db_opt = DBOption {
+            create_if_missing: true,
+            ..Default::default()
+        };
+        let db = StreamDB::open(tmp, db_opt).await?;
+        let listener = TcpListener::bind("127.0.0.1:9999").await?;
+        let local_addr = listener.local_addr()?;
+        tokio::task::spawn(async move {
+            let server = StorageServer::new(db);
+            tonic::transport::Server::builder()
+                .add_service(server.into_service())
+                .serve_with_incoming(TcpListenerStream::new(listener))
+                .await
+                .unwrap();
+        });
+        Ok(format!("http://{}", local_addr))
+    }
+}
