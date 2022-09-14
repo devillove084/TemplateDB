@@ -16,10 +16,9 @@ use std::{
     collections::{HashMap, HashSet},
     io::{Seek, SeekFrom},
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, Mutex},
 };
 
-use parking_lot::Mutex;
 use prost::Message;
 
 use crate::{
@@ -140,13 +139,13 @@ impl Version {
         self.log_number_record.is_log_recycled(log_number)
     }
 
-    pub fn try_applt_edits(&mut self) -> bool {
+    pub fn try_apply_edits(&mut self) -> bool {
         todo!()
     }
 
     fn install_edit(&mut self, mut edit: Box<VersionEdit>) {
         loop {
-            self.try_applt_edits();
+            self.try_apply_edits();
             match self.next_edit.compare_store(edit) {
                 Ok(()) => return,
                 Err(e) => edit = e,
@@ -245,23 +244,23 @@ impl VersionSet {
     }
 
     pub fn manifest_number(&self) -> u64 {
-        self.core.lock().manifest_number
+        self.core.lock().unwrap().manifest_number
     }
 
     pub fn current(&self) -> Version {
-        self.core.lock().version.clone()
+        self.core.lock().unwrap().version.clone()
     }
 
     pub fn set_next_file_number(&self, file_number: u64) {
-        let mut core = self.core.lock();
+        let mut core = self.core.lock().unwrap();
         debug_assert!(core.next_file_number < file_number);
         core.next_file_number = file_number;
     }
 
     pub fn truncate_stream(&self, stream_meta: StreamMeta) -> Result<()> {
-        let mut core = self.core.lock();
+        let mut core = self.core.lock().unwrap();
         // Ensure there no any edit would be added before this one is finished.
-        core.version.try_applt_edits();
+        core.version.try_apply_edits();
 
         let stream_id = stream_meta.stream_id;
         if let Some(former) = core.version.streams.get(&stream_id) {

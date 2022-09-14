@@ -23,7 +23,7 @@ use crate::{
         fs::FileExt,
         log::format::{RECORD_FULL, RECORD_HEAD, RECORD_MID, RECORD_TAIL, RECORD_ZERO},
     },
-    stream::error::{IOResult, Result},
+    stream::error::IOResult,
 };
 
 const EMPTY_RECORD_HEADER: [u8; RECORD_HEADER_SIZE] = [0u8; RECORD_HEADER_SIZE];
@@ -235,11 +235,11 @@ impl Drop for LogWriter {
     fn drop(&mut self) {
         // Align the last block, so that reader would recognize the old records.
         if self.block_offset > 0 {
-            if let Err(err) = self.switch_block(false) {
+            if let Err(_err) = self.switch_block(false) {
                 return;
             }
         }
-        if let Err(err) = self.flush() {
+        if let Err(_err) = self.flush() {
             // TODO: Tracing the error
         }
     }

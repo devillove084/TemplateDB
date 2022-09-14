@@ -16,11 +16,9 @@ use std::{
     collections::{HashMap, VecDeque},
     ops::DerefMut,
     path::Path,
-    sync::Arc,
+    sync::{Arc, Mutex},
     task::Context,
 };
-
-use parking_lot::Mutex;
 
 use super::{
     dblayout::analyze_db_layout,
@@ -126,7 +124,7 @@ impl StreamDB {
         ))
     }
 
-    pub fn write(
+    pub async fn write(
         &self,
         stream_id: u64,
         segment_epoch: u32,
@@ -135,13 +133,9 @@ impl StreamDB {
         first_index: u32,
         entries: Vec<Entry>,
     ) -> Result<(u32, u32)> {
-        self.must_get_stream(stream_id).write(
-            segment_epoch,
-            writer_epoch,
-            acked_seq,
-            first_index,
-            entries,
-        )
+        self.must_get_stream(stream_id)
+            .write(segment_epoch, writer_epoch, acked_seq, first_index, entries)
+            .await
     }
 
     pub fn get_segment_reader(
@@ -161,13 +155,17 @@ impl StreamDB {
         ))
     }
 
-    pub fn seal(&self, stream_id: u64, segment_epoch: u32, writer_epoch: u32) -> Result<u32> {
+    pub async fn seal(&self, stream_id: u64, segment_epoch: u32, writer_epoch: u32) -> Result<u32> {
         self.must_get_stream(stream_id)
             .seal(segment_epoch, writer_epoch)
+            .await
     }
 
-    pub fn truncate(&self, stream_id: u64, keep_seq: Sequence) -> Result<()> {
-        let stream_meta = self.must_get_stream(stream_id).stream_meta(keep_seq)?;
+    pub async fn truncate(&self, stream_id: u64, keep_seq: Sequence) -> Result<()> {
+        let stream_meta = self
+            .must_get_stream(stream_id)
+            .stream_meta(keep_seq)
+            .await?;
         if u64::from(keep_seq) > stream_meta.acked_seq {
             return Err(Error::InvalidArgument(format!(
                 "truncate un-acked entries, acked seq {}, keep seq {}",
@@ -181,7 +179,7 @@ impl StreamDB {
     }
 
     fn must_get_stream(&self, stream_id: u64) -> StreamFlow {
-        let mut core = self.core.lock();
+        let mut core = self.core.lock().unwrap();
         let core = core.deref_mut();
         let cur_version = self.version_set.current();
 
@@ -195,7 +193,7 @@ impl StreamDB {
     }
 
     fn might_get_stream(&self, stream_id: u64) -> Result<StreamFlow> {
-        let core = self.core.lock();
+        let core = self.core.lock().unwrap();
         match core.streams.get(&stream_id) {
             Some(s) => Ok(s.clone()),
             None => Err(Error::NotFound(format!("stream {}", stream_id))),
@@ -205,12 +203,12 @@ impl StreamDB {
     fn advance_grace_peiod_of_version_set(&self) {
         let db = self.to_owned();
         let streams = {
-            let core = db.core.lock();
+            let core = db.core.lock().unwrap();
             core.streams.keys().cloned().collect::<Vec<_>>()
         };
         for stream_id in streams {
             if let Ok(stream) = db.might_get_stream(stream_id) {
-                let mut core = stream.core.lock();
+                let mut core = stream.core.lock().unwrap();
                 core.storage.refresh_versions();
             }
         }
@@ -238,7 +236,7 @@ impl StreamFlow {
         Self::new(stream_id, storage, log_engine)
     }
 
-    fn write(
+    async fn write(
         &self,
         segment_epoch: u32,
         writer_epoch: u32,
@@ -248,7 +246,7 @@ impl StreamFlow {
     ) -> Result<(u32, u32)> {
         let (index, acked_index, waiter) = {
             let num_entries = entries.len() as u32;
-            let mut core = self.core.lock();
+            let mut core = self.core.lock().unwrap();
             let txn =
                 core.storage
                     .write(writer_epoch, segment_epoch, acked_seq, first_index, entries);
@@ -262,27 +260,28 @@ impl StreamFlow {
                 core.writer.submit(self.core.clone(), txn),
             )
         };
-
+        // ! p0 level
+        waiter.await?;
         Ok((index, acked_index))
     }
 
-    fn seal(&self, segment_epoch: u32, writer_epoch: u32) -> Result<u32> {
+    async fn seal(&self, segment_epoch: u32, writer_epoch: u32) -> Result<u32> {
         let (acked_index, waiter) = {
-            let mut core = self.core.lock();
+            let mut core = self.core.lock().unwrap();
             let txn = core.storage.seal(segment_epoch, writer_epoch);
             let acked_index = core.storage.acked_index(segment_epoch);
             let w = core.writer.submit(self.core.clone(), txn);
             (acked_index, w)
         };
 
-        //waiter?;
+        waiter.await?;
         Ok(acked_index)
     }
 
-    fn stream_meta(&self, keep_seq: Sequence) -> Result<StreamMeta> {
+    async fn stream_meta(&self, keep_seq: Sequence) -> Result<StreamMeta> {
         // Read the memory state and wait until all previous txn are committed
         let (acked_index, sealed_table, waiter) = {
-            let mut core = self.core.lock();
+            let mut core = self.core.lock().unwrap();
             let acked_seq = core.storage.acked_seq();
             let sealed_table = core.storage.sealed_epoches();
             (
@@ -292,7 +291,7 @@ impl StreamFlow {
                 core.writer.submit(self.core.clone(), Ok(None)),
             )
         };
-        //waiter?;
+        waiter.await?;
 
         Ok(StreamMeta {
             stream_id: self.stream_id,
@@ -317,7 +316,7 @@ impl StreamFlow {
         limit: usize,
         require_acked: bool,
     ) -> Result<Option<VecDeque<(u32, Entry)>>> {
-        let mut core = self.core.lock();
+        let mut core = self.core.lock().unwrap();
         if let Some(entries_container) =
             core.storage
                 .scan_entries(required_epoch, start_index, limit, require_acked)?

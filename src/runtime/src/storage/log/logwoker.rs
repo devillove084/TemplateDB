@@ -62,10 +62,10 @@ impl LogWorker {
         })
     }
 
-    pub async fn run(&mut self) {
+    pub fn run(&mut self) {
         let mut shutdown = false;
         while !shutdown {
-            let mut requests = self.channel.take().await;
+            let mut requests = self.channel.take();
             while !requests.is_empty() {
                 let mut size = 0;
                 let drained = requests.drain_filter(|req| {
@@ -95,7 +95,7 @@ impl LogWorker {
                     continue;
                 }
 
-                if let Err(err) = self.submit_requests(record_group).await {
+                if let Err(err) = self.submit_requests(record_group) {
                     self.notify_grouped_requests(Err(err.kind()));
                     continue;
                 }
@@ -106,10 +106,10 @@ impl LogWorker {
         }
     }
 
-    async fn submit_requests(&mut self, request_group: RecordGroup) -> IOResult<()> {
+    fn submit_requests(&mut self, request_group: RecordGroup) -> IOResult<()> {
         let content = request_group.encode_to_vec();
         if self.writer.avail_space() < content.len() {
-            self.switch_writer().await?;
+            self.switch_writer()?;
         }
         self.writer.add_record(&content)?;
 
@@ -120,7 +120,7 @@ impl LogWorker {
         Ok(())
     }
 
-    async fn switch_writer(&mut self) -> IOResult<()> {
+    fn switch_writer(&mut self) -> IOResult<()> {
         self.writer.fill_entire_avail_space()?;
         self.writer.flush()?;
         self.log_file_mgr.delegate(

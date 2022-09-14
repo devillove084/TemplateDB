@@ -16,13 +16,13 @@ use std::{
     collections::{HashMap, HashSet, VecDeque},
     fs::{rename, File, OpenOptions},
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, Mutex},
+    thread::JoinHandle,
 };
 
 use futures::channel::oneshot;
-use parking_lot::Mutex;
-use tokio::task::JoinHandle;
 
+// use tokio::task::JoinHandle;
 use super::{logwoker::LogWorker, logwriter::LogWriter};
 use crate::{
     storage::{
@@ -72,13 +72,13 @@ impl LogFileManager {
     }
 
     pub fn recycle_all(&self, log_numbers: Vec<u64>) {
-        let mut inner = self.inner.lock();
+        let mut inner = self.inner.lock().unwrap();
         inner.recycled_log_files.extend(log_numbers.into_iter());
     }
 
     pub fn allocate_file(&self) -> IOResult<(u64, File)> {
         let (log_number, prev_log_number) = {
-            let mut inner = self.inner.lock();
+            let mut inner = self.inner.lock().unwrap();
             let log_number = inner.next_log_number;
             inner.next_log_number += 1;
             (log_number, inner.recycled_log_files.pop_front())
@@ -104,14 +104,14 @@ impl LogFileManager {
     }
 
     pub fn delegate(&self, log_number: u64, refer_streams: HashSet<u64>) {
-        let mut inner = self.inner.lock();
-        // assert!(
-        //     inner
-        //         .refer_streams
-        //         .insert(log_number, refer_streams)
-        //         .is_none(),
-        //     "each file only allow delegate once"
-        // );
+        let mut inner = self.inner.lock().unwrap();
+        assert!(
+            inner
+                .refer_streams
+                .insert(log_number, refer_streams)
+                .is_none(),
+            "each file only allow delegate once"
+        );
     }
 
     pub fn option(&self) -> Arc<DBOption> {
@@ -122,7 +122,7 @@ impl LogFileManager {
 #[async_trait::async_trait]
 impl ReleaseReferringLogFile for LogFileManager {
     async fn release(&self, stream_id: u64, log_number: u64) {
-        let mut inner = self.inner.lock();
+        let mut inner = self.inner.lock().unwrap();
         if let Some(stream_set) = inner.refer_streams.get_mut(&log_number) {
             stream_set.remove(&stream_id);
             if stream_set.is_empty() {
@@ -172,7 +172,7 @@ impl LogEngine {
         }
         let channel = Channel::new();
         let mut log_worker = LogWorker::new(channel.clone(), writer, log_file_mgr.clone())?;
-        let worker_handle = tokio::spawn(async move { log_worker.run().await });
+        let worker_handle = std::thread::spawn(move || log_worker.run());
 
         Ok(LogEngine {
             channel,

@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// use parking_lot::Mutex;
 use std::{
     collections::HashMap,
     io::ErrorKind,
     mem::take,
     pin::Pin,
-    sync::Arc,
+    sync::{Arc, Mutex},
     task::{Poll, Waker},
 };
 
 use futures::{channel::oneshot, Future};
-use parking_lot::Mutex;
 
 use super::{tributary::PartialStream, txn::TxnContext};
 use crate::{
@@ -213,7 +213,7 @@ impl<T: WriterOwner> Future for WriterWaiter<T> {
                     }
                 }
                 WaiterState::Received(result) => {
-                    let mut owner = this.owner.lock();
+                    let mut owner = this.owner.lock().unwrap();
                     let (stream, writer) = owner.borrow_pipelined_writer_mut();
                     if writer.waked_waiter_index + 1 == this.waiter_index {
                         return Poll::Ready(writer.apply_txn(

@@ -12,18 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::Arc;
+use std::sync::{Arc, Condvar, Mutex};
 
-// use async_condvar_fair::Condvar;
-//use tokio::sync::oneshot;
 use futures::channel::oneshot;
-// use tokio::sync::Mutex;
-use parking_lot::Condvar;
-use parking_lot::Mutex;
 
 use super::error::IOKindResult;
 use crate::Record;
 
+#[derive(Debug)]
 pub struct Request {
     pub sender: oneshot::Sender<IOKindResult<u64>>,
     pub record: Option<Record>,
@@ -52,19 +48,19 @@ impl Channel {
         }
     }
 
-    pub async fn take(&self) -> Vec<Request> {
-        let mut core = self.core.0.lock();
+    pub fn take(&self) -> Vec<Request> {
+        let mut core = self.core.0.lock().unwrap();
         while core.requests.is_empty() {
             core.waitting = true;
-            self.core.1.wait(&mut core);
-            //TODO:core = self.core.1.wait(core.into()).unwrap();
+            //self.core.1.wait(&mut core);
+            core = self.core.1.wait(core.into()).unwrap();
         }
         std::mem::take(&mut core.requests)
     }
 
     pub fn append(&self, record: Record) -> oneshot::Receiver<IOKindResult<u64>> {
         let (sender, receiver) = oneshot::channel();
-        let mut core = self.core.0.lock();
+        let mut core = self.core.0.lock().unwrap();
         core.requests.push(Request {
             sender,
             record: Some(record),
@@ -76,9 +72,9 @@ impl Channel {
         receiver
     }
 
-    pub async fn shutdown(&self) {
+    pub fn shutdown(&self) {
         let (sender, _) = oneshot::channel();
-        let mut core = self.core.0.lock();
+        let mut core = self.core.0.lock().unwrap();
         core.requests.push(Request {
             sender,
             record: None,
