@@ -26,8 +26,7 @@ use crate::{
     },
     RecordGroup,
 };
-
-pub struct LogWorker {
+pub(crate) struct LogWorker {
     opt: Arc<DBOption>,
     channel: Channel,
     writer: LogWriter,

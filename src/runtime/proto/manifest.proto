@@ -18,58 +18,60 @@ package runtime.store.manifest.v1;
 
 // A range express [start, end).
 message EpochRange {
-    uint32 epoch = 1;
-    uint32 start = 2;
-    uint32 end = 3;
+  uint32 epoch = 1;
+  uint32 start = 2;
+  uint32 end = 3;
 }
 
 message SetFile {
-    uint64 file_number = 1;
+  uint64 file_number = 1;
 
-    // The ranges is contained in this file.
-    repeated EpochRange ranges = 2;
+  // The ranges is contained in this file.
+  repeated EpochRange ranges = 2;
 }
 
 message RecycleLog {
-    uint64 log_number = 1;
-    repeated StreamMeta updated_streams = 2;
+  uint64 log_number = 1;
+  repeated StreamMeta updated_streams = 2;
 }
 
 message VersionEdit {
-    // Only used in snapshot.
-    repeated StreamMeta streams = 1;
+  // Only used in snapshot.
+  repeated StreamMeta streams = 1;
 
-    // All references of the corresponding log are released, now it is free to reuse.
-    repeated RecycleLog recycled_logs = 2;
+  // All references of the corresponding log are released, now it is free to
+  // reuse.
+  repeated RecycleLog recycled_logs = 2;
 
-    // All log files before this log number are freed to reuse.
-    optional uint64 min_log_number = 3;
+  // All log files before this log number are freed to reuse.
+  optional uint64 min_log_number = 3;
 }
 
 message ReplicaMeta {
-    uint32 epoch = 1;
+  uint32 epoch = 1;
 
-    /// The sealing writer epoch.
-    optional uint32 promised_epoch = 2;
+  /// The sealing writer epoch.
+  optional uint32 promised_epoch = 2;
 
-    repeated SetFile set_files = 3;
+  repeated SetFile set_files = 3;
 }
 
 message StreamMeta {
-    uint64 stream_id = 1;
+  uint64 stream_id = 1;
 
-    // The entries before (inclusive) this seq are acked.
-    uint64 acked_seq = 2;
+  // The entries before (inclusive) this seq are acked.
+  uint64 acked_seq = 2;
 
-    // The entries before (exclusive) this seq are truncated.
-    uint64 initial_seq = 3;
+  // The entries before (exclusive) this seq are truncated.
+  uint64 initial_seq = 3;
 
-    repeated ReplicaMeta replicas = 4;
+  repeated ReplicaMeta replicas = 4;
 }
 
 message Manifest {
-    repeated StreamMeta streams = 1;
+  repeated StreamMeta streams = 1;
 
-    // Indicates that all log files list in below has been recycled and can be reused.
-    repeated uint64 recycled_log_numbers = 2;
+  // Indicates that all log files list in below has been recycled and can be
+  // reused.
+  repeated uint64 recycled_log_numbers = 2;
 }

@@ -18,12 +18,18 @@ package runtime.node.v1;
 
 service Node {
   rpc Tenant(TenantRequest) returns (TenantResponse) {}
+
   rpc Stream(StreamRequest) returns (StreamResponse) {}
+
   rpc Segment(SegmentRequest) returns (SegmentResponse) {}
+
+  // Sent heartbeat to Node and receives commands which must complete by
+  // stream observers
   rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse) {}
 }
 
 message TenantRequest { repeated TenantRequestUnion requests = 1; }
+
 message TenantResponse { repeated TenantResponseUnion responses = 1; }
 
 message TenantRequestUnion {
@@ -75,7 +81,7 @@ message StreamResponse { repeated StreamResponseUnion responses = 1; }
 
 message StreamRequestUnion {
   oneof request {
-    ListStreamRequest list_stream = 1;
+    ListStreamsRequest list_streams = 1;
     CreateStreamRequest create_stream = 2;
     UpdateStreamRequest update_stream = 3;
     DeleteStreamRequest delete_stream = 4;
@@ -85,7 +91,7 @@ message StreamRequestUnion {
 
 message StreamResponseUnion {
   oneof response {
-    ListStreamResponse list_stream = 1;
+    ListStreamsResponse list_streams = 1;
     CreateStreamResponse create_stream = 2;
     UpdateStreamResponse update_stream = 3;
     DeleteStreamResponse delete_stream = 4;
@@ -93,9 +99,9 @@ message StreamResponseUnion {
   }
 }
 
-message ListStreamRequest {}
+message ListStreamsRequest {}
 
-message ListStreamResponse { repeated StreamDesc descs = 1; }
+message ListStreamsResponse { repeated StreamDesc descs = 1; }
 
 message CreateStreamRequest { StreamDesc desc = 1; }
 
@@ -172,7 +178,7 @@ enum Role {
   LEADER = 1;
 }
 
-// Commands is supplied by master and complete by stream observers.
+// Commands is supplied by Node and complete by stream observers.
 enum CommandType {
   NOP = 0;
   PROMOTE = 1;
@@ -189,7 +195,7 @@ message Command {
 
 // The state of an stream's observer. The transition of states is:
 //
-// Following -> Recovering -> CommandLeading
+// Following -> Recovering -> Leading
 //    ^                           |
 //    +---------------------------+
 enum ObserverState {
@@ -198,7 +204,7 @@ enum ObserverState {
   // A leader must seals the former epochs and recovery all unfinished
   // replications before starting to lead a stream.
   RECOVERING = 1;
-  // A commandleader or leader is prepared to receive incoming events.
+  // A leader is prepared to receive incoming events.
   LEADING = 2;
 }
 

@@ -12,54 +12,45 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{collections::HashMap, ffi::OsString, fs::read_dir, path::Path, sync::Arc};
+use std::{ffi::OsString, path::Path};
 
-use super::{
-    dboption::DBOption, tributary::PartialStream, txn::convert_to_txn_context, version::Version,
-};
 use crate::{
-    storage::{
-        log::manager::{LogEngine, LogFileManager},
-        util::parse_file_name,
-    },
-    stream::error::{Error, Result},
+    storage::util::{parse_file_name, FileType},
+    stream::error::Result,
 };
 
 pub struct DBLayout {
     pub max_file_number: u64,
     pub log_numbers: Vec<u64>,
-    obsoleted_files: Vec<OsString>,
+    pub obsoleted_files: Vec<OsString>,
 }
 
 pub fn analyze_db_layout<P: AsRef<Path>>(
     base_dir: P,
     manifest_file_number: u64,
 ) -> Result<DBLayout> {
-    let mut max_file_number = 0;
+    let mut max_file_number: u64 = 0;
     let mut log_numbers = vec![];
     let mut obsoleted_files = vec![];
-    for dir_entry in read_dir(&base_dir)? {
+    for dir_entry in std::fs::read_dir(&base_dir)? {
         let dir_entry = dir_entry?;
         let path = dir_entry.path();
         if !path.is_file() {
             continue;
         }
-
         match parse_file_name(&path)? {
-            crate::storage::util::FileType::Unknown => {}
-            crate::storage::util::FileType::Current => continue,
-            crate::storage::util::FileType::Temp => {
-                obsoleted_files.push(path.file_name().unwrap().to_owned())
-            }
-            crate::storage::util::FileType::Manifest(num) => {
-                max_file_number = manifest_file_number.max(num);
-                if num != manifest_file_number {
+            FileType::Current => continue,
+            FileType::Unknown => {}
+            FileType::Temp => obsoleted_files.push(path.file_name().unwrap().to_owned()),
+            FileType::Manifest(number) => {
+                max_file_number = max_file_number.max(number);
+                if number != manifest_file_number {
                     obsoleted_files.push(path.file_name().unwrap().to_owned());
                 }
             }
-            crate::storage::util::FileType::Log(num) => {
-                max_file_number = max_file_number.max(num);
-                log_numbers.push(num);
+            FileType::Log(number) => {
+                max_file_number = max_file_number.max(number);
+                log_numbers.push(number);
             }
         }
     }
@@ -68,46 +59,4 @@ pub fn analyze_db_layout<P: AsRef<Path>>(
         log_numbers,
         obsoleted_files,
     })
-}
-
-async fn recover_log_engine<P: AsRef<Path>>(
-    base_dir: P,
-    opt: Arc<DBOption>,
-    version: Version,
-    db_layout: &mut DBLayout,
-) -> Result<(LogEngine, HashMap<u64, PartialStream<LogFileManager>>)> {
-    let log_file_mgr = LogFileManager::new(&base_dir, db_layout.max_file_number + 1, opt);
-    log_file_mgr.recycle_all(
-        version
-            .log_number_record
-            .recycled_log_number
-            .iter()
-            .cloned()
-            .collect(),
-    );
-
-    let mut streams = HashMap::new();
-    for stream_id in version.streams.keys() {
-        streams.insert(
-            *stream_id,
-            PartialStream::new(version.stream_version(*stream_id), log_file_mgr.clone()),
-        );
-    }
-
-    let mut applier = |ln, record| {
-        let (stream_id, txn) = convert_to_txn_context(&record);
-        let stream = streams.entry(stream_id).or_insert_with(|| {
-            PartialStream::new(version.stream_version(stream_id), log_file_mgr.clone())
-        });
-        stream.commit(ln, txn);
-        Ok::<(), Error>(())
-    };
-
-    let log_engine = LogEngine::recover(
-        base_dir,
-        db_layout.log_numbers.clone(),
-        log_file_mgr.clone(),
-        &mut applier,
-    )?;
-    Ok((log_engine, streams))
 }

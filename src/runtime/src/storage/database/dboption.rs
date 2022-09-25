@@ -14,10 +14,13 @@
 
 use crate::storage::log::logoption::LogOption;
 
-#[derive(Default)]
+/// The option structure of StreamDb.
+#[derive(Debug, Clone, Default)]
 pub struct DBOption {
     /// Create stream db if not exists.
+    ///
     /// DEFAULT: false
     pub create_if_missing: bool,
+
     pub log: LogOption,
 }

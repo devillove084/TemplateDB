@@ -19,9 +19,9 @@ use futures::channel::oneshot;
 use super::error::IOKindResult;
 use crate::Record;
 
-#[derive(Debug)]
 pub struct Request {
     pub sender: oneshot::Sender<IOKindResult<u64>>,
+    /// A shutdown is delivered if record is None.
     pub record: Option<Record>,
 }
 
@@ -52,8 +52,7 @@ impl Channel {
         let mut core = self.core.0.lock().unwrap();
         while core.requests.is_empty() {
             core.waitting = true;
-            //self.core.1.wait(&mut core);
-            core = self.core.1.wait(core.into()).unwrap();
+            core = self.core.1.wait(core).unwrap();
         }
         std::mem::take(&mut core.requests)
     }

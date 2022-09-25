@@ -96,19 +96,19 @@ impl StorageClient {
 mod tests {
     use futures::StreamExt;
     use runtime::{
+        storage::build_store,
         stream::{
-            error::Error,
-            types::{Entry as sEntry, Sequence},
+            error::{Error, Result},
+            Entry, Sequence,
         },
-        Entry, EntryType, ReadRequest, SealRequest, WriteRequest,
+        EntryType, ReadRequest, SealRequest, WriteRequest,
     };
     use tonic::transport::Endpoint;
 
-    use super::Result;
     use crate::storeclient::StorageClient;
 
-    fn entry(event: Vec<u8>) -> Entry {
-        Entry {
+    fn entry(event: Vec<u8>) -> runtime::Entry {
+        runtime::Entry {
             entry_type: EntryType::Event as i32,
             epoch: 1,
             event,
@@ -116,7 +116,7 @@ mod tests {
     }
 
     async fn build_store_client() -> Result<StorageClient> {
-        let addr = runtime::storage::build_store().await?;
+        let addr = build_store().await?;
         let endpoint = Endpoint::new(addr)?.connect().await?;
         Ok(StorageClient::new(endpoint))
     }
@@ -145,23 +145,23 @@ mod tests {
         ];
 
         let entries = vec![
-            sEntry::Event {
+            Entry::Event {
                 epoch: 1,
                 event: vec![0u8].into(),
             },
-            sEntry::Event {
+            Entry::Event {
                 epoch: 1,
                 event: vec![2u8].into(),
             },
-            sEntry::Event {
+            Entry::Event {
                 epoch: 1,
                 event: vec![4u8].into(),
             },
-            sEntry::Event {
+            Entry::Event {
                 epoch: 1,
                 event: vec![6u8].into(),
             },
-            sEntry::Event {
+            Entry::Event {
                 epoch: 1,
                 event: vec![8u8].into(),
             },
@@ -171,7 +171,7 @@ mod tests {
         struct Test<'a> {
             from: u32,
             limit: u32,
-            expect: &'a [sEntry],
+            expect: &'a [Entry],
         }
 
         let tests = vec![
@@ -195,27 +195,26 @@ mod tests {
         let stream_id: u64 = 1;
         let writer_epoch: u32 = 1;
         let client = build_store_client().await?;
-
         for w in writes {
             client.write(stream_id, writer_epoch, w).await?;
         }
-        // for test in tests {
-        //     let req = ReadRequest {
-        //         stream_id: 1,
-        //         seg_epoch: 1,
-        //         start_index: test.from,
-        //         limit: test.limit,
-        //         require_acked: true,
-        //     };
-        //     let mut stream = client.read(req).await?;
-        //     let mut got = Vec::<sEntry>::new();
-        //     while let Some(resp) = stream.next().await {
-        //         got.push(resp?.entry.unwrap().into());
-        //     }
-        //     //println!("{:?}", got.len());
-        //     // assert_eq!(got.len(), test.expect.len());
-        //     // assert!(got.iter().zip(test.expect.iter()).all(|(l, r)| l == r));
-        // }
+
+        for test in tests {
+            let req = ReadRequest {
+                stream_id: 1,
+                seg_epoch: 1,
+                start_index: test.from,
+                limit: test.limit,
+                require_acked: true,
+            };
+            let mut stream = client.read(req).await?;
+            let mut got = Vec::<Entry>::new();
+            while let Some(resp) = stream.next().await {
+                got.push(resp?.entry.unwrap().into());
+            }
+            assert_eq!(got.len(), test.expect.len());
+            assert!(got.iter().zip(test.expect.iter()).all(|(l, r)| l == r));
+        }
         Ok(())
     }
 
@@ -245,23 +244,23 @@ mod tests {
         let stream_id: u64 = 1;
         let writer_epoch: u32 = 1;
         let entries = vec![
-            sEntry::Event {
+            Entry::Event {
                 epoch: 1,
                 event: vec![0u8].into(),
             },
-            sEntry::Event {
+            Entry::Event {
                 epoch: 1,
                 event: vec![2u8].into(),
             },
-            sEntry::Event {
+            Entry::Event {
                 epoch: 1,
                 event: vec![4u8].into(),
             },
-            sEntry::Event {
+            Entry::Event {
                 epoch: 1,
                 event: vec![6u8].into(),
             },
-            sEntry::Event {
+            Entry::Event {
                 epoch: 1,
                 event: vec![8u8].into(),
             },
@@ -270,7 +269,7 @@ mod tests {
         struct Test<'a> {
             from: u32,
             limit: u32,
-            expect: &'a [sEntry],
+            expect: &'a [Entry],
         }
 
         let tests = vec![
@@ -311,7 +310,7 @@ mod tests {
                 require_acked: false,
             };
             let mut stream = client.read(req).await?;
-            let mut got = Vec::<sEntry>::new();
+            let mut got = Vec::<Entry>::new();
             while let Some(resp) = stream.next().await {
                 got.push(resp?.entry.unwrap().into());
             }
@@ -410,8 +409,8 @@ mod tests {
         assert!(got.iter().zip(read_expect.iter()).all(|(l, r)| l == r));
 
         // send bridge record
-        let bridge = Entry {
-            entry_type: EntryType::Bridge as i32,
+        let bridge = runtime::Entry {
+            entry_type: runtime::EntryType::Bridge as i32,
             epoch: 3,
             event: Vec::default(),
         };

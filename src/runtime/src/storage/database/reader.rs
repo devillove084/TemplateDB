@@ -12,12 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{collections::VecDeque, task::Poll};
+use std::{
+    collections::VecDeque,
+    pin::Pin,
+    task::{Context, Poll},
+};
 
 use futures::Stream;
 
 use super::streamdb::StreamFlow;
-use crate::{Entry, ReadResponse};
+use crate::{stream::Entry, ReadResponse};
 
 pub struct SegmentReader {
     required_epoch: u32,
@@ -30,7 +34,7 @@ pub struct SegmentReader {
 }
 
 impl SegmentReader {
-    pub fn new(
+    pub(crate) fn new(
         required_epoch: u32,
         next_index: u32,
         limit: usize,
@@ -41,19 +45,17 @@ impl SegmentReader {
             required_epoch,
             next_index,
             limit,
-            finished: false,
             require_acked,
-            cached_entries: VecDeque::new(),
             stream,
+            finished: false,
+            cached_entries: VecDeque::new(),
         }
     }
 
-    pub fn take_cached_entry(&mut self) -> Option<ReadResponse> {
+    fn take_cached_entry(&mut self) -> Option<ReadResponse> {
         if let Some((index, entry)) = self.cached_entries.pop_front() {
             // is end of segment?
-            let entry_clone = entry.clone();
-            let entry_into = entry.into();
-            if let crate::stream::types::Entry::Bridge { epoch: _ } = &entry_into {
+            if let Entry::Bridge { epoch: _ } = &entry {
                 self.finished = true;
             }
             self.next_index = index + 1;
@@ -61,37 +63,27 @@ impl SegmentReader {
             if self.limit == 0 {
                 self.finished = true;
             }
+
             Some(ReadResponse {
                 index,
-                entry: Some(entry_clone),
+                entry: Some(entry.into()),
             })
         } else {
             None
         }
     }
-
-    // pub fn poll_entry(
-    //     &self,
-    //     sf: StreamFlow,
-    // ) -> std::task::Poll<Option<std::result::Result<ReadResponse, tonic::Status>>> {
-    //     match sf. {
-
-    //     }
-    // }
 }
 
 impl Stream for SegmentReader {
     type Item = std::result::Result<ReadResponse, tonic::Status>;
 
-    fn poll_next(
-        self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Option<Self::Item>> {
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let this = self.get_mut();
         loop {
             if this.finished {
                 return Poll::Ready(None);
             }
+
             if let Some(resp) = this.take_cached_entry() {
                 return Poll::Ready(Some(Ok(resp)));
             }

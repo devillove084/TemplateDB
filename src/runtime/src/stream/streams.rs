@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{collections::HashMap, ops::DerefMut, sync::Arc};
+use std::{collections::HashMap, ops::DerefMut, sync::Arc, time::Instant};
 
 use log::{debug, info};
-use parking_lot::Mutex;
-use tokio::time::Instant;
+use tokio::sync::Mutex;
 
 use super::{error::Result, node::Config, types::Sequence};
 use crate::{
@@ -48,7 +47,7 @@ impl ThresholdSwitching {
             if let Some(segment_info) = stream_info.segments.get(&stream_info.epoch) {
                 if segment_info.acked_index > DEFAULT_NUM_THRESHOLD {
                     // FIXME: we do not need elect
-                    //return Some(stream_info.);
+                    return Some(stream_info.recommand_new_command_leader(applicant));
                 }
             }
         }
@@ -156,7 +155,7 @@ impl StreamInfo {
     }
 
     pub async fn segment(&self, segment_epoch: u32) -> Option<SegmentDesc> {
-        let inner = self.inner.lock();
+        let inner = self.inner.lock().await;
         inner
             .segments
             .get(&segment_epoch)
@@ -164,7 +163,7 @@ impl StreamInfo {
     }
 
     pub async fn seal(&self, segment_epoch: u32) -> Result<()> {
-        let mut inner = self.inner.lock();
+        let mut inner = self.inner.lock().await;
         if let Some(segment) = inner.segments.get_mut(&segment_epoch) {
             if segment.state != SegmentState::Sealed {
                 segment.state = SegmentState::Sealed;
@@ -191,7 +190,7 @@ impl StreamInfo {
             last_heartbeat: Instant::now(),
         };
 
-        let mut stream = self.inner.lock();
+        let mut stream = self.inner.lock().await;
         let stream = stream.deref_mut();
         if stream.epoch < writer_epoch && stream.epoch != INITIAL_EPOCH {
             return Err(Error::InvalidArgument("too large epoch".into()));

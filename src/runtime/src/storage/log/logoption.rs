@@ -15,20 +15,31 @@
 pub const LOG_FILE_SIZE: usize = 512 * 1024 * 1024;
 pub const MAX_LOG_FILES: usize = 16;
 
-#[derive(Default)]
+/// The option structure of logger.
+#[derive(Debug, Clone)]
 pub struct LogOption {
-    /// Sync data before response
+    /// Sync data before response.
     ///
     /// DEFAULT: true
     pub sync_data: bool,
 
     /// The number of bytes per log file, it must equals to exp of 2.
     ///
-    /// DEFAULT: `LOG_FILE_SIZE`
+    /// DEFAULT: [`LOG_FILE_SIZE`].
     pub log_file_size: usize,
 
     /// The maximum number of log files.
     ///
-    /// DEFAULT: MAX_LOG_FILES
+    /// DEFAULT: [`MAX_LOG_FILES`].
     pub max_log_files: usize,
+}
+
+impl Default for LogOption {
+    fn default() -> Self {
+        LogOption {
+            sync_data: true,
+            log_file_size: LOG_FILE_SIZE,
+            max_log_files: MAX_LOG_FILES,
+        }
+    }
 }

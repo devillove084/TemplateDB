@@ -16,9 +16,9 @@ use tonic::{Request, Response, Status};
 
 use super::database::{reader::SegmentReader, streamdb::StreamDB};
 use crate::{
-    store_server::{Store, StoreServer},
-    MutateRequest, MutateRequestUnion, MutateResponse, MutateResponseUnion, ReadRequest,
-    SealRequest, SealResponse, TruncateRequest, TruncateResponse, WriteRequest, WriteResponse,
+    mutate_request_union, mutate_response_union, store_server, MutateRequest, MutateRequestUnion,
+    MutateResponse, MutateResponseUnion, ReadRequest, SealRequest, SealResponse, TruncateRequest,
+    TruncateResponse, WriteRequest, WriteResponse,
 };
 
 type Result<T> = std::result::Result<T, Status>;
@@ -33,10 +33,35 @@ impl StorageServer {
         StorageServer { db }
     }
 
-    pub fn into_service(self) -> StoreServer<StorageServer> {
-        StoreServer::new(self)
+    pub fn into_service(self) -> crate::store_server::StoreServer<StorageServer> {
+        crate::store_server::StoreServer::new(self)
+    }
+}
+
+#[allow(unused)]
+#[async_trait::async_trait]
+impl store_server::Store for StorageServer {
+    type ReadStream = SegmentReader;
+
+    async fn mutate(&self, input: Request<MutateRequest>) -> Result<Response<MutateResponse>> {
+        Ok(Response::new(self.handle_mutate(input.into_inner()).await?))
     }
 
+    async fn read(&self, input: Request<ReadRequest>) -> Result<Response<Self::ReadStream>> {
+        let req = input.into_inner();
+        let stream = self.db.read(
+            req.stream_id,
+            req.seg_epoch,
+            req.start_index,
+            req.limit as usize,
+            req.require_acked,
+        )?;
+        Ok(Response::new(stream))
+    }
+}
+
+#[allow(unused, dead_code)]
+impl StorageServer {
     async fn handle_mutate(&self, req: MutateRequest) -> Result<MutateResponse> {
         let mut resp = MutateResponse::default();
         if let Some(union_req) = req.request {
@@ -54,24 +79,21 @@ impl StorageServer {
         writer_epoch: u32,
         req: MutateRequestUnion,
     ) -> Result<MutateResponseUnion> {
+        type Request = mutate_request_union::Request;
+        type Response = mutate_response_union::Response;
+
         let req = req
             .request
             .ok_or_else(|| Status::invalid_argument("mutate request"))?;
         let res = match req {
-            crate::mutate_request_union::Request::Write(req) => {
-                crate::mutate_response_union::Response::Write(
-                    self.handle_write(stream_id, writer_epoch, req).await?,
-                )
+            Request::Write(req) => {
+                Response::Write(self.handle_write(stream_id, writer_epoch, req).await?)
             }
-            crate::mutate_request_union::Request::Seal(req) => {
-                crate::mutate_response_union::Response::Seal(
-                    self.handle_seal(stream_id, writer_epoch, req).await?,
-                )
+            Request::Seal(req) => {
+                Response::Seal(self.handle_seal(stream_id, writer_epoch, req).await?)
             }
-            crate::mutate_request_union::Request::Truncate(req) => {
-                crate::mutate_response_union::Response::Truncate(
-                    self.handle_truncate(stream_id, req).await?,
-                )
+            Request::Truncate(req) => {
+                Response::Truncate(self.handle_truncate(stream_id, req).await?)
             }
         };
         Ok(MutateResponseUnion {
@@ -96,6 +118,7 @@ impl StorageServer {
                 req.entries.into_iter().map(Into::into).collect(),
             )
             .await?;
+
         Ok(WriteResponse {
             matched_index,
             acked_index,
@@ -122,26 +145,5 @@ impl StorageServer {
     ) -> Result<TruncateResponse> {
         self.db.truncate(stream_id, req.keep_seq.into()).await?;
         Ok(TruncateResponse {})
-    }
-}
-
-#[async_trait::async_trait]
-impl Store for StorageServer {
-    type ReadStream = SegmentReader;
-
-    async fn mutate(&self, input: Request<MutateRequest>) -> Result<Response<MutateResponse>> {
-        Ok(Response::new(self.handle_mutate(input.into_inner()).await?))
-    }
-
-    async fn read(&self, input: Request<ReadRequest>) -> Result<Response<Self::ReadStream>> {
-        let req = input.into_inner();
-        let stream = self.db.read(
-            req.stream_id,
-            req.seg_epoch,
-            req.start_index,
-            req.limit as usize,
-            req.require_acked,
-        )?;
-        Ok(Response::new(stream))
     }
 }

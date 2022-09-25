@@ -38,8 +38,8 @@ mod tests {
             create_if_missing: true,
             ..Default::default()
         };
-        let db = StreamDB::open(tmp, db_opt).await?;
-        let listener = TcpListener::bind("127.0.0.1:9999").await?;
+        let db = StreamDB::open(tmp, db_opt)?;
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
         let local_addr = listener.local_addr()?;
         tokio::task::spawn(async move {
             let server = StorageServer::new(db);

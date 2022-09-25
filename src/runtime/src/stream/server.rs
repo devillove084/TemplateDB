@@ -25,11 +25,11 @@ use crate::{
     stream_response_union, tenant_request_union, tenant_response_union, CreateStreamRequest,
     CreateStreamResponse, CreateTenantRequest, CreateTenantResponse, DescribeStreamRequest,
     DescribeStreamResponse, DescribeTenantRequest, DescribeTenantResponse, GetSegmentRequest,
-    GetSegmentResponse, HeartbeatRequest, HeartbeatResponse, ListStreamRequest, ListStreamResponse,
-    ListTenantsRequest, ListTenantsResponse, SealSegmentRequest, SealSegmentResponse,
-    SegmentRequest, SegmentRequestUnion, SegmentResponse, SegmentResponseUnion, StreamRequest,
-    StreamRequestUnion, StreamResponse, StreamResponseUnion, TenantRequest, TenantRequestUnion,
-    TenantResponse, TenantResponseUnion,
+    GetSegmentResponse, HeartbeatRequest, HeartbeatResponse, ListStreamsRequest,
+    ListStreamsResponse, ListTenantsRequest, ListTenantsResponse, SealSegmentRequest,
+    SealSegmentResponse, SegmentRequest, SegmentRequestUnion, SegmentResponse,
+    SegmentResponseUnion, StreamRequest, StreamRequestUnion, StreamResponse, StreamResponseUnion,
+    TenantRequest, TenantRequestUnion, TenantResponse, TenantResponseUnion,
 };
 
 pub struct HandleServer {
@@ -191,9 +191,9 @@ impl HandleServer {
             .request
             .ok_or_else(|| Error::InvalidArgument("stream reqest".into()))?;
         let res = match req {
-            stream_request_union::Request::ListStream(req) => {
+            stream_request_union::Request::ListStreams(req) => {
                 let res = self.handle_list_streams(tenant, req).await?;
-                Response::ListStream(res)
+                Response::ListStreams(res)
             }
             stream_request_union::Request::CreateStream(req) => {
                 let res = self.handle_create_stream(tenant, req).await?;
@@ -215,10 +215,10 @@ impl HandleServer {
     async fn handle_list_streams(
         &self,
         tenant: Tenant,
-        _: ListStreamRequest,
-    ) -> Result<ListStreamResponse> {
+        _: ListStreamsRequest,
+    ) -> Result<ListStreamsResponse> {
         let descs = tenant.stream_descs().await?;
-        Ok(ListStreamResponse { descs })
+        Ok(ListStreamsResponse { descs })
     }
 
     async fn handle_create_stream(

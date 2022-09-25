@@ -14,8 +14,7 @@
 
 use std::{collections::HashMap, sync::Arc};
 
-// use tokio::sync::Mutex;
-use parking_lot::Mutex;
+use tokio::sync::Mutex;
 
 use super::{
     error::{Error, Result},
@@ -48,11 +47,11 @@ impl Tenant {
     }
 
     pub async fn desc(&self) -> TenantDesc {
-        self.inner.lock().desc.clone()
+        self.inner.lock().await.desc.clone()
     }
 
     pub async fn stream_desc(&self, name: &str) -> Result<StreamDesc> {
-        let inner = self.inner.lock();
+        let inner = self.inner.lock().await;
         inner
             .streams
             .values()
@@ -62,7 +61,7 @@ impl Tenant {
     }
 
     pub async fn stream_descs(&self) -> Result<Vec<StreamDesc>> {
-        let inner = self.inner.lock();
+        let inner = self.inner.lock().await;
         let descs = inner
             .streams
             .values()
@@ -72,7 +71,7 @@ impl Tenant {
     }
 
     pub async fn stream(&self, stream_id: u64) -> Result<StreamInfo> {
-        let inner = self.inner.lock();
+        let inner = self.inner.lock().await;
         inner
             .streams
             .get(&stream_id)
@@ -81,7 +80,7 @@ impl Tenant {
     }
 
     pub async fn create_stream(&self, mut desc: StreamDesc) -> Result<StreamDesc> {
-        let mut inner = self.inner.lock();
+        let mut inner = self.inner.lock().await;
         if inner
             .streams
             .values()

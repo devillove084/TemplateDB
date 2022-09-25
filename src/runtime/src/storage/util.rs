@@ -15,7 +15,7 @@
 use std::{
     collections::{HashMap, HashSet},
     ffi::OsStr,
-    fs::{rename, write, File},
+    fs::File,
     os::unix::prelude::OsStrExt,
     path::{Path, PathBuf},
     sync::{atomic::AtomicPtr, Arc},
@@ -40,7 +40,6 @@ use super::{
     },
 };
 use crate::{
-    manifest::VersionEdit,
     stream::error::{Error, Result},
     Record, RecordGroup,
 };
@@ -48,7 +47,6 @@ use crate::{
 /// For multi thread share one atomic ptr, and
 /// simplfy the compare code.
 #[repr(transparent)]
-#[derive(Clone)]
 pub struct AtomicArcPtr<T>(Arc<AtomicPtr<T>>);
 
 impl<T> AtomicArcPtr<T> {
@@ -82,6 +80,27 @@ impl<T> From<Box<T>> for AtomicArcPtr<T> {
 impl<T> Default for AtomicArcPtr<T> {
     fn default() -> Self {
         AtomicArcPtr(Arc::new(AtomicPtr::default()))
+    }
+}
+
+impl<T> Clone for AtomicArcPtr<T> {
+    fn clone(&self) -> Self {
+        AtomicArcPtr(self.0.clone())
+    }
+}
+
+impl<T> Drop for AtomicArcPtr<T> {
+    fn drop(&mut self) {
+        let arc = std::mem::replace(&mut self.0, Arc::new(AtomicPtr::new(std::ptr::null_mut())));
+        if let Ok(atomic_ptr) = Arc::<AtomicPtr<T>>::try_unwrap(arc) {
+            let ptr = atomic_ptr.into_inner();
+            if !ptr.is_null() {
+                unsafe {
+                    // FIXME(luhuanbing): ?
+                    drop(Box::from_raw(ptr));
+                }
+            }
+        }
     }
 }
 
@@ -144,8 +163,6 @@ pub fn parse_file_name<P: AsRef<Path>>(path: P) -> Result<FileType> {
     }
 }
 
-/// Some log and file writer helper funcs.
-
 pub fn write_snapshot(writer: &mut LogWriter, version: &Version) -> Result<()> {
     let snapshot = version.snapshot();
     let content = snapshot.encode_to_vec();
@@ -162,29 +179,31 @@ pub fn create_new_manifest<P: AsRef<Path>>(
     let mut file = std::fs::OpenOptions::new()
         .write(true)
         .create(true)
-        .open(descriptor(&base_dir, manifest_number))?;
-
+        .open(&descriptor(&base_dir, manifest_number))?;
     file.preallocate(MAX_DESCRIPTOR_FILE_SIZE)?;
     let mut writer = LogWriter::new(file, 0, 0, MAX_DESCRIPTOR_FILE_SIZE)?;
     write_snapshot(&mut writer, version)?;
     switch_current_file(&base_dir, manifest_number)?;
+
     Ok(writer)
 }
 
+/// Read and parse CURRENT file, return the path of corresponding MANIFEST file.
 pub fn parse_current_file<P: AsRef<Path>>(base_dir: P) -> Result<PathBuf> {
     let content = match std::fs::read_to_string(current(&base_dir)) {
-        Ok(c) => c,
-        Err(e) => {
-            error!("read CURRENT file: {:?}", e);
-            return Err(e.into());
+        Ok(content) => content,
+        Err(err) => {
+            error!("read CURRENT file: {:?}", err);
+            return Err(err.into());
         }
     };
+
     let content = match content.as_bytes().strip_suffix(&[b'\n']) {
-        Some(c) => c,
+        Some(content) => content,
         None => {
             return Err(Error::Corruption(
                 "CURRENT file does not end with newline".to_owned(),
-            ))
+            ));
         }
     };
 
@@ -193,29 +212,33 @@ pub fn parse_current_file<P: AsRef<Path>>(base_dir: P) -> Result<PathBuf> {
         .join(Path::new(OsStr::from_bytes(content))))
 }
 
-pub fn recover_manifest<P: AsRef<Path>>(manifest: P) -> Result<(usize, Version)> {
-    let file = std::fs::File::open(manifest)?;
-    let mut reader = LogReader::new(file, 0, true)?;
-    let mut builder = VersionBuilder::default();
-    // FIXME(luhuanbing): handle partial write or corruption
-    while let Some(content) = reader.read_record()? {
-        let edit = VersionEdit::decode(content.as_slice()).expect("corrupted version edit");
-        builder.apply(edit);
-    }
-    let v = builder.finalize();
-    Ok((reader.next_record_offset(), v))
-}
-
+// Update CURRENT file and point to the corresponding MANIFEST file.
 pub fn switch_current_file<P: AsRef<Path>>(base_dir: P, manifest_number: u64) -> Result<()> {
     let tmp = temp(&base_dir, manifest_number);
     let content = format!("{}\n", manifest(manifest_number));
-    write(&tmp, content)?;
-    rename(&tmp, current(&base_dir))?;
+    std::fs::write(&tmp, content)?;
+    std::fs::rename(&tmp, current(&base_dir))?;
     std::fs::File::open(&base_dir)?.sync_all()?;
     Ok(())
 }
 
-pub fn recover_log_engine<P: AsRef<Path>>(
+/// Read and apply version edits, returns the finalized version and the next
+/// record offset.
+pub(crate) fn recover_manifest<P: AsRef<Path>>(manifest: P) -> Result<(usize, Version)> {
+    let file = std::fs::File::open(manifest)?;
+    let mut reader = LogReader::new(file, 0, true)?;
+    let mut builder = VersionBuilder::default();
+    // FIXME(walter) handle partial write or corruption?
+    while let Some(content) = reader.read_record()? {
+        let edit = crate::manifest::VersionEdit::decode(content.as_slice())
+            .expect("corrupted version edit");
+        builder.apply(edit);
+    }
+    let version = builder.finalize();
+    Ok((reader.next_record_offset(), version))
+}
+
+pub(crate) fn recover_log_engine<P: AsRef<Path>>(
     base_dir: P,
     opt: Arc<DBOption>,
     version: Version,
@@ -225,27 +248,26 @@ pub fn recover_log_engine<P: AsRef<Path>>(
     log_file_mgr.recycle_all(
         version
             .log_number_record
-            .recycled_log_number
+            .recycled_log_numbers
             .iter()
             .cloned()
             .collect(),
     );
 
-    let mut streams = HashMap::new();
+    let mut streams: HashMap<u64, PartialStream<_>> = HashMap::new();
     for stream_id in version.streams.keys() {
         streams.insert(
             *stream_id,
             PartialStream::new(version.stream_version(*stream_id), log_file_mgr.clone()),
         );
     }
-
     let mut applier = |log_number, record| {
         let (stream_id, txn) = convert_to_txn_context(&record);
         let stream = streams.entry(stream_id).or_insert_with(|| {
             PartialStream::new(version.stream_version(stream_id), log_file_mgr.clone())
         });
         stream.commit(log_number, txn);
-        Ok::<(), Error>(()) // TODO(luhuanbing): Is that Ok?
+        Ok(())
     };
     let log_engine = LogEngine::recover(
         base_dir,
@@ -287,21 +309,36 @@ pub fn convert_to_record(stream_id: u64, txn: &TxnContext) -> Record {
     }
 }
 
-pub fn recover_log_file<P: AsRef<Path>, F: FnMut(u64, Record) -> Result<()>>(
+/// Recovers log file, returns the next record offset and the referenced
+/// streams of the specifies log file.
+pub fn recover_log_file<P: AsRef<Path>, F>(
     base_dir: P,
     log_number: u64,
     callback: &mut F,
-) -> Result<(u64, HashSet<u64>)> {
+) -> Result<(u64, HashSet<u64>)>
+where
+    F: FnMut(u64, Record) -> Result<()>,
+{
     let file = File::open(log(base_dir, log_number))?;
     let mut reader = LogReader::new(file, log_number, true)?;
     let mut refer_streams = HashSet::new();
     while let Some(record) = reader.read_record()? {
-        let rg: RecordGroup = Message::decode(record.as_slice())?;
-        for r in rg.records {
-            let stream_id = r.stream_id;
-            callback(log_number, r)?;
+        let record_group: RecordGroup = Message::decode(record.as_slice())?;
+        for record in record_group.records {
+            let stream_id = record.stream_id;
+            callback(log_number, record)?;
             refer_streams.insert(stream_id);
         }
     }
     Ok((reader.next_record_offset() as u64, refer_streams))
+}
+
+pub fn remove_obsoleted_files(db_layout: DBLayout) {
+    for name in db_layout.obsoleted_files {
+        if let Err(err) = std::fs::remove_file(&name) {
+            log::warn!("remove obsoleted file {:?}: {}", name, err);
+        } else {
+            log::info!("obsoleted file {:?} is removed", name);
+        }
+    }
 }

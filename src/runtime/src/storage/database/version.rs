@@ -27,7 +27,7 @@ use crate::{
         log::logwriter::LogWriter,
         util::{
             create_new_manifest, parse_current_file, parse_file_name, recover_manifest,
-            AtomicArcPtr,
+            AtomicArcPtr, FileType,
         },
     },
     stream::error::{Error, Result},
@@ -36,10 +36,11 @@ use crate::{
 pub const MIN_AVAIL_LOG_NUMBER: u64 = 1;
 pub const MAX_DESCRIPTOR_FILE_SIZE: usize = 4 * 1024 * 1024;
 
-// TODO: Maybe linkedlist is not the best choice!
-#[derive(Clone, Default)]
+#[derive(Default)]
 pub struct VersionEdit {
     raw_edit: crate::manifest::VersionEdit,
+
+    /// A shared pointer point to the next VersionEdit.
     next_edit: AtomicArcPtr<VersionEdit>,
 }
 
@@ -51,38 +52,41 @@ impl VersionEdit {
 
 #[derive(Clone)]
 pub struct LogNumberRecord {
-    /// The min useful log number. All log files with
-    /// small log small would be released safety.
+    /// The min useful log number. All log files with small log number would be
+    /// released safety.
     ///
     /// DEFAULT: [`MIN_AVAIL_LOG_NUMBER`]
     pub min_log_number: u64,
-
-    pub recycled_log_number: HashSet<u64>,
+    pub recycled_log_numbers: HashSet<u64>,
 }
 
 impl Default for LogNumberRecord {
     fn default() -> Self {
         LogNumberRecord {
             min_log_number: MIN_AVAIL_LOG_NUMBER,
-            recycled_log_number: HashSet::default(),
+            recycled_log_numbers: HashSet::default(),
         }
     }
 }
 
 impl LogNumberRecord {
     pub fn is_log_recycled(&self, log_number: u64) -> bool {
-        log_number < self.min_log_number || self.recycled_log_number.contains(&log_number)
+        log_number < self.min_log_number || self.recycled_log_numbers.contains(&log_number)
     }
 }
 
+#[derive(Clone)]
 pub struct StreamVersion {
     pub stream_id: u64,
-    pub log_num_record: LogNumberRecord,
-    pub stream_meta: StreamMeta,
+    pub log_number_record: LogNumberRecord,
+
+    pub stream_meta: crate::manifest::StreamMeta,
+
     next_edit: AtomicArcPtr<VersionEdit>,
 }
 
 impl StreamVersion {
+    #[allow(dead_code)]
     pub fn new(stream_id: u64) -> Self {
         let stream_meta = StreamMeta {
             stream_id,
@@ -93,17 +97,20 @@ impl StreamVersion {
         StreamVersion {
             stream_id,
             stream_meta,
-            log_num_record: LogNumberRecord::default(),
-            next_edit: AtomicArcPtr::default(),
+            log_number_record: Default::default(),
+            next_edit: Default::default(),
         }
     }
 
+    #[allow(dead_code)]
+    #[inline(always)]
     pub fn is_log_recycled(&self, log_number: u64) -> bool {
-        self.log_num_record.is_log_recycled(log_number)
+        self.log_number_record.is_log_recycled(log_number)
     }
 
+    #[inline(always)]
     pub fn try_apply_edits(&mut self) -> bool {
-        VersionBuilder::try_apply_edits_on_stream(self)
+        VersionBuilder::try_apply_edits_about_stream(self)
     }
 }
 
@@ -111,6 +118,7 @@ impl StreamVersion {
 pub struct Version {
     pub log_number_record: LogNumberRecord,
     pub streams: HashMap<u64, crate::manifest::StreamMeta>,
+
     next_edit: AtomicArcPtr<VersionEdit>,
 }
 
@@ -126,21 +134,23 @@ impl Version {
                 replicas: vec![],
             }
         };
-
         StreamVersion {
             stream_id,
-            log_num_record: self.log_number_record.clone(),
+            log_number_record: self.log_number_record.clone(),
             stream_meta,
             next_edit: self.next_edit.clone(),
         }
     }
 
+    #[allow(dead_code)]
+    #[inline(always)]
     pub fn is_log_recycled(&self, log_number: u64) -> bool {
         self.log_number_record.is_log_recycled(log_number)
     }
 
+    #[inline(always)]
     pub fn try_apply_edits(&mut self) -> bool {
-        todo!()
+        VersionBuilder::try_apply_edits(self)
     }
 
     fn install_edit(&mut self, mut edit: Box<VersionEdit>) {
@@ -163,44 +173,14 @@ impl Version {
             },
             recycled_logs: self
                 .log_number_record
-                .recycled_log_number
+                .recycled_log_numbers
                 .iter()
-                .map(|ln| RecycleLog {
-                    log_number: *ln,
-                    updated_streams: Default::default(),
+                .map(|log_number| RecycleLog {
+                    log_number: *log_number,
+                    ..Default::default()
                 })
                 .collect(),
         }
-    }
-}
-
-struct VersionSetCore {
-    base_dir: PathBuf,
-    writer: LogWriter,
-
-    // Recover from the maximum file
-    next_file_number: u64,
-    manifest_number: u64,
-    version: Version,
-}
-
-impl VersionSetCore {
-    // TODO: Make these func be async!!!!
-    fn log_and_apply(&mut self, version_edit: Box<VersionEdit>) -> Result<()> {
-        let content = version_edit.encode_to_vec();
-        if self.writer.avail_space() < content.len() {
-            self.writer.fill_entire_avail_space()?;
-            self.writer.flush()?;
-            self.writer =
-                create_new_manifest(&self.base_dir, &self.version, self.next_file_number)?;
-            self.next_file_number += 1;
-        }
-
-        self.writer.add_record(&content)?;
-        self.writer.flush()?;
-        self.version.install_edit(version_edit);
-
-        Ok(())
     }
 }
 
@@ -209,8 +189,19 @@ pub(crate) struct VersionSet {
     core: Arc<Mutex<VersionSetCore>>,
 }
 
+struct VersionSetCore {
+    base_dir: PathBuf,
+    writer: LogWriter,
+
+    // Recover from the maximum file.
+    next_file_number: u64,
+    manifest_number: u64,
+
+    version: Version,
+}
+
 impl VersionSet {
-    pub async fn create<P: AsRef<Path>>(base_dir: P) -> Result<()> {
+    pub fn create<P: AsRef<Path>>(base_dir: P) -> Result<()> {
         let manifest_number = 1;
         let version = Version::default();
         create_new_manifest(base_dir, &version, manifest_number)?;
@@ -218,10 +209,9 @@ impl VersionSet {
     }
 
     pub fn recover<P: AsRef<Path>>(base_dir: P) -> Result<VersionSet> {
-        // TODO: Can i unwrap directly here?
         let manifest = parse_current_file(&base_dir).unwrap();
         let manifest_number = match parse_file_name(&manifest).unwrap() {
-            crate::storage::util::FileType::Manifest(num) => num,
+            FileType::Manifest(number) => number,
             _ => return Err(Error::Corruption("Invalid MANIFEST file name".to_owned())),
         };
 
@@ -231,7 +221,8 @@ impl VersionSet {
             .open(&manifest)
             .unwrap();
         file.seek(SeekFrom::Start(initial_offset as u64)).unwrap();
-        let writer = LogWriter::new(file, 0, 0, MAX_DESCRIPTOR_FILE_SIZE).unwrap();
+        let writer = LogWriter::new(file, 0, initial_offset, MAX_DESCRIPTOR_FILE_SIZE).unwrap();
+
         Ok(VersionSet {
             core: Arc::new(Mutex::new(VersionSetCore {
                 base_dir: base_dir.as_ref().to_owned(),
@@ -243,6 +234,7 @@ impl VersionSet {
         })
     }
 
+    #[inline]
     pub fn manifest_number(&self) -> u64 {
         self.core.lock().unwrap().manifest_number
     }
@@ -257,7 +249,7 @@ impl VersionSet {
         core.next_file_number = file_number;
     }
 
-    pub fn truncate_stream(&self, stream_meta: StreamMeta) -> Result<()> {
+    pub async fn truncate_stream(&self, stream_meta: StreamMeta) -> Result<()> {
         let mut core = self.core.lock().unwrap();
         // Ensure there no any edit would be added before this one is finished.
         core.version.try_apply_edits();
@@ -271,21 +263,41 @@ impl VersionSet {
                         stream_id, former.initial_seq
                     )));
                 }
-                std::cmp::Ordering::Equal => return Ok(()),
+                std::cmp::Ordering::Equal => {
+                    return Ok(());
+                }
                 _ => {}
             }
-            // TODO: merge stream meta
+            // TODO(walter) merge stream meta.
         }
 
         let version_edit = Box::new(VersionEdit {
             raw_edit: crate::manifest::VersionEdit {
                 streams: vec![stream_meta],
-                recycled_logs: Default::default(),
-                min_log_number: Default::default(),
+                ..Default::default()
             },
-            next_edit: Default::default(),
+            ..Default::default()
         });
         core.log_and_apply(version_edit)
+    }
+}
+
+impl VersionSetCore {
+    fn log_and_apply(&mut self, version_edit: Box<VersionEdit>) -> Result<()> {
+        let content = version_edit.encode_to_vec();
+        if self.writer.avail_space() < content.len() {
+            self.writer.fill_entire_avail_space()?;
+            self.writer.flush()?;
+
+            self.writer =
+                create_new_manifest(&self.base_dir, &self.version, self.next_file_number)?;
+            self.next_file_number += 1;
+        }
+        self.writer.add_record(&content)?;
+        self.writer.flush()?;
+        self.version.install_edit(version_edit);
+
+        Ok(())
     }
 }
 
@@ -297,22 +309,23 @@ pub(crate) struct VersionBuilder {
 impl VersionBuilder {
     pub fn apply(&mut self, edit: crate::manifest::VersionEdit) {
         if !edit.streams.is_empty() {
-            // This is a snapshot edit
+            // This is a snapshot edit.
             self.version.streams = edit
                 .streams
                 .iter()
                 .map(|s| (s.stream_id, s.clone()))
                 .collect();
         }
-        Self::apply_edit(&mut self.version, &edit)
+        Self::apply_edit(&mut self.version, &edit);
     }
 
+    #[inline(always)]
     pub fn finalize(self) -> Version {
         self.version
     }
 
-    pub fn try_applt_edits(version: &mut Version) -> bool {
-        // Do fast return, to avoid increaing reference count
+    fn try_apply_edits(version: &mut Version) -> bool {
+        // Do fast return, to avoid increasing reference count.
         if version.next_edit.try_deref().is_none() {
             return false;
         }
@@ -326,15 +339,15 @@ impl VersionBuilder {
         true
     }
 
-    pub fn try_apply_edits_on_stream(version: &mut StreamVersion) -> bool {
-        // Do fast return, to avoid increasing reference count
+    fn try_apply_edits_about_stream(version: &mut StreamVersion) -> bool {
+        // Do fast return, to avoid increasing reference count.
         if version.next_edit.try_deref().is_none() {
             return false;
         }
 
         let mut next_edit = version.next_edit.clone();
         while let Some(edit) = next_edit.try_deref() {
-            Self::apply_edits_on_stream(version, &edit.raw_edit);
+            Self::apply_edit_about_stream(version, &edit.raw_edit);
             next_edit = edit.next_edit.clone();
             version.next_edit = next_edit.clone();
         }
@@ -345,7 +358,7 @@ impl VersionBuilder {
         for recycle_log in &edit.recycled_logs {
             version
                 .log_number_record
-                .recycled_log_number
+                .recycled_log_numbers
                 .insert(recycle_log.log_number);
             for update in &recycle_log.updated_streams {
                 let stream_meta = version
@@ -358,20 +371,20 @@ impl VersionBuilder {
         Self::advance_min_log_number(&mut version.log_number_record, edit);
     }
 
-    fn apply_edits_on_stream(version: &mut StreamVersion, edit: &crate::manifest::VersionEdit) {
-        for recycle_log in edit.recycled_logs.iter() {
+    fn apply_edit_about_stream(version: &mut StreamVersion, edit: &crate::manifest::VersionEdit) {
+        for recycle_log in &edit.recycled_logs {
             version
-                .log_num_record
-                .recycled_log_number
+                .log_number_record
+                .recycled_log_numbers
                 .insert(recycle_log.log_number);
-            for update in recycle_log.updated_streams.iter() {
+            for update in &recycle_log.updated_streams {
                 if update.stream_id != version.stream_id {
                     continue;
                 }
                 Self::merge_stream(&mut version.stream_meta, update);
             }
         }
-        Self::advance_min_log_number(&mut version.log_num_record, edit);
+        Self::advance_min_log_number(&mut version.log_number_record, edit);
     }
 
     fn advance_min_log_number(record: &mut LogNumberRecord, edit: &crate::manifest::VersionEdit) {
@@ -379,7 +392,7 @@ impl VersionBuilder {
             if record.min_log_number < min_log_number {
                 record.min_log_number = min_log_number;
                 record
-                    .recycled_log_number
+                    .recycled_log_numbers
                     .drain_filter(|log_number| *log_number < record.min_log_number);
             }
         }
@@ -394,10 +407,9 @@ impl VersionBuilder {
             .iter()
             .map(|r| (r.epoch, r.promised_epoch))
             .collect::<HashMap<_, _>>();
-
-        for replica in stream_meta.replicas.iter_mut() {
-            if let Some(sp) = sealing_epochs.remove(&replica.epoch).flatten() {
-                replica.promised_epoch = Some(sp);
+        for replica in &mut stream_meta.replicas {
+            if let Some(sealing_epoch) = sealing_epochs.remove(&replica.epoch).flatten() {
+                replica.promised_epoch = Some(sealing_epoch);
             }
         }
         stream_meta.initial_seq = update.initial_seq;

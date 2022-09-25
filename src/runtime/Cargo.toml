@@ -29,8 +29,8 @@ tonic = "0.8.0"
 crc32fast = "1.3.2"
 libc = "0.2.132"
 tempfile = "3.3.0"
-async-condvar-fair = { version = "0.2.2", features = ["parking_lot_0_12"] }
-parking_lot = "0.12.1"
+#async-condvar-fair = { version = "0.2.2", features = ["parking_lot_0_12"] }
+#parking_lot = "0.12.1"
 
 [dev-dependencies]
 clap = { version = "3.2.16", features = ["derive"] }

@@ -20,3 +20,5 @@ pub mod server;
 pub mod streams;
 pub mod tenant;
 pub mod types;
+
+pub use types::{Entry, Sequence};

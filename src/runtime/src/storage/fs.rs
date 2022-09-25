@@ -12,14 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::io::Error;
+use std::{fs::File, io::Error};
 
 pub trait FileExt {
+    /// Sync the specifies file range in async.
+    ///
+    /// [`offset`] is the starting byte of the file range to be synchronized.
+    /// [`len`] specifies the length of the range to be synchronized, in bytes.
+    /// If then is zero, then all bytes from [`offset`] through to the end of
+    /// file are synchronized. Synchronization is in units of the system page
+    /// size: [`offset`] is rounded down to a page boundary;
+    /// ([`offset`]+[`len`]-1) is rounded up to a page boundary.
     fn sync_range(&mut self, offset: usize, len: usize) -> Result<(), Error>;
+
+    /// Allow caller to directly allocate disk space for the specifies file,
+    /// then the range did not contain data will be initialized to zero. After a
+    /// successful call, subsequent writes blow file size are guaranteed not
+    /// to fail because of lack of disk space.
     fn preallocate(&mut self, len: usize) -> Result<(), Error>;
 }
 
-impl FileExt for std::fs::File {
+impl FileExt for File {
     fn sync_range(&mut self, offset: usize, len: usize) -> Result<(), Error> {
         #[cfg(target_os = "linux")]
         unsafe {
@@ -31,6 +44,7 @@ impl FileExt for std::fs::File {
                 len as i64,
                 libc::SYNC_FILE_RANGE_WRITE,
             );
+
             if retval == -1 {
                 return Err(std::io::Error::last_os_error());
             }
@@ -41,6 +55,7 @@ impl FileExt for std::fs::File {
             let _ = offset;
             let _ = len;
         }
+
         Ok(())
     }
 
@@ -48,6 +63,7 @@ impl FileExt for std::fs::File {
         #[cfg(target_os = "linux")]
         unsafe {
             use std::os::unix::io::AsRawFd;
+
             let retval = libc::fallocate(self.as_raw_fd(), 0, 0, len as i64);
             if retval == -1 {
                 return Err(std::io::Error::last_os_error());
@@ -57,11 +73,13 @@ impl FileExt for std::fs::File {
         #[cfg(target_os = "macos")]
         unsafe {
             use std::os::unix::io::AsRawFd;
+
             let retval = libc::ftruncate(self.as_raw_fd(), len as i64);
             if retval != 0 {
                 return Err(std::io::Error::from_raw_os_error(retval));
             }
         }
+
         Ok(())
     }
 }

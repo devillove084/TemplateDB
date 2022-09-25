@@ -21,14 +21,13 @@ use std::{
 
 use log::warn;
 
-use super::{memtableiter::MemtableIter, txn::TxnContext, version::StreamVersion};
+use super::{memtableiter::MemTableIter, txn::TxnContext, version::StreamVersion};
 use crate::{
     storage::log::manager::ReleaseReferringLogFile,
     stream::{
         error::{IOKindResult, Result},
-        types::Sequence,
+        Entry, Sequence,
     },
-    Entry,
 };
 
 pub struct PartialStream<R> {
@@ -92,7 +91,6 @@ impl<R: ReleaseReferringLogFile> PartialStream<R> {
             .drain_filter(|_, memtable| memtable.is_empty())
             .map(|v| v.0)
             .collect::<Vec<_>>();
-        // TODO: make release async
         for ln in recycled_logs {
             self.log_file_releaser.release(self.stream_id, ln);
         }
@@ -278,7 +276,7 @@ impl<R: ReleaseReferringLogFile> PartialStream<R> {
         }
     }
 
-    fn seek(&self, start_seq: Sequence) -> MemtableIter {
+    fn seek(&self, start_seq: Sequence) -> MemTableIter {
         let mut iters = self
             .stabled_tables
             .iter()
@@ -287,7 +285,7 @@ impl<R: ReleaseReferringLogFile> PartialStream<R> {
         if let Some((_, m)) = &self.active_table {
             iters.push(m.range(start_seq..).peekable());
         }
-        MemtableIter::new(start_seq, iters)
+        MemTableIter::new(start_seq, iters)
     }
 
     pub fn continuous_index(&self, epoch: u32, hole: Range<u32>) -> u32 {
@@ -376,8 +374,7 @@ impl<R: ReleaseReferringLogFile> PartialStream<R> {
         }
 
         // 2. an bridge record is acked
-        if entry.entry_type == 2 {
-            // TODO(luhuanbing): entry cast is invalid, 2 means bridge
+        if let Entry::Bridge { .. } = entry {
             if *seq <= &self.acked_seq {
                 return true;
             }
@@ -416,221 +413,221 @@ impl<R: ReleaseReferringLogFile> PartialStream<R> {
         {
             return false;
         }
-        return true;
+        true
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
 
-    struct MockReleaser {}
+//     struct MockReleaser {}
 
-    #[async_trait::async_trait]
-    impl ReleaseReferringLogFile for MockReleaser {
-        async fn release(&self, stream_id: u64, log_number: u64) {}
-    }
+//     #[async_trait::async_trait]
+//     impl ReleaseReferringLogFile for MockReleaser {
+//         async fn release(&self, stream_id: u64, log_number: u64) {}
+//     }
 
-    fn make_entries(len: usize) -> Vec<Entry> {
-        (0..len)
-            .into_iter()
-            .map(|_| Entry {
-                entry_type: 0,
-                epoch: 0,
-                event: Vec::new(),
-            })
-            .collect()
-    }
+//     fn make_entries(len: usize) -> Vec<Entry> {
+//         (0..len)
+//             .into_iter()
+//             .map(|_| Entry {
+//                 entry_type: 0,
+//                 epoch: 0,
+//                 event: Vec::new(),
+//             })
+//             .collect()
+//     }
 
-    fn make_sequences(epoch: u32, first: u32, len: usize) -> Vec<Sequence> {
-        (0..len)
-            .into_iter()
-            .map(|i| Sequence::new(epoch, first + i as u32))
-            .collect()
-    }
+//     fn make_sequences(epoch: u32, first: u32, len: usize) -> Vec<Sequence> {
+//         (0..len)
+//             .into_iter()
+//             .map(|i| Sequence::new(epoch, first + i as u32))
+//             .collect()
+//     }
 
-    fn submit(
-        stream: &mut PartialStream<MockReleaser>,
-        log: u64,
-        epoch: u32,
-        index: u32,
-        len: usize,
-    ) {
-        let txn = TxnContext::Write {
-            segment_epoch: epoch,
-            first_index: index,
-            acked_seq: Sequence::default(),
-            prev_acked_seq: Sequence::default(),
-            entries: make_entries(len),
-        };
-        stream.commit(log, txn);
-    }
+//     fn submit(
+//         stream: &mut PartialStream<MockReleaser>,
+//         log: u64,
+//         epoch: u32,
+//         index: u32,
+//         len: usize,
+//     ) {
+//         let txn = TxnContext::Write {
+//             segment_epoch: epoch,
+//             first_index: index,
+//             acked_seq: Sequence::default(),
+//             prev_acked_seq: Sequence::default(),
+//             entries: make_entries(len),
+//         };
+//         stream.commit(log, txn);
+//     }
 
-    fn submit_acked_seq(stream: &mut PartialStream<MockReleaser>, log: u64, acked_seq: Sequence) {
-        let txn = TxnContext::Write {
-            segment_epoch: acked_seq.epoch,
-            first_index: acked_seq.index,
-            acked_seq,
-            prev_acked_seq: Sequence::default(),
-            entries: vec![],
-        };
-        stream.commit(log, txn);
-    }
+//     fn submit_acked_seq(stream: &mut PartialStream<MockReleaser>, log: u64, acked_seq: Sequence)
+// {         let txn = TxnContext::Write {
+//             segment_epoch: acked_seq.epoch,
+//             first_index: acked_seq.index,
+//             acked_seq,
+//             prev_acked_seq: Sequence::default(),
+//             entries: vec![],
+//         };
+//         stream.commit(log, txn);
+//     }
 
-    #[test]
-    fn partial_stream_iter() {
-        let mut stream = PartialStream::new(StreamVersion::new(1), MockReleaser {});
-        // log 1 => [2, 6)  [10, 15)
-        submit(&mut stream, 1, 1, 2, 4);
-        submit(&mut stream, 1, 1, 10, 4);
-        // log 2 => [3, 8)  [10, 18)
-        submit(&mut stream, 2, 1, 3, 5);
-        submit(&mut stream, 2, 1, 10, 8);
-        submit(&mut stream, 2, 2, 10, 8);
+//     #[test]
+//     fn partial_stream_iter() {
+//         let mut stream = PartialStream::new(StreamVersion::new(1), MockReleaser {});
+//         // log 1 => [2, 6)  [10, 15)
+//         submit(&mut stream, 1, 1, 2, 4);
+//         submit(&mut stream, 1, 1, 10, 4);
+//         // log 2 => [3, 8)  [10, 18)
+//         submit(&mut stream, 2, 1, 3, 5);
+//         submit(&mut stream, 2, 1, 10, 8);
+//         submit(&mut stream, 2, 2, 10, 8);
 
-        struct TestCase {
-            tips: &'static str,
-            seek: Sequence,
-            expect: Option<Sequence>,
-        }
+//         struct TestCase {
+//             tips: &'static str,
+//             seek: Sequence,
+//             expect: Option<Sequence>,
+//         }
 
-        let cases = vec![
-            TestCase {
-                tips: "1. out of range",
-                seek: Sequence::new(3, 1),
-                expect: None,
-            },
-            TestCase {
-                tips: "2. out of range in same epoch",
-                seek: Sequence::new(2, 18),
-                expect: None,
-            },
-            TestCase {
-                tips: "3. read the smaller one",
-                seek: Sequence::new(1, 1),
-                expect: Some(Sequence::new(1, 2)),
-            },
-            TestCase {
-                tips: "4. read the recent writes",
-                seek: Sequence::new(1, 9),
-                expect: Some(Sequence::new(1, 10)),
-            },
-            TestCase {
-                tips: "5. read the equals writes",
-                seek: Sequence::new(1, 10),
-                expect: Some(Sequence::new(1, 10)),
-            },
-        ];
-        for case in cases {
-            let mut iter = stream.seek(case.seek);
-            if let Some(expect) = case.expect {
-                let next = iter.next();
-                assert!(next.is_some(), "in case {}", case.tips);
-                let (seq, _) = next.unwrap();
-                assert_eq!(expect, *seq, "in case {}", case.tips);
-            } else {
-                assert!(iter.next().is_none(), "in case {}", case.tips);
-            }
-        }
-        // Iterate all entries.
-        let values = stream
-            .seek(Sequence::new(1, 1))
-            .map(|(seq, _)| *seq)
-            .collect::<Vec<_>>();
-        let mut expects = vec![];
-        expects.append(&mut make_sequences(1, 2, 6));
-        expects.append(&mut make_sequences(1, 10, 8));
-        expects.append(&mut make_sequences(2, 10, 8));
-        assert_eq!(values, expects,)
-    }
+//         let cases = vec![
+//             TestCase {
+//                 tips: "1. out of range",
+//                 seek: Sequence::new(3, 1),
+//                 expect: None,
+//             },
+//             TestCase {
+//                 tips: "2. out of range in same epoch",
+//                 seek: Sequence::new(2, 18),
+//                 expect: None,
+//             },
+//             TestCase {
+//                 tips: "3. read the smaller one",
+//                 seek: Sequence::new(1, 1),
+//                 expect: Some(Sequence::new(1, 2)),
+//             },
+//             TestCase {
+//                 tips: "4. read the recent writes",
+//                 seek: Sequence::new(1, 9),
+//                 expect: Some(Sequence::new(1, 10)),
+//             },
+//             TestCase {
+//                 tips: "5. read the equals writes",
+//                 seek: Sequence::new(1, 10),
+//                 expect: Some(Sequence::new(1, 10)),
+//             },
+//         ];
+//         for case in cases {
+//             let mut iter = stream.seek(case.seek);
+//             if let Some(expect) = case.expect {
+//                 let next = iter.next();
+//                 assert!(next.is_some(), "in case {}", case.tips);
+//                 let (seq, _) = next.unwrap();
+//                 assert_eq!(expect, *seq, "in case {}", case.tips);
+//             } else {
+//                 assert!(iter.next().is_none(), "in case {}", case.tips);
+//             }
+//         }
+//         // Iterate all entries.
+//         let values = stream
+//             .seek(Sequence::new(1, 1))
+//             .map(|(seq, _)| *seq)
+//             .collect::<Vec<_>>();
+//         let mut expects = vec![];
+//         expects.append(&mut make_sequences(1, 2, 6));
+//         expects.append(&mut make_sequences(1, 10, 8));
+//         expects.append(&mut make_sequences(2, 10, 8));
+//         assert_eq!(values, expects,)
+//     }
 
-    #[test]
-    fn partial_stream_scan() {
-        const START_INDEX: u32 = 1000;
-        const EPOCH: u32 = 100;
+//     #[test]
+//     fn partial_stream_scan() {
+//         const START_INDEX: u32 = 1000;
+//         const EPOCH: u32 = 100;
 
-        struct TestCase {
-            tips: &'static str,
-            // [(seq, len) ...]
-            input: Vec<(Sequence, usize)>,
-            acked_seq: Sequence,
-            expects: Option<Vec<u32>>,
-            require_acked: bool,
-        }
+//         struct TestCase {
+//             tips: &'static str,
+//             // [(seq, len) ...]
+//             input: Vec<(Sequence, usize)>,
+//             acked_seq: Sequence,
+//             expects: Option<Vec<u32>>,
+//             require_acked: bool,
+//         }
 
-        let range = |start, len| (start..(start + len)).into_iter().collect::<Vec<_>>();
+//         let range = |start, len| (start..(start + len)).into_iter().collect::<Vec<_>>();
 
-        let cases = vec![
-            TestCase {
-                tips: "1. return None if not ready",
-                input: vec![(Sequence::new(EPOCH, START_INDEX), 10)],
-                acked_seq: Sequence::new(0, 0),
-                expects: None,
-                require_acked: true,
-            },
-            TestCase {
-                tips: "2. return None even if last entry is acked",
-                input: vec![(Sequence::new(EPOCH, 1), 50)],
-                acked_seq: Sequence::new(EPOCH, START_INDEX),
-                expects: None,
-                require_acked: true,
-            },
-            TestCase {
-                tips: "3. return empty if eof is reached (next epoch has acked entries)",
-                input: vec![
-                    (Sequence::new(EPOCH, 1), 50),
-                    (Sequence::new(EPOCH + 1, 1), 1),
-                ],
-                acked_seq: Sequence::new(EPOCH + 1, 1),
-                expects: Some(vec![]),
-                require_acked: true,
-            },
-            TestCase {
-                tips: "4. only return acked entries if not allow pending entries",
-                input: vec![(Sequence::new(EPOCH, START_INDEX), 100)],
-                acked_seq: Sequence::new(EPOCH, START_INDEX + 50),
-                expects: Some(range(START_INDEX, 51)),
-                require_acked: true,
-            },
-            TestCase {
-                tips: "5. allow all entries if pending entries is allowed",
-                input: vec![(Sequence::new(EPOCH, START_INDEX), 100)],
-                acked_seq: Sequence::new(EPOCH, START_INDEX + 50),
-                expects: Some(range(START_INDEX, 100)),
-                require_acked: false,
-            },
-            TestCase {
-                tips: "6. return continuously entries",
-                input: vec![
-                    (Sequence::new(EPOCH, START_INDEX - 50), 100),
-                    (Sequence::new(EPOCH, START_INDEX + 500), 100),
-                ],
-                acked_seq: Sequence::new(EPOCH + 1, 1),
-                expects: Some(range(START_INDEX, 50)),
-                require_acked: true,
-            },
-        ];
+//         let cases = vec![
+//             TestCase {
+//                 tips: "1. return None if not ready",
+//                 input: vec![(Sequence::new(EPOCH, START_INDEX), 10)],
+//                 acked_seq: Sequence::new(0, 0),
+//                 expects: None,
+//                 require_acked: true,
+//             },
+//             TestCase {
+//                 tips: "2. return None even if last entry is acked",
+//                 input: vec![(Sequence::new(EPOCH, 1), 50)],
+//                 acked_seq: Sequence::new(EPOCH, START_INDEX),
+//                 expects: None,
+//                 require_acked: true,
+//             },
+//             TestCase {
+//                 tips: "3. return empty if eof is reached (next epoch has acked entries)",
+//                 input: vec![
+//                     (Sequence::new(EPOCH, 1), 50),
+//                     (Sequence::new(EPOCH + 1, 1), 1),
+//                 ],
+//                 acked_seq: Sequence::new(EPOCH + 1, 1),
+//                 expects: Some(vec![]),
+//                 require_acked: true,
+//             },
+//             TestCase {
+//                 tips: "4. only return acked entries if not allow pending entries",
+//                 input: vec![(Sequence::new(EPOCH, START_INDEX), 100)],
+//                 acked_seq: Sequence::new(EPOCH, START_INDEX + 50),
+//                 expects: Some(range(START_INDEX, 51)),
+//                 require_acked: true,
+//             },
+//             TestCase {
+//                 tips: "5. allow all entries if pending entries is allowed",
+//                 input: vec![(Sequence::new(EPOCH, START_INDEX), 100)],
+//                 acked_seq: Sequence::new(EPOCH, START_INDEX + 50),
+//                 expects: Some(range(START_INDEX, 100)),
+//                 require_acked: false,
+//             },
+//             TestCase {
+//                 tips: "6. return continuously entries",
+//                 input: vec![
+//                     (Sequence::new(EPOCH, START_INDEX - 50), 100),
+//                     (Sequence::new(EPOCH, START_INDEX + 500), 100),
+//                 ],
+//                 acked_seq: Sequence::new(EPOCH + 1, 1),
+//                 expects: Some(range(START_INDEX, 50)),
+//                 require_acked: true,
+//             },
+//         ];
 
-        for case in cases {
-            let mut stream = PartialStream::new(StreamVersion::new(1), MockReleaser {});
-            for (seq, len) in case.input {
-                submit(&mut stream, 1, seq.epoch, seq.index, len);
-            }
-            submit_acked_seq(&mut stream, 1, case.acked_seq);
-            let entries = stream
-                .scan_entries(EPOCH, START_INDEX, usize::MAX, case.require_acked)
-                .unwrap_or_else(|_| panic!("in case {}", case.tips));
-            if let Some(expects) = case.expects {
-                assert!(entries.is_some(), "in case {}", case.tips);
-                let read = entries
-                    .unwrap()
-                    .into_iter()
-                    .map(|(index, _)| index)
-                    .collect::<Vec<_>>();
-                assert_eq!(expects, read, "in case {}", case.tips);
-            } else {
-                assert!(entries.is_none(), "in case {}", case.tips);
-            }
-        }
-    }
-}
+//         for case in cases {
+//             let mut stream = PartialStream::new(StreamVersion::new(1), MockReleaser {});
+//             for (seq, len) in case.input {
+//                 submit(&mut stream, 1, seq.epoch, seq.index, len);
+//             }
+//             submit_acked_seq(&mut stream, 1, case.acked_seq);
+//             let entries = stream
+//                 .scan_entries(EPOCH, START_INDEX, usize::MAX, case.require_acked)
+//                 .unwrap_or_else(|_| panic!("in case {}", case.tips));
+//             if let Some(expects) = case.expects {
+//                 assert!(entries.is_some(), "in case {}", case.tips);
+//                 let read = entries
+//                     .unwrap()
+//                     .into_iter()
+//                     .map(|(index, _)| index)
+//                     .collect::<Vec<_>>();
+//                 assert_eq!(expects, read, "in case {}", case.tips);
+//             } else {
+//                 assert!(entries.is_none(), "in case {}", case.tips);
+//             }
+//         }
+//     }
+// }

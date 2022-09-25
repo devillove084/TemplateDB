@@ -38,7 +38,7 @@ async fn main() -> Result<()> {
     opt.create_if_missing = true;
     args.endpoint = String::from("0.0.0.0:21718");
     args.db = PathBuf::from("./db");
-    let db = StreamDB::open(args.db, opt).await?;
+    let db = StreamDB::open(args.db, opt)?;
     bootstrap_service(&args.endpoint, db).await?;
     println!("Bye");
     Ok(())
