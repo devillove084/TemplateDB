@@ -11,22 +11,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#![allow(clippy::all)]
+#![feature(map_first_last)]
 
-pub mod bplustree;
-pub mod rocksdb;
+pub mod btree;
+pub mod error;
+pub mod file;
+pub mod lsm;
+pub mod node;
 pub mod template;
-
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}

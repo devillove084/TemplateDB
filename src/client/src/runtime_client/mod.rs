@@ -12,6 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod engine_client;
-pub mod runtime_client;
-pub mod storeclient;
+pub mod core;
+pub mod engine;
+pub mod group;
+pub mod node;
+pub mod policy;
+pub mod reader;
+pub mod store;
+pub mod stream;
+pub mod tenant;

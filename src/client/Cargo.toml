@@ -7,7 +7,10 @@ edition = "2021"
 
 [dependencies]
 runtime = {version = "0.1", path = "../runtime"}
+engine = {version = "0.1", path = "../engine"}
 tonic = "0.8.0"
 futures = "0.3.21"
+async-trait = "0.1.56"
 tokio = { version = "1.19.2", features = ["full"] }
 tokio-stream = { version = "0.1.9", features = ["net"] }
+tempfile = "3.3.0"

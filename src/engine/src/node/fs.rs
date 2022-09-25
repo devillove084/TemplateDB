@@ -12,6 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod engine_client;
-pub mod runtime_client;
-pub mod storeclient;
+use std::{path::PathBuf, sync::Arc};
+
+use crate::{
+    error::Result,
+    file::{fs::store::FileSystemStore, store_trait::Store},
+};
+
+pub type FileStore = Arc<dyn Store>;
+
+pub async fn open(path: impl Into<PathBuf>) -> Result<FileStore> {
+    let store = FileSystemStore::open(path).await?;
+    let store: Box<dyn Store> = Box::new(store);
+    Ok(store.into())
+}

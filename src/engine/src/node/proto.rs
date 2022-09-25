@@ -12,6 +12,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod engine_client;
-pub mod runtime_client;
-pub mod storeclient;
+tonic::include_proto!("engine.node.v1");
