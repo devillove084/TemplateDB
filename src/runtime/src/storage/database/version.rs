@@ -268,7 +268,7 @@ impl VersionSet {
                 }
                 _ => {}
             }
-            // TODO(walter) merge stream meta.
+            // TODO(luhuanbing) merge stream meta.
         }
 
         let version_edit = Box::new(VersionEdit {

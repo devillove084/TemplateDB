@@ -132,7 +132,7 @@ impl ReleaseReferringLogFile for LogFileManager {
             stream_set.remove(&stream_id);
             if stream_set.is_empty() {
                 inner.refer_streams.remove(&log_number);
-                // TODO(walter) submit background task, then add log number into
+                // TODO(luhuanbing) submit background task, then add log number into
                 // recycled log files.
             }
         }

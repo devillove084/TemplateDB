@@ -228,7 +228,7 @@ pub(crate) fn recover_manifest<P: AsRef<Path>>(manifest: P) -> Result<(usize, Ve
     let file = std::fs::File::open(manifest)?;
     let mut reader = LogReader::new(file, 0, true)?;
     let mut builder = VersionBuilder::default();
-    // FIXME(walter) handle partial write or corruption?
+    // FIXME(luhuanbing) handle partial write or corruption?
     while let Some(content) = reader.read_record()? {
         let edit = crate::manifest::VersionEdit::decode(content.as_slice())
             .expect("corrupted version edit");
