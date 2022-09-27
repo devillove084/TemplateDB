@@ -4,7 +4,7 @@ import theme from "./theme.js";
 export default defineUserConfig({
     base: "/TemplateKV/",
 
-    dest: "./dist",
+    dest: "./docs",
 
     locales: {
         "/": {
