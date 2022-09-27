@@ -11,3 +11,67 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+pub mod group;
+pub mod simple;
+
+use std::collections::HashMap;
+
+pub(crate) use group::GroupReader;
+
+use crate::runtime_client::{core::progress::Progress, Sequence};
+
+#[allow(unused)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Policy {
+    /// A simple strategy that allows ack entries as long as one copy holds the
+    /// dataset.
+    ///
+    /// This strategy is mainly used for testing.
+    Simple,
+}
+
+#[allow(dead_code)]
+impl Policy {
+    /// Calculate the `acked_sequence` based on the matched indexes.
+    pub(super) fn advance_acked_sequence(
+        self,
+        epoch: u32,
+        progresses: &HashMap<String, Progress>,
+    ) -> Sequence {
+        match self {
+            Policy::Simple => simple::advance_acked_sequence(epoch, progresses),
+        }
+    }
+
+    /// Return the actual acked index, `None` if the indexes aren't enough.
+    #[inline(always)]
+    pub(super) fn actual_acked_index(
+        self,
+        num_copies: usize,
+        acked_indexes: &[u32],
+    ) -> Option<u32> {
+        match self {
+            Policy::Simple => simple::actual_acked_index(num_copies, acked_indexes),
+        }
+    }
+
+    pub(super) fn is_enough_targets_acked(
+        self,
+        index: u32,
+        progresses: &HashMap<String, Progress>,
+    ) -> bool {
+        match self {
+            Policy::Simple => simple::is_enough_targets_acked(index, progresses),
+        }
+    }
+
+    pub(super) fn new_group_reader(
+        self,
+        epoch: u32,
+        next_index: u32,
+        copies: Vec<String>,
+    ) -> GroupReader {
+        GroupReader::new(self.into(), epoch, next_index, copies)
+    }
+}

@@ -14,4 +14,3 @@
 
 pub mod engine_client;
 pub mod runtime_client;
-pub mod storeclient;

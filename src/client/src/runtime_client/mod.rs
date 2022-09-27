@@ -21,3 +21,15 @@ pub mod reader;
 pub mod store;
 pub mod stream;
 pub mod tenant;
+
+type TonicResult<T> = std::result::Result<T, tonic::Status>;
+pub use runtime::stream::{
+    error::{Error, Result},
+    Entry, Sequence,
+};
+
+pub use self::{
+    engine::Engine,
+    stream::{EpochState, Role, Stream},
+    tenant::Tenant,
+};

@@ -14,7 +14,7 @@
 #![allow(clippy::all)]
 #![feature(map_first_last)]
 
-pub mod btree;
+pub mod bwtree;
 pub mod error;
 pub mod file;
 pub mod lsm;
