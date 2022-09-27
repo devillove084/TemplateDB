@@ -4,3 +4,4 @@ Cargo.lock
 /db
 /current
 /.vscode
+node_modules
