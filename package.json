@@ -1,0 +1,30 @@
+{
+  "name": "templatekv",
+  "version": "1.0.0",
+  "description": "gh-page",
+  "main": "index.js",
+  "scripts": {
+    "docs:dev": "vuepress dev docs",
+    "docs:build": "vuepress build docs",
+    "docs:clean-dev": "vuepress dev docs --clean-cache"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devillove084/TemplateKV.git#gh-page"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/devillove084/TemplateKV/issues"
+  },
+  "homepage": "https://github.com/devillove084/TemplateKV/tree/gh-page#readme",
+  "devDependencies": {
+    "vuepress": "2.0.0-beta.51",
+    "@vuepress/client": "2.0.0-beta.51",
+    "vue": "^3.2.29",
+    "vuepress-theme-hope": "2.0.0-beta.104"
+  },
+  "dependencies": {
+    "vuepress-theme-antdocs": "^1.4.4"
+  }
+}
