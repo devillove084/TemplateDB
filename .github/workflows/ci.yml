@@ -52,6 +52,10 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
+    - uses: abelfodil/protoc-action@v1
+      with:
+        protoc-version: '3.19.4'
+        enable-dart: false
     - name: Checkout repository
       uses: actions/checkout@v2
     - uses: Swatinem/rust-cache@v1
@@ -76,3 +80,10 @@ jobs:
       with:
         command: test
         args: --workspace -- --nocapture --quiet --test-threads=1
+    - name: Run miri tests
+      uses: actions-rs/cargo@v1
+      with:
+        command: miri
+        args: test
+      env:
+        MIRIFLAGS: -Zmiri-ignore-leaks -Zmiri-permissive-provenance
