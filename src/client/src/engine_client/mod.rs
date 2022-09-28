@@ -25,7 +25,7 @@ mod engine_test {
 
     use crate::engine_client::{engine::Engine, env::local::Env as LocalEnv};
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_get_iter_put() -> Result<()> {
         let p = tempfile::tempdir()?;
         println!("{:?}", p.path());
@@ -91,7 +91,7 @@ mod engine_test {
         Ok(())
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_get_iter_delete() -> Result<()> {
         let p = tempfile::tempdir()?;
         println!("{:?}", p.path());

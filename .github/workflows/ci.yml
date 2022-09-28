@@ -80,10 +80,3 @@ jobs:
       with:
         command: test
         args: --workspace -- --nocapture --quiet --test-threads=1
-    - name: Run miri tests
-      uses: actions-rs/cargo@v1
-      with:
-        command: miri
-        args: test
-      env:
-        MIRIFLAGS: -Zmiri-ignore-leaks -Zmiri-permissive-provenance
