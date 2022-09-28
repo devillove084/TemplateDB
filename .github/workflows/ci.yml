@@ -57,10 +57,10 @@ jobs:
         protoc-version: '3.19.4'
         enable-dart: false
     - uses: actions/checkout@v2
-      - name: Install cargo-nextest
-        uses: baptiste0928/cargo-install@v1
-        with:
-          crate: cargo-nextest
+    - name: Install cargo-nextest
+      uses: baptiste0928/cargo-install@v1
+      with:
+        crate: cargo-nextest
     - name: Checkout repository
       uses: actions/checkout@v2
     - uses: Swatinem/rust-cache@v1
@@ -84,9 +84,9 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: nextest
-        # args: --workspace -- --nocapture --quiet --test-threads=1
+        args: run
     - name: Run miri tests
       uses: actions-rs/cargo@v1
       with:
         command: miri
-        args: nextest
+        args: nextest run
