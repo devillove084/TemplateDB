@@ -132,6 +132,7 @@ mod tests {
     use crate::runtime_client::{node::Master, Error, Result};
 
     #[tokio::test(flavor = "multi_thread")]
+    #[cfg_attr(miri, ignore)]
     async fn create_tenant() -> Result<()> {
         let master_addr = build_master(&[]).await?;
 
@@ -145,6 +146,7 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
+    #[cfg_attr(miri, ignore)]
     async fn create_stream() -> Result<()> {
         let master_addr = build_master(&[]).await?;
 

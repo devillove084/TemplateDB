@@ -147,6 +147,7 @@ pub(crate) mod tests {
     };
 
     #[tokio::test(flavor = "multi_thread")]
+    #[cfg_attr(miri, ignore)]
     async fn heartbeat() -> Result<()> {
         let replicas = vec!["a", "b", "c"];
         let local_addr = build_master(&replicas).await?;
@@ -177,6 +178,7 @@ pub(crate) mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
+    #[cfg_attr(miri, ignore)]
     async fn get_segment() -> Result<()> {
         let replicas = vec!["a", "b", "c"];
         let local_addr = build_master(&replicas).await?;
@@ -210,6 +212,7 @@ pub(crate) mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
+    #[cfg_attr(miri, ignore)]
     async fn heartbeat_with_threshold_switching() -> Result<()> {
         let replicas = vec!["a", "b", "c"];
         let local_addr = build_master(&replicas).await?;
@@ -231,6 +234,7 @@ pub(crate) mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
+    #[cfg_attr(miri, ignore)]
     async fn heartbeat_promote_leader_or_followers() -> Result<()> {
         let replicas = vec!["a", "b", "c"];
         let local_addr = build_master(&replicas).await?;
@@ -266,6 +270,7 @@ pub(crate) mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
+    #[cfg_attr(miri, ignore)]
     async fn seal_segment() -> Result<()> {
         let master_addr = build_master(&[]).await?;
         let master = Master::new(&master_addr).await?;
@@ -285,6 +290,7 @@ pub(crate) mod tests {
     /// If observer lost the heartbeat response, it should receive and continue
     /// the previous promote request.
     #[tokio::test(flavor = "multi_thread")]
+    #[cfg_attr(miri, ignore)]
     async fn heartbeat_idempotent() -> std::result::Result<(), Box<dyn std::error::Error>> {
         let replicas = vec!["a", "b", "c"];
         let local_addr = build_master(&replicas).await?;

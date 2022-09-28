@@ -106,12 +106,10 @@ mod tests {
     use futures::StreamExt;
     use proto::storage::build_store;
     use runtime as proto;
-    // use stream_engine_common::{Entry, Sequence};
-    // use stream_engine_proto as proto;
-    // use stream_engine_proto::{ReadRequest, SealRequest, WriteRequest};
-    // use stream_engine_store::build_store;
-    use runtime::stream::Entry;
-    use runtime::{stream::Sequence, ReadRequest, SealRequest, WriteRequest};
+    use runtime::{
+        stream::{Entry, Sequence},
+        ReadRequest, SealRequest, WriteRequest,
+    };
     use tonic::transport::Endpoint;
 
     use super::{Result, StoreClient};
@@ -131,6 +129,7 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
+    #[cfg_attr(miri, ignore)]
     async fn basic_write_and_read_acked() -> crate::runtime_client::Result<()> {
         let writes = vec![
             WriteRequest {
@@ -228,6 +227,7 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
+    #[cfg_attr(miri, ignore)]
     async fn basic_write_and_read_including_pending_entries() -> crate::runtime_client::Result<()> {
         let writes = vec![
             WriteRequest {
@@ -330,6 +330,7 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
+    #[cfg_attr(miri, ignore)]
     async fn reject_staled_sealing_request() -> crate::runtime_client::Result<()> {
         let client = build_store_client().await?;
         client.seal(1, 3, SealRequest { segment_epoch: 1 }).await?;
@@ -347,6 +348,7 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
+    #[cfg_attr(miri, ignore)]
     async fn reject_staled_writing_if_sealed() -> crate::runtime_client::Result<()> {
         let client = build_store_client().await?;
         let write_req = WriteRequest {
@@ -376,6 +378,7 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
+    #[cfg_attr(miri, ignore)]
     async fn remove_entries_once_receiving_bridge_entry() -> crate::runtime_client::Result<()> {
         let client = build_store_client().await?;
         let write_req = WriteRequest {
@@ -455,6 +458,7 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
+    #[cfg_attr(miri, ignore)]
     async fn write_returns_continuously_persisted_index() -> crate::runtime_client::Result<()> {
         let client = build_store_client().await?;
         let write_req = WriteRequest {
