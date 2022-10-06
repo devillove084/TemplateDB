@@ -9,13 +9,13 @@ export default defineUserConfig({
     locales: {
         "/": {
             lang: "en-US",
-            title: "Docs Demo",
-            description: "A docs demo for vuepress-theme-hope",
+            title: "TemplateKV",
+            description: "A dynamically split or combined cloud native database by workload.",
         },
         "/zh/": {
             lang: "zh-CN",
-            title: "Database for HuanbingLu",
-            description: "Always need a db",
+            title: "TemplateKV",
+            description: "根据workload动态伸缩的云原生数据库",
         },
     },
 

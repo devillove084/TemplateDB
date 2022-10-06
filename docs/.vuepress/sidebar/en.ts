@@ -5,7 +5,7 @@ export const enSidebar = sidebar({
     "",
     {
       icon: "discover",
-      text: "Demo",
+      text: "Use",
       prefix: "demo/",
       link: "demo/",
       children: "structure",

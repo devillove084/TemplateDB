@@ -1,7 +1,7 @@
 ---
 title: Guides
 index: false
-icon: creative
+icon: editor
 category:
   - Guide
 ---

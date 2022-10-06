@@ -2,10 +2,10 @@ import { navbar } from "vuepress-theme-hope";
 
 export const zhNavbar = navbar([
   "/zh/",
-  { text: "案例", icon: "discover", link: "/zh/demo/" },
+  { text: "使用", icon: "style", link: "/zh/demo/" },
   {
-    text: "指南",
-    icon: "creative",
+    text: "文档",
+    icon: "article",
     prefix: "/zh/guide/",
     children: [
       {
@@ -22,9 +22,9 @@ export const zhNavbar = navbar([
       },
     ],
   },
-  {
-    text: "V2 文档",
-    icon: "note",
-    link: "https://vuepress-theme-hope.github.io/v2/zh/",
-  },
+  // {
+  //   text: "V2 文档",
+  //   icon: "note",
+  //   link: "https://vuepress-theme-hope.github.io/v2/zh/",
+  // },
 ]);

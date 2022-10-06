@@ -3,18 +3,18 @@ import { enNavbar, zhNavbar } from "./navbar/index.js";
 import { enSidebar, zhSidebar } from "./sidebar/index.js";
 
 export default hopeTheme({
-  hostname: "https://vuepress-theme-hope-docs-demo.netlify.app",
+  hostname: "https://github.com/devillove084/TemplateKV",
 
   author: {
-    name: "Mr.Hope",
-    url: "https://mrhope.site",
+    name: "Huanbing Lu",
+    url: "https://devillove084.github.io",
   },
 
   iconAssets: "iconfont",
 
-  logo: "/logo.svg",
+  logo: "/logo.png",
 
-  repo: "vuepress-theme-hope/vuepress-theme-hope",
+  repo: "https://github.com/devillove084/TemplateKV",
 
   docsDir: "demo/theme-docs/src",
 
@@ -152,24 +152,24 @@ export default hopeTheme({
         icons: [
           {
             src: "/assets/icon/chrome-mask-512.png",
-            sizes: "512x512",
+            sizes: "512x390",
             purpose: "maskable",
             type: "image/png",
           },
           {
             src: "/assets/icon/chrome-mask-192.png",
-            sizes: "192x192",
+            sizes: "192x146",
             purpose: "maskable",
             type: "image/png",
           },
           {
             src: "/assets/icon/chrome-512.png",
-            sizes: "512x512",
+            sizes: "512x390",
             type: "image/png",
           },
           {
             src: "/assets/icon/chrome-192.png",
-            sizes: "192x192",
+            sizes: "192x146",
             type: "image/png",
           },
         ],

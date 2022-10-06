@@ -2,11 +2,11 @@
 home: true
 icon: home
 title: 主页
-heroImage: 
+heroImage: /logo.png
 heroText: TemplateKV
-tagline: 面向云原生的细胞级KV数据库，旨在不同Workload下可以动态调度和调整底层结构，向下兼容硬件，向上兼容应用
+tagline: 在Workload下可以动态调度和调整底层结构，面向云原生的分子级KV数据库。
 actions:
-  - text: 使用指南 💡
+  - text: 快速上手 💡
     link: /zh/demo/
     type: primary
 
@@ -15,33 +15,33 @@ actions:
 
 features:
   - title: Pure Rust
-    icon: info
-    details: 纯Rust开发，安全高效
-    link: https://vuepress-theme-hope.github.io/v2/zh/guide/feature/page-info.html
+    icon: speed
+    details: 纯Rust开发，安全、可靠、高效
+    link: https://www.rust-lang.org
 
   - title: 为云原生而生
-    icon: markdown
-    details: 多种KV组件多种组合方式，契合多种数据库架构
-    link: https://vuepress-theme-hope.github.io/v2/zh/guide/markdown/
+    icon: stack
+    details: 自动部署、扩缩和管理容器化应用程序的开源数据库系统
+    link: https://kubernetes.io
 
   - title: 主动分裂合并
-    icon: slides
+    icon: any
     details: 通过Workload自动负载、卸载计算和存储
-    link: https://vuepress-theme-hope.github.io/v2/zh/guide/layout/slides.html
+    link: https://en.wikipedia.org/wiki/Carbon–carbon_bond
 
   - title: 无锁数据结构
-    icon: layout
+    icon: structure
     details: 使用无锁数据结构提供更高的性能
-    link: https://vuepress-theme-hope.github.io/v2/zh/guide/layout/
+    link: https://en.wikipedia.org/wiki/Non-blocking_algorithm
 
   - title: 现代硬件
-    icon: comment
+    icon: engine
     details: 面向未来，提供DPDK、RDMA、NVME等多种硬件的BUFF加成
-    link: https://vuepress-theme-hope.github.io/v2/zh/guide/feature/comment.html
+    link: https://en.wikipedia.org/wiki/Compute_Express_Link
 
-  - title: 弥补和Paper的GAP
-    icon: blog
-    details: 麻雀虽小，五脏俱全，后面还会有更多的新的玩法加入
-    link: https://vuepress-theme-hope.github.io/v2/zh/guide/blog/intro.html
+  - title: 面向数据库爱好者
+    icon: like
+    details: 寓学于乐，努力填补和论文之间的实践鸿沟
+    link: https://vldb.org/2022/?papers-industrial
 copyright: false
-footer: MIT Licensed | Copyright © 2019-present Mr.Hope
+footer: MIT Licensed | Copyright © 2022-present Huanbing Lu

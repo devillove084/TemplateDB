@@ -5,7 +5,7 @@ export const zhSidebar = sidebar({
     "",
     {
       icon: "discover",
-      text: "案例",
+      text: "使用",
       prefix: "demo/",
       link: "demo/",
       children: "structure",
