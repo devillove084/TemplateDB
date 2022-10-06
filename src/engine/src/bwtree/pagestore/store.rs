@@ -12,14 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod data;
-pub mod error;
-pub mod iter;
-pub mod node;
-pub mod page;
-pub mod pageiter;
-pub mod pageopt;
-pub mod pagestore;
-pub mod sortedpage;
-pub mod tree;
-pub mod util;
+#[derive(Debug, Clone, Copy)]
+pub struct PageInfo {
+    pub ver: u64,
+    pub len: u8,
+    pub is_leaf: bool,
+}

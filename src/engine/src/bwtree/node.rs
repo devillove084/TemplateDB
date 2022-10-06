@@ -12,14 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod data;
-pub mod error;
-pub mod iter;
-pub mod node;
-pub mod page;
-pub mod pageiter;
-pub mod pageopt;
-pub mod pagestore;
-pub mod sortedpage;
-pub mod tree;
-pub mod util;
+use super::{page::PageRef, pagestore::store::PageInfo};
+
+pub struct Range<'a> {
+    pub start: &'a [u8],
+    pub end: Option<&'a [u8]>,
+}
+
+pub enum PageView<'a> {
+    Mem(PageRef<'a>),
+    Disk(PageInfo, u64),
+}
+
+pub struct Node<'a> {
+    pub id: u64,
+    pub view: PageView<'a>,
+    pub range: Range<'a>,
+}

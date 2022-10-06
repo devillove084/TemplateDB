@@ -12,14 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod data;
-pub mod error;
-pub mod iter;
-pub mod node;
-pub mod page;
-pub mod pageiter;
-pub mod pageopt;
-pub mod pagestore;
-pub mod sortedpage;
-pub mod tree;
-pub mod util;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("Again")]
+    Again,
+    #[error("Alloc")]
+    Alloc,
+    #[error(transparent)]
+    IO(#[from] std::io::Error),
+}
+
+pub type Result<T> = std::result::Result<T, Error>;
