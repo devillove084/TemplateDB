@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::sync::atomic::AtomicU64;
+
 /// An unsafe, litte-endian buffer reader
 pub struct BufReader(*const u8);
 
@@ -102,5 +104,71 @@ impl BufWriter {
 
     pub const fn length_prefixed_slice_size(slice: &[u8]) -> usize {
         std::mem::size_of::<u32>() + slice.len()
+    }
+}
+
+pub struct Counter(AtomicU64);
+
+impl Default for Counter {
+    fn default() -> Self {
+        Self(AtomicU64::new(0))
+    }
+}
+
+impl Counter {
+    pub fn new(value: u64) -> Self {
+        Self(AtomicU64::new(value))
+    }
+
+    pub fn inc(&self) -> u64 {
+        self.add(1)
+    }
+
+    pub fn add(&self, value: u64) -> u64 {
+        self.0
+            .fetch_add(value, std::sync::atomic::Ordering::Relaxed)
+    }
+
+    pub fn get(&self) -> u64 {
+        self.0.load(std::sync::atomic::Ordering::Relaxed)
+    }
+}
+
+pub struct Sequence(AtomicU64);
+
+impl Default for Sequence {
+    fn default() -> Self {
+        Self(AtomicU64::new(0))
+    }
+}
+
+impl Sequence {
+    pub fn new(id: u64) -> Self {
+        return Sequence(AtomicU64::new(id));
+    }
+
+    pub fn inc(&self) -> u64 {
+        self.0.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Options {
+    cache_size: usize,
+    data_node_size: usize,
+    data_node_delta_length: usize,
+    index_node_size: usize,
+    index_node_delta_length: usize,
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        return Self {
+            cache_size: usize::MAX,
+            data_node_size: 8 * 1024,
+            data_node_delta_length: 8,
+            index_node_size: 4 * 1024,
+            index_node_delta_length: 4,
+        };
     }
 }

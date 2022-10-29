@@ -12,9 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::marker::PhantomData;
+
 #[derive(Debug, Clone, Copy)]
 pub struct PageInfo {
     pub ver: u64,
     pub len: u8,
     pub is_leaf: bool,
+}
+
+pub struct PageStore<T> {
+    info: PageInfo,
+    _data: PhantomData<T>,
 }

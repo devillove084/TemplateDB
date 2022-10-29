@@ -13,13 +13,18 @@
 // limitations under the License.
 
 pub mod data;
+pub mod env;
 pub mod error;
+pub mod ioutil;
 pub mod iter;
 pub mod node;
 pub mod page;
+pub mod pagecache;
 pub mod pageiter;
 pub mod pageopt;
 pub mod pagestore;
+pub mod pagetable;
 pub mod sortedpage;
+pub mod stats;
 pub mod tree;
 pub mod util;

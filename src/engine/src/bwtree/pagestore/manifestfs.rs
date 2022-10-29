@@ -12,6 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod manifestfs;
-pub mod pagefs;
-pub mod store;
+use crate::bwtree::ioutil::{SequentialRead, SequentialWrite};
+
+pub struct ManifestFileReader<R: SequentialRead> {
+    file_reader: R,
+}
+impl<R: SequentialRead> ManifestFileReader<R> {}
+
+pub struct ManifestFileWriter<W: SequentialWrite> {
+    file_writer: W,
+}
+impl<W: SequentialWrite> ManifestFileWriter<W> {}
