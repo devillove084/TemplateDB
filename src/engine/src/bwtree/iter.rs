@@ -135,3 +135,89 @@ impl<'a, I, const N: usize> From<&'a [I; N]> for SliceIter<'a, I> {
         Self::new(value.as_slice())
     }
 }
+
+pub struct OptionIter<I> {
+    next: Option<I>,
+    current: Option<I>,
+}
+
+impl<I> OptionIter<I> {
+    pub fn new(next: Option<I>) -> Self {
+        Self {
+            next,
+            current: None,
+        }
+    }
+}
+
+impl<I> ForwardIter for OptionIter<I> {
+    type Item = I;
+
+    fn current(&self) -> Option<&Self::Item> {
+        self.current().as_ref().copied()
+    }
+
+    fn rewind(&mut self) {
+        if let Some(curr) = self.current.take() {
+            self.current = Some(curr);
+        } else {
+            self.current = None;
+        }
+    }
+
+    fn next(&mut self) {
+        if let Some(n) = self.next.take() {
+            self.next = Some(n);
+        } else {
+            self.next = None;
+        }
+    }
+}
+
+impl<I> From<I> for OptionIter<I> {
+    fn from(value: I) -> Self {
+        Self::new(Some(value))
+    }
+}
+
+impl<I> From<Option<I>> for OptionIter<I> {
+    fn from(value: Option<I>) -> Self {
+        Self::new(value)
+    }
+}
+
+pub struct BoundedIter<I> {
+    iter: I,
+    start: usize,
+}
+
+impl<I: ForwardIter> BoundedIter<I> {
+    pub fn new(iter: I, start: usize) -> Self {
+        Self { iter, start }
+    }
+}
+
+impl<I: ForwardIter> ForwardIter for BoundedIter<I> {
+    type Item = I::Item;
+
+    fn current(&self) -> Option<&Self::Item> {
+        self.iter.current().as_ref().copied()
+    }
+
+    fn rewind(&mut self) {
+        self.iter.rewind();
+        self.iter.skip(self.start);
+    }
+
+    fn next(&mut self) {
+        self.iter.next();
+    }
+
+    fn skip(&mut self, n: usize) {
+        self.iter.skip(n);
+    }
+
+    fn skip_all(&mut self) {
+        self.iter.skip_all();
+    }
+}

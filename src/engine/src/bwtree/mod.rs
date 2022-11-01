@@ -13,6 +13,7 @@
 // limitations under the License.
 
 pub mod data;
+pub mod datapage;
 pub mod env;
 pub mod error;
 pub mod ioutil;
