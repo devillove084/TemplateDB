@@ -16,6 +16,7 @@ pub mod data;
 pub mod datapage;
 pub mod env;
 pub mod error;
+pub mod indexpage;
 pub mod ioutil;
 pub mod iter;
 pub mod node;

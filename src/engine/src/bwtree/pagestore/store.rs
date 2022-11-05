@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::marker::PhantomData;
+use std::path::PathBuf;
+
+use super::pagefs::FileStore;
+use crate::bwtree::{env::Env, error::Result, util::Options};
 
 #[derive(Debug, Clone, Copy)]
 pub struct PageInfo {
@@ -21,7 +24,14 @@ pub struct PageInfo {
     pub is_leaf: bool,
 }
 
-pub struct PageStore<T> {
-    info: PageInfo,
-    _data: PhantomData<T>,
+pub struct PageStore<E: Env> {
+    fs: FileStore<E>,
+    opts: Options,
+}
+
+impl<E: Env> PageStore<E> {
+    pub async fn open(env: E, root: PathBuf, opts: Options) -> Result<Self> {
+        let fs = FileStore::open(env, root).await?;
+        Ok(Self { fs, opts })
+    }
 }

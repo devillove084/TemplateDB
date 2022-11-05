@@ -195,6 +195,7 @@ impl Inner {
     }
 }
 
+#[derive(Default)]
 pub struct PageTable {
     inner: Arc<Inner>,
 }

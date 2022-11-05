@@ -152,7 +152,7 @@ impl Sequence {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Options {
     cache_size: usize,
     data_node_size: usize,
