@@ -12,42 +12,50 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::atomic::AtomicUsize;
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+};
 
-pub struct PageCache(AtomicUsize);
+#[derive(Clone)]
+pub struct PageCache {
+    size: Arc<AtomicUsize>,
+}
 
 impl Default for PageCache {
     fn default() -> Self {
-        Self(AtomicUsize::new(0))
+        Self {
+            size: Arc::new(AtomicUsize::new(0)),
+        }
     }
 }
 
 impl PageCache {
     pub fn size(&self) -> usize {
-        self.0.load(std::sync::atomic::Ordering::Relaxed)
+        self.size.load(Ordering::Relaxed)
     }
 }
 
 #[cfg(not(miri))]
 mod alloc {
-    use std::alloc::GlobalAlloc;
+    use std::{alloc::GlobalAlloc, sync::atomic::Ordering};
 
     use jemallocator::{usable_size, Jemalloc};
 
     use super::PageCache;
     use crate::bwtree::{
-        error::Error,
+        error::{Error, Result},
         page::{PageAlloc, PagePtr},
     };
 
     unsafe impl PageAlloc for PageCache {
         type Error = Error;
 
-        fn alloc_page(&self, size: usize) -> Result<PagePtr, Self::Error> {
+        fn alloc_page(&self, size: usize) -> Result<PagePtr> {
             unsafe {
                 let ptr = Jemalloc.alloc(PagePtr::layout(size));
                 let size = usable_size(ptr);
-                self.0.fetch_add(size, std::sync::atomic::Ordering::Relaxed);
+                self.size.fetch_add(size, Ordering::Relaxed);
                 PagePtr::new(ptr).ok_or(Error::Alloc)
             }
         }
@@ -55,7 +63,7 @@ mod alloc {
         unsafe fn dealloc_page(&self, page: PagePtr) {
             let ptr = page.as_raw();
             let size = usable_size(ptr);
-            self.0.fetch_sub(size, std::sync::atomic::Ordering::SeqCst);
+            self.size.fetch_sub(size, Ordering::Relaxed);
             Jemalloc.dealloc(ptr, PagePtr::layout(size));
         }
     }
@@ -63,23 +71,25 @@ mod alloc {
 
 #[cfg(miri)]
 mod alloc {
-    use std::{alloc::System, sync::atomic::Ordering};
+    use std::alloc::System;
+
+    use super::*;
 
     unsafe impl PageAlloc for PageCache {
         type Error = Error;
 
-        fn alloc_page(&self, size: usize) -> Result<PagePtr, Self::Error> {
+        fn alloc_page(&self, size: usize) -> Result<PagePtr> {
             unsafe {
                 let ptr = System.alloc(PagePtr::layout(size));
-                self.0.fetch_add(size, Ordering::Relaxed);
+                self.size.fetch_add(size, Ordering::Relaxed);
                 PagePtr::new(ptr).ok_or(Error::Alloc)
             }
         }
 
         unsafe fn dealloc_page(&self, page: PagePtr) {
-            let ptr = page.as_raw();
-            self.0.fetch_sub(size, Ordering::Relaxed);
-            System.dealloc(ptr, PagePtr::layout(size));
+            let size = page.size();
+            self.size.fetch_sub(size, Ordering::Relaxed);
+            System.dealloc(page.as_raw(), PagePtr::layout(size));
         }
     }
 }

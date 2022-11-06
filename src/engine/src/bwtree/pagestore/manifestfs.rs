@@ -14,11 +14,13 @@
 
 use crate::bwtree::ioutil::{SequentialRead, SequentialWrite};
 
+#[allow(dead_code)]
 pub struct ManifestFileReader<R: SequentialRead> {
     file_reader: R,
 }
 impl<R: SequentialRead> ManifestFileReader<R> {}
 
+#[allow(dead_code)]
 pub struct ManifestFileWriter<W: SequentialWrite> {
     file_writer: W,
 }

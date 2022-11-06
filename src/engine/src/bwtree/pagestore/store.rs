@@ -15,23 +15,41 @@
 use std::path::PathBuf;
 
 use super::pagefs::FileStore;
-use crate::bwtree::{env::Env, error::Result, util::Options};
+use crate::bwtree::{env::Env, error::Result, page::PagePtr, util::Options};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Copy, Clone, Debug)]
 pub struct PageInfo {
     pub ver: u64,
     pub len: u8,
     pub is_leaf: bool,
 }
 
+#[allow(dead_code)]
 pub struct PageStore<E: Env> {
     fs: FileStore<E>,
     opts: Options,
 }
 
+#[allow(dead_code)]
 impl<E: Env> PageStore<E> {
     pub async fn open(env: E, root: PathBuf, opts: Options) -> Result<Self> {
         let fs = FileStore::open(env, root).await?;
         Ok(Self { fs, opts })
+    }
+
+    pub fn page_info(&self, _addr: u64) -> Option<PageInfo> {
+        todo!()
+    }
+
+    pub fn load_page(&self, _addr: u64) -> Result<PagePtr> {
+        todo!()
+    }
+
+    pub fn acquire_page(&self) -> u64 {
+        todo!()
+    }
+
+    pub fn release_page(&self, _addr: u64) {
+        todo!()
     }
 }

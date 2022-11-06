@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #![feature(control_flow_enum)]
+#![allow(soft_unstable)]
+#![feature(test)]
 #![allow(clippy::all)]
 
 pub mod bwtree;

@@ -21,9 +21,8 @@ use super::{
     sortedpage::{SortedPageBuilder, SortedPageIter, SortedPageRef},
 };
 
+/// A builder to create index pages.
 pub struct IndexPageBuilder(SortedPageBuilder);
-
-pub type IndexPageIter<'a> = SortedPageIter<'a, &'a [u8], Index>;
 
 impl Default for IndexPageBuilder {
     fn default() -> Self {
@@ -32,26 +31,30 @@ impl Default for IndexPageBuilder {
 }
 
 impl IndexPageBuilder {
-    pub fn build_from_iter<'a, A: PageAlloc, I: ForwardIter<Item = IndexItem<'a>>>(
-        self,
-        alloc: &A,
-        iter: &mut I,
-    ) -> Result<PagePtr, A::Error> {
+    /// Builds an index page with items from the given iterator.
+    pub fn build_from_iter<'a, A, I>(self, alloc: &A, iter: &mut I) -> Result<PagePtr, A::Error>
+    where
+        A: PageAlloc,
+        I: ForwardIter<Item = IndexItem<'a>>,
+    {
         self.0.build_from_iter(alloc, iter)
     }
 }
 
+/// An immutable reference to an index page.
+#[derive(Clone)]
 pub struct IndexPageRef<'a>(SortedPageRef<'a, &'a [u8], Index>);
 
 impl<'a> IndexPageRef<'a> {
     pub fn new(base: PageRef<'a>) -> Self {
-        assert!(!base.is_leaf());
-        assert_eq!(base.kind(), PageKind::Base);
-        unsafe { Self(SortedPageRef::new(base)) }
+        debug_assert_eq!(base.kind(), PageKind::Base);
+        debug_assert!(!base.is_leaf());
+        Self(unsafe { SortedPageRef::new(base) })
     }
 
-    pub fn find(&self, target: &'a [u8]) -> (Option<IndexItem<'a>>, Option<IndexItem<'a>>) {
-        match self.0.rank_item(target) {
+    /// Returns the two items that enclose `target`.
+    pub fn find(&self, target: &[u8]) -> (Option<IndexItem<'a>>, Option<IndexItem<'a>>) {
+        match self.0.rank_item(&target) {
             Ok(i) => (
                 self.0.get_item(i),
                 i.checked_add(1).and_then(|i| self.0.get_item(i)),
@@ -63,18 +66,20 @@ impl<'a> IndexPageRef<'a> {
         }
     }
 
-    pub fn get_iter(&self) -> IndexPageIter<'a> {
+    /// Creates an iterator over items of this page.
+    pub fn iter(&self) -> IndexPageIter<'a> {
         IndexPageIter::new(self.0.clone())
     }
 
+    /// Returns a split key and an iterator over items at or after the split key.
     pub fn split(&self) -> Option<(&'a [u8], BoundedIter<IndexPageIter<'a>>)> {
         if let Some((sep, _)) = self.0.get_item(self.0.item_len() / 2) {
-            let index = match self.0.rank_item(sep) {
+            let index = match self.0.rank_item(&sep) {
                 Ok(i) => i,
                 Err(i) => i,
             };
             if index > 0 {
-                let iter = BoundedIter::new(self.get_iter(), index);
+                let iter = BoundedIter::new(self.iter(), index);
                 return Some((sep, iter));
             }
         }
@@ -82,28 +87,30 @@ impl<'a> IndexPageRef<'a> {
     }
 }
 
-// impl<'a> Deref for IndexPageRef<'a> {
-//     type Target = SortedPageIter<'a, &'a [u8], Index>;
+impl<'a> Deref for IndexPageRef<'a> {
+    type Target = SortedPageRef<'a, &'a [u8], Index>;
 
-//     fn deref(&self) -> &Self::Target {
-//         &self.0
-//     }
-// }
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl<'a> From<PageRef<'a>> for IndexPageRef<'a> {
-    fn from(value: PageRef<'a>) -> Self {
-        IndexPageRef::new(value)
+    fn from(base: PageRef<'a>) -> Self {
+        Self::new(base)
     }
 }
 
 impl<'a> From<IndexPageRef<'a>> for PageRef<'a> {
-    fn from(value: IndexPageRef<'a>) -> Self {
-        value.0.into()
+    fn from(page: IndexPageRef<'a>) -> Self {
+        page.0.into()
     }
 }
 
 impl<'a> From<IndexPageRef<'a>> for SortedPageRef<'a, &'a [u8], Index> {
-    fn from(value: IndexPageRef<'a>) -> Self {
-        value.0
+    fn from(page: IndexPageRef<'a>) -> Self {
+        page.0
     }
 }
+
+pub type IndexPageIter<'a> = SortedPageIter<'a, &'a [u8], Index>;

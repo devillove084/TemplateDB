@@ -134,17 +134,17 @@ impl Counter {
     }
 }
 
-pub struct Sequence(AtomicU64);
+pub struct Sequencer(AtomicU64);
 
-impl Default for Sequence {
+impl Default for Sequencer {
     fn default() -> Self {
         Self(AtomicU64::new(0))
     }
 }
 
-impl Sequence {
+impl Sequencer {
     pub fn new(id: u64) -> Self {
-        return Sequence(AtomicU64::new(id));
+        return Sequencer(AtomicU64::new(id));
     }
 
     pub fn inc(&self) -> u64 {
@@ -154,11 +154,11 @@ impl Sequence {
 
 #[derive(Debug, Clone, Copy)]
 pub struct Options {
-    cache_size: usize,
-    data_node_size: usize,
-    data_node_delta_length: usize,
-    index_node_size: usize,
-    index_node_delta_length: usize,
+    pub cache_size: usize,
+    pub data_node_size: usize,
+    pub data_node_delta_length: usize,
+    pub index_node_size: usize,
+    pub index_node_delta_length: usize,
 }
 
 impl Default for Options {

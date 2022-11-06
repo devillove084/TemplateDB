@@ -47,6 +47,7 @@ impl FilePath {
     }
 }
 
+#[allow(dead_code)]
 pub struct FileStore<E: Env> {
     e: E,
     dir: FilePath,

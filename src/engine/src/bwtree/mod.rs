@@ -19,6 +19,7 @@ pub mod error;
 pub mod indexpage;
 pub mod ioutil;
 pub mod iter;
+pub mod map;
 pub mod node;
 pub mod page;
 pub mod pagecache;

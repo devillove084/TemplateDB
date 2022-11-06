@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{borrow::Borrow, cmp::Ordering};
+use std::{borrow::Borrow, cmp::Ordering, mem::size_of};
 
 use super::util::{BufReader, BufWriter};
 
@@ -20,24 +20,26 @@ pub trait Compare<T: ?Sized> {
     fn compare(&self, other: &T) -> Ordering;
 }
 
+/// An interface to encode data to a buffer.
 pub trait EncodeTo {
-    /// Returns the exact size data to a buffer.
+    /// Returns the exact size to encode this object.
     fn encode_size(&self) -> usize;
 
     /// Encodes this object to a `BufWriter`.
     ///
     /// # Safety
     ///
-    /// The `BufWriter` must be initialized with enough space to encode this object
+    /// The `BufWriter` must be initialized with enough space to encode this object.
     unsafe fn encode_to(&self, w: &mut BufWriter);
 }
 
+/// An interface to decode data from a buffer.
 pub trait DecodeFrom {
-    /// Decode an object from a `BufReader`
+    /// Decodes an object from a `BufReader`.
     ///
     /// # Safety
     ///
-    /// The `BufReader` must be initialized with enough data to decode such an object
+    /// The `BufReader` must be initialized with enough data to decode such an object.
     unsafe fn decode_from(r: &mut BufReader) -> Self;
 }
 
@@ -49,11 +51,11 @@ impl Compare<u64> for u64 {
 
 impl EncodeTo for u64 {
     fn encode_size(&self) -> usize {
-        std::mem::size_of::<u64>()
+        size_of::<u64>()
     }
 
     unsafe fn encode_to(&self, w: &mut BufWriter) {
-        w.put_u64(*self)
+        w.put_u64(*self);
     }
 }
 
@@ -75,7 +77,7 @@ impl EncodeTo for &[u8] {
     }
 
     unsafe fn encode_to(&self, w: &mut BufWriter) {
-        w.put_length_prefixed_slice(self)
+        w.put_length_prefixed_slice(self);
     }
 }
 
@@ -85,7 +87,7 @@ impl DecodeFrom for &[u8] {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
 pub struct Key<'a> {
     pub raw: &'a [u8],
     pub lsn: u64,
@@ -114,7 +116,7 @@ impl PartialOrd for Key<'_> {
 
 impl EncodeTo for Key<'_> {
     fn encode_size(&self) -> usize {
-        BufWriter::length_prefixed_slice_size(self.raw) + std::mem::size_of::<u64>()
+        BufWriter::length_prefixed_slice_size(self.raw) + size_of::<u64>()
     }
 
     unsafe fn encode_to(&self, w: &mut BufWriter) {
@@ -138,15 +140,15 @@ impl Compare<Key<'_>> for Key<'_> {
 }
 
 #[repr(u8)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 enum ValueKind {
     Put = 0,
     Delete = 1,
 }
 
 impl From<u8> for ValueKind {
-    fn from(value: u8) -> Self {
-        match value {
+    fn from(kind: u8) -> Self {
+        match kind {
             0 => Self::Put,
             1 => Self::Delete,
             _ => panic!("invalid data kind"),
@@ -154,7 +156,7 @@ impl From<u8> for ValueKind {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Value<'a> {
     Put(&'a [u8]),
     Delete,
@@ -184,8 +186,8 @@ impl DecodeFrom for Value<'_> {
         let kind = ValueKind::from(r.get_u8());
         match kind {
             ValueKind::Put => {
-                let v = r.get_length_prefixed_slice();
-                Self::Put(v)
+                let value = r.get_length_prefixed_slice();
+                Self::Put(value)
             }
             ValueKind::Delete => Self::Delete,
         }
@@ -193,15 +195,15 @@ impl DecodeFrom for Value<'_> {
 }
 
 impl<'a> From<Value<'a>> for Option<&'a [u8]> {
-    fn from(value: Value<'a>) -> Self {
-        match value {
-            Value::Put(v) => Some(v),
+    fn from(v: Value<'a>) -> Self {
+        match v {
+            Value::Put(value) => Some(value),
             Value::Delete => None,
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Index {
     pub id: u64,
     pub ver: u64,
@@ -215,7 +217,7 @@ impl Index {
 
 impl EncodeTo for Index {
     fn encode_size(&self) -> usize {
-        std::mem::size_of::<u64>() * 2
+        size_of::<u64>() * 2
     }
 
     unsafe fn encode_to(&self, w: &mut BufWriter) {
@@ -235,8 +237,11 @@ impl DecodeFrom for Index {
 pub type DataItem<'a> = (Key<'a>, Value<'a>);
 pub type IndexItem<'a> = (&'a [u8], Index);
 
-impl<K: Ord, V> Compare<(K, V)> for (K, V) {
-    fn compare(&self, other: &(K, V)) -> Ordering {
+impl<K, V> Compare<(K, V)> for (K, V)
+where
+    K: Ord,
+{
+    fn compare(&self, other: &Self) -> Ordering {
         self.0.cmp(&other.0)
     }
 }

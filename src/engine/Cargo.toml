@@ -18,6 +18,7 @@ uuid = { version = "1.1.2", features = ["v4"] }
 bitflags = "1.3.2"
 jemallocator = "0.5.0"
 crossbeam = "0.8.2"
+bumpalo = { version = "3.11.1", features = ["collections"] }
 
 [build-dependencies]
 tonic-build = "0.8.0"

@@ -32,6 +32,7 @@ pub trait SequentialFile: SequentialRead + SequentialWrite {}
 
 pub trait PositionalFile: PositionalRead + PositionalWrite {}
 
+#[allow(dead_code)]
 pub struct OpenOption {
     read: bool,
     write: bool,
