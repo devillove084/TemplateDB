@@ -18,14 +18,18 @@
 #![feature(pin_macro)]
 #![feature(write_all_vectored)]
 #![feature(drain_filter)]
+#![feature(type_alias_impl_trait)]
+#![feature(associated_type_bounds)]
+#![allow(incomplete_features)]
+#![feature(return_position_impl_trait_in_trait)]
 
 pub mod accelerate;
 pub mod allocator;
 pub mod analysis;
 pub mod consensus;
+pub mod database;
 pub mod gc;
 pub mod network;
-pub mod storage;
 pub mod stream;
 
 #[macro_use]

@@ -12,6 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+pub mod abstruct;
+pub mod action;
+pub mod command;
+pub mod commit;
+pub mod env;
 pub mod epaxos;
+pub mod error;
+pub mod executor;
+pub mod id;
+pub mod message;
+pub mod node;
+pub mod options;
 pub mod paxos;
+pub mod quorum;
 pub mod raft;
+pub mod state;
+pub mod time;
+pub mod util;

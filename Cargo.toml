@@ -3,6 +3,6 @@ members = [
     "src/client", 
     "src/engine", 
     "src/runtime",
-    "src/expose",
+    "src/interface",
     "src/util/pro-macro",
 ]
