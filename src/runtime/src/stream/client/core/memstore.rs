@@ -16,10 +16,9 @@ use std::collections::VecDeque;
 
 use crate::stream::common::{Entry, Sequence};
 
-// use crate::runtime_client::{Entry, Sequence};
-
-/// Store entries for a stream.
-pub(super) struct MemStore {
+/// Store entries for a stream state, which include stream epoch, first_index,
+/// base_bytes, total_bytes and its own entries.
+pub(super) struct StreamStateStore {
     epoch: u32,
 
     /// It should always greater than zero, see `journal::worker::Progress` for
@@ -30,9 +29,10 @@ pub(super) struct MemStore {
     entries: VecDeque<(Entry, usize)>,
 }
 
-impl MemStore {
+impl StreamStateStore {
+    /// New a stream state store with a epoch number.
     pub fn new(epoch: u32) -> Self {
-        MemStore {
+        StreamStateStore {
             epoch,
             first_index: 1,
             base_bytes: 0,
@@ -41,10 +41,11 @@ impl MemStore {
         }
     }
 
+    /// Recovery a new stream state store with epoch number and first index value
     pub fn recovery(epoch: u32, first_index: u32) -> Self {
-        MemStore {
+        StreamStateStore {
             first_index,
-            ..MemStore::new(epoch)
+            ..StreamStateStore::new(epoch)
         }
     }
 
@@ -106,7 +107,7 @@ mod tests {
 
     #[test]
     fn mem_storage_append() {
-        let mut mem_storage = MemStore::new(0);
+        let mut mem_storage = StreamStateStore::new(0);
         for idx in 0..128 {
             let seq = mem_storage.append(Entry::Event {
                 epoch: 0,
@@ -181,7 +182,7 @@ mod tests {
         ];
 
         for test in tests {
-            let mut mem_store = MemStore::new(1);
+            let mut mem_store = StreamStateStore::new(1);
             for entry in test.entries {
                 mem_store.append(entry);
             }
@@ -229,7 +230,7 @@ mod tests {
             },
         ];
 
-        let mut mem_store = MemStore::new(1);
+        let mut mem_store = StreamStateStore::new(1);
         for i in 1..1024 {
             mem_store.append(ent(i));
         }

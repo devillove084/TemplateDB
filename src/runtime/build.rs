@@ -18,6 +18,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "proto/node.proto",
             "proto/store.proto",
             "proto/manifest.proto",
+            "proto/stream.proto",
+            "proto/actor.proto",
         ],
         &["proto"],
     )?;

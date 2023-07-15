@@ -18,6 +18,7 @@ pub mod group;
 pub mod node;
 pub mod policy;
 pub mod reader;
+pub mod source;
 pub mod store;
 pub mod stream;
 pub mod tenant;

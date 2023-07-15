@@ -6,3 +6,5 @@ members = [
     "src/interface",
     "src/util/pro-macro",
 ]
+
+resolver = "2"

@@ -16,7 +16,7 @@ use std::{collections::VecDeque, ops::Range};
 
 use crate::stream::common::Sequence;
 
-/// A mixin structure holds the fields used in congestion stage.
+/// A mixin structure holds the fields used in stream congestion stage.
 struct CongestMixin {
     /// The latest tick retransmit entries.
     tick: usize,
@@ -46,6 +46,8 @@ impl CongestMixin {
         self.recoup_bytes >= self.invalid_bytes * 20
     }
 
+    /// Handle timeout events, put range into retransmit deque,
+    /// ! Range is used here!!!!
     fn on_timeout(&mut self, range: Range<u32>, bytes: usize) {
         self.invalid_bytes += bytes;
         self.retransmit_ranges.insert(
@@ -56,7 +58,8 @@ impl CongestMixin {
         );
     }
 
-    fn might_replicate(&mut self, next_index: u32, replicate_bytes: usize) -> bool {
+    /// Judge the stream can replicate or not
+    fn replicate_or_not(&mut self, next_index: u32, replicate_bytes: usize) -> bool {
         if let Some((Range { start, end }, bytes)) = self.retransmit_ranges.pop_front() {
             // There still exists some pending entries.
             debug_assert!(start < next_index, "Progress::next_chunk()",);
@@ -71,7 +74,7 @@ impl CongestMixin {
     }
 }
 
-#[allow(dead_code)]
+/// The sliding window on stream
 struct SlidingWindow {
     /// The number of bytes which already known the response. Includes timeout
     /// and received entries.
@@ -238,7 +241,7 @@ impl Progress {
         if self
             .congest
             .as_mut()
-            .map(|c| c.might_replicate(next_index, replicate_bytes))
+            .map(|c| c.replicate_or_not(next_index, replicate_bytes))
             .unwrap_or_default()
         {
             self.sliding_window.shrink(replicate_bytes)

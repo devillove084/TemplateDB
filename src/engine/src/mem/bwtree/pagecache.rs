@@ -40,7 +40,7 @@ impl PageCache {
 mod alloc {
     use std::{alloc::GlobalAlloc, sync::atomic::Ordering};
 
-    use jemallocator::{usable_size, Jemalloc};
+    use tikv_jemallocator::{usable_size, Jemalloc};
 
     use super::PageCache;
     use crate::mem::bwtree::{

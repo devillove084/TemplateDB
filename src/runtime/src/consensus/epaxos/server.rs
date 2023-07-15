@@ -298,7 +298,7 @@ where
                     drop(instance_read);
                     // TODO: abstract to a macro
                     let mut instance_write = instance.get_instance_write().await;
-                    let mut instance_write_inner = instance_write.as_mut().unwrap();
+                    let instance_write_inner = instance_write.as_mut().unwrap();
                     instance_write_inner.cmds = preaccept.cmds;
                 }
                 return;
@@ -442,7 +442,7 @@ where
         // we have checked the existence
         let orig = instance.unwrap();
         let mut instance_w = orig.get_instance_write().await;
-        let mut instance_w_inner = instance_w.as_mut().unwrap();
+        let instance_w_inner = instance_w.as_mut().unwrap();
 
         if !matches!(instance_w_inner.status, InstanceStatus::PreAccepted) {
             // we have translated to the later states
@@ -524,7 +524,7 @@ where
 
         let instance = instance.unwrap();
         let mut instance_write = instance.get_instance_write().await;
-        let mut instance_write_inner = instance_write.as_mut().unwrap();
+        let instance_write_inner = instance_write.as_mut().unwrap();
 
         if !matches!(instance_write_inner.status, InstanceStatus::PreAccepted) {
             // We have translated to the later states
@@ -743,7 +743,7 @@ where
         let instance = if exist {
             let instance = instance.unwrap();
             let mut instance_write = instance.get_instance_write().await;
-            let mut instance_write_inner = instance_write.as_mut().unwrap();
+            let instance_write_inner = instance_write.as_mut().unwrap();
             instance_write_inner.seq = commit.seq;
             instance_write_inner.deps = commit.deps;
             instance_write_inner.status = InstanceStatus::Committed;

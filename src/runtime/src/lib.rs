@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #![allow(clippy::all)]
-#![feature(hash_drain_filter)]
-#![feature(btree_drain_filter)]
 #![feature(async_closure)]
-#![feature(pin_macro)]
+#![feature(btree_extract_if)]
+#![feature(hash_extract_if)]
+#![feature(extract_if)]
 #![feature(write_all_vectored)]
-#![feature(drain_filter)]
 #![feature(type_alias_impl_trait)]
 #![feature(associated_type_bounds)]
 #![allow(incomplete_features)]
@@ -25,15 +24,18 @@
 
 pub mod accelerate;
 pub mod allocator;
-pub mod analysis;
 pub mod consensus;
 pub mod database;
 pub mod gc;
-pub mod network;
 pub mod stream;
+pub mod stream2;
 
 #[macro_use]
 extern crate derivative;
+
+pub mod actor {
+    tonic::include_proto!("actor");
+}
 
 pub mod node {
     pub use v1::*;

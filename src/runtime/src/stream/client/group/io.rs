@@ -25,7 +25,7 @@ use super::{
 use crate::{
     stream::{
         client::{
-            core::message::{Learn, Learned, Message, MutKind, Mutate, Write},
+            core::message::{Learn, Learned, MutKind, Mutate, StreamLogMsg, Write},
             group::stream::Promote,
             node::stream::{ObserverMeta, Stream as MasterStream},
             store::{batch::TryBatchNext, transport::Transport},
@@ -88,7 +88,7 @@ impl Scheduler for IOScheduler {
         self.ctx.runtime.spawn(async move {
             match stream.seal_segment(segment_epoch).await {
                 Ok(()) => {
-                    channel.on_msg(Message::recovered(segment_epoch, writer_epoch));
+                    channel.on_msg(StreamLogMsg::recovered(segment_epoch, writer_epoch));
                 }
                 Err(error) => {
                     error!(
@@ -97,7 +97,10 @@ impl Scheduler for IOScheduler {
                         segment_epoch,
                         error
                     );
-                    channel.on_msg(Message::master_timeout(segment_epoch, writer_epoch));
+                    channel.on_msg(StreamLogMsg::con_cluster_timeout(
+                        segment_epoch,
+                        writer_epoch,
+                    ));
                 }
             }
         });
@@ -145,7 +148,7 @@ impl IOScheduler {
                         "stream {} learn entries from {}: {}",
                         stream_id, learn.target, error
                     );
-                    channel.on_msg(Message::store_timeout(
+                    channel.on_msg(StreamLogMsg::store_timeout(
                         learn.target,
                         learn.seg_epoch,
                         learn.writer_epoch,
@@ -158,7 +161,7 @@ impl IOScheduler {
             loop {
                 match streaming.next().await {
                     Some(Ok(entries)) => {
-                        channel.on_msg(Message::learned(
+                        channel.on_msg(StreamLogMsg::learned(
                             learn.target.clone(),
                             learn.seg_epoch,
                             learn.writer_epoch,
@@ -173,7 +176,7 @@ impl IOScheduler {
                         break;
                     }
                     None => {
-                        channel.on_msg(Message::learned(
+                        channel.on_msg(StreamLogMsg::learned(
                             learn.target.clone(),
                             learn.seg_epoch,
                             learn.writer_epoch,
@@ -202,7 +205,7 @@ impl IOScheduler {
                 .await;
             match resp {
                 Ok((matched_index, acked_index)) => {
-                    channel.on_msg(Message::received(
+                    channel.on_msg(StreamLogMsg::received(
                         target,
                         segment_epoch,
                         writer_epoch,
@@ -215,7 +218,7 @@ impl IOScheduler {
                         "stream {} epoch {} flush write to {}: {}",
                         stream_id, segment_epoch, target, error
                     );
-                    channel.on_msg(Message::write_timeout(
+                    channel.on_msg(StreamLogMsg::write_timeout(
                         target,
                         segment_epoch,
                         writer_epoch,
@@ -237,7 +240,7 @@ impl IOScheduler {
                 .await;
             match resp {
                 Ok(acked_index) => {
-                    channel.on_msg(Message::sealed(
+                    channel.on_msg(StreamLogMsg::sealed(
                         target,
                         segment_epoch,
                         writer_epoch,
@@ -249,7 +252,11 @@ impl IOScheduler {
                         "stream {} epoch {} seal replica {}: {}",
                         stream_id, segment_epoch, target, error
                     );
-                    channel.on_msg(Message::store_timeout(target, segment_epoch, writer_epoch));
+                    channel.on_msg(StreamLogMsg::store_timeout(
+                        target,
+                        segment_epoch,
+                        writer_epoch,
+                    ));
                 }
             }
         });

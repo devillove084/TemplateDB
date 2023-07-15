@@ -59,10 +59,8 @@ impl StoreClient {
         };
         let resp = self.mutate(req).await?;
         if let Some(Response::Write(resp)) = resp.response.and_then(|r| r.response) {
-            println!("Ok to mutate");
             Ok(resp)
         } else {
-            println!("Error to mutate");
             Err(Error::InvalidResponse)
         }
     }

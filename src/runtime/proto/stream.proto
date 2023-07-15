@@ -1,0 +1,297 @@
+// Copyright 2022 The template Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+syntax = "proto3";
+
+package actor;
+
+message SourceNode {
+  uint64 source_id = 1;
+  string source_name = 2;
+}
+
+message Condition {}
+
+message Collection {}
+
+message HashJoinNode {
+  int32 join_type = 1;
+  repeated int32 left_key = 2;
+  repeated int32 right_key = 3;
+  optional Condition condition = 4;
+  optional Collection left_set = 5;
+  optional Collection right_set = 6;
+}
+
+message Expr {}
+
+message FilterNode { optional Condition search_condition = 1; }
+
+message ProjectNode { repeated Condition select_set = 1; }
+
+message InputRefExpr {}
+
+message OrderByField {
+  optional InputRefExpr input = 1;
+  optional DataType type = 2;
+  int32 direction = 3;
+  bool nulls_first = 4;
+}
+
+message Arg {
+  optional InputRefExpr input = 1;
+  optional DataType type = 2;
+}
+
+message DataType {}
+
+message AggCall {
+  int32 type = 1;
+  repeated Arg args = 2;
+  optional DataType return_type = 3;
+  bool distinct = 4;
+}
+
+message Columns {}
+
+message Rows {}
+
+message Index {}
+
+message Container {
+  uint32 id = 1;
+  uint32 schema_id = 2;
+  uint32 kv_db_id = 3;
+  string name = 4;
+  optional Columns columns = 5;
+  optional Rows rows = 6;
+  repeated uint32 dependent_relations = 7;
+  int32 container_type = 8;
+  repeated int32 distribution_key = 9;
+  repeated int32 stream_key = 10;
+  bool append_only = 11;
+  uint32 fragment_id = 12;
+  map<string, string> properties = 13;
+  optional Index col_index = 14;
+  optional Index row_index = 15;
+}
+
+message ResultValueState {}
+
+message ContainerState { optional Container container = 1; }
+
+message AggCallState {
+  ResultValueState value_state = 1;
+  ContainerState container_state = 2;
+}
+
+message SimpleAggNode {
+  repeated AggCall agg_calls = 1;
+  repeated uint32 distribution_key = 2;
+  repeated AggCallState agg_call_state = 3;
+  optional Container result_container = 4;
+  bool is_append_only = 5;
+}
+
+message HashAggNode {
+  repeated uint32 group_key = 1;
+  repeated AggCall agg_calls = 2;
+  repeated AggCallState agg_call_state = 3;
+  optional Container result_container = 4;
+  bool is_append_only = 5;
+}
+
+message TopNNode {
+  uint64 limit = 1;
+  uint64 offset = 2;
+  optional Container container = 3;
+  uint32 order_by_len = 4;
+  bool with_ties = 5;
+}
+
+enum DispatcherType {
+  Unspecified = 0;
+  /// Dispatch by hash key, hashed by consistent hash.
+  Hash = 1;
+  /// Broadcast to all downstreams.
+  ///
+  /// Note a broadcast cannot be represented as multiple simple dispatchers,
+  /// since they are different when we update dispatchers during scaling.
+  Broadcast = 2;
+  /// Only one downstream.
+  Simple = 3;
+  /// A special kind of exchange that doesn't involve shuffle. The upstream
+  /// actor will be directly piped into the downstream actor, if there are the
+  /// same number of actors. If number of actors are not the same, should use
+  /// hash instead. Should be only used when distribution is the same.
+  NoShuffle = 4;
+}
+
+message DispatchStrategy {
+  DispatcherType dispatcher_type = 1;
+  repeated uint32 indices = 2;
+}
+
+message ExchangeNode { optional DispatchStrategy strategy = 1; }
+
+message MergeNode {
+  repeated uint32 upstream_actor_id = 1;
+  uint32 upstream_fragment_id = 2;
+  int32 upstream_dispatcher_type = 3;
+  repeated Container container = 4;
+}
+
+enum GraphType {
+  GraphUnspecified = 0;
+  Graph = 1;
+  Rearrange = 2;
+  Backfill = 3;
+}
+
+message ColumnDesc {
+  optional DataType column_type = 1;
+  int32 column_id = 2;
+  string name = 3;
+  repeated ColumnDesc field_descs = 4;
+  string type_name = 5;
+}
+
+enum OrderType {
+  OrderUnspecified = 0;
+  Ascending = 1;
+  Desending = 2;
+}
+
+message ColumnOrder {
+  OrderType order_type = 1;
+  uint32 index = 2;
+}
+
+message ContainerDesc {
+  uint32 container_id = 1;
+  repeated ColumnDesc columns = 2;
+  repeated ColumnOrder pk = 3;
+  repeated uint32 dist_key_indices = 4;
+  uint32 retention_seconds = 5;
+  repeated uint32 value_indices = 6;
+}
+
+// GraphNode is used for kv view on kv view
+message GraphNode {
+  int32 container_id = 1;
+  repeated Container upstream_fields = 2;
+  repeated uint32 upstream_indices = 3;
+  GraphType graph_type = 4;
+  bool same_worker_node = 5;
+  optional ContainerDesc container_desc = 6;
+}
+
+message BatchPlanNode {
+  optional ContainerDesc container_desc = 1;
+  repeated int32 column_ids = 2;
+}
+
+message ArrangementContainerID {
+  optional uint32 container_id = 1;
+  optional uint32 index_id = 2;
+}
+
+message ArrangementInfo {
+  repeated ColumnOrder arrange_key_orders = 1;
+  repeated ColumnDesc column_descs = 2;
+}
+
+message LookUpNode {
+  repeated int32 arrange_key = 1;
+  repeated int32 stream_key = 2;
+  bool use_current_epoch = 3;
+  repeated int32 column_mapping = 4;
+  repeated int32 row_mapping = 5;
+  optional ArrangementInfo arrangement_container_info = 6;
+  optional Container arrangement_table = 7;
+  optional ArrangementContainerID arrangement_container_id = 8;
+}
+
+message SortNode {
+  optional Container state_container = 1;
+  uint32 sort_column_index = 2;
+}
+
+message SinkNode {
+  uint32 container_id = 1;
+  repeated int32 column_ids = 2;
+  map<string, string> properties = 3;
+}
+
+message WaterMarkFilterNode {
+  uint64 event_time_col_idx = 1;
+  repeated Expr watermark_expr = 2;
+}
+
+message NodeBody {
+  oneof body {
+    SourceNode source = 1;
+    HashJoinNode hash_join = 2;
+    FilterNode filter = 3;
+    ProjectNode project = 4;
+    SimpleAggNode local_simple_agg = 5;
+    SimpleAggNode remote_simple_agg = 6;
+    HashAggNode hash_agg = 7;
+    TopNNode top_n = 8;
+    ExchangeNode exchange = 9;
+    MergeNode merge = 10;
+    GraphNode graph = 11;
+    BatchPlanNode batch_plan = 12;
+    LookUpNode look_up = 13;
+    SortNode sort = 14;
+    SinkNode sink = 15;
+    WaterMarkFilterNode watermark_filter = 16;
+  }
+}
+
+message StreamNode {
+  uint64 operator_id = 1;
+  repeated StreamNode inputs = 2;
+  repeated uint32 stream_key = 3;
+  bool append_only = 4;
+  string identity = 5;
+  optional NodeBody node_body = 6;
+}
+
+message ActorMapping {
+  repeated uint64 original_indices = 1;
+  repeated uint32 data = 2;
+}
+
+message Dispatcher {
+  int32 type = 1;
+  repeated uint32 column_indices = 2;
+  optional ActorMapping hash_mapping = 3;
+  uint64 dispatcher_id = 4;
+  repeated uint32 downstream_actor_id = 5;
+}
+
+message DispatcherUpdate {
+  uint32 actor_id = 1;
+  uint64 dispatcher_id = 2;
+  optional ActorMapping hash_mapping = 3;
+  repeated uint32 added_downstream_actor_id = 4;
+  repeated uint32 removed_downstream_actor_id = 5;
+}
+
+message MergeUpdate {
+  uint32 actor_id = 1;
+  uint32 upstream_fragment_id = 2;
+  repeated uint32 added_upstream_actor_id = 3;
+  repeated uint32 removed_upstream_actor_id = 4;
+}

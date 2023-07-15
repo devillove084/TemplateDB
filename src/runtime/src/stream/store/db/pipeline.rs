@@ -219,7 +219,7 @@ impl PipelinedWriter {
             Waker::wake(a)
         }
 
-        // FIXME(walter) how to determine the returned values of a failed pipeline?
+        // FIXME(luhuanbing) how to determine the returned values of a failed pipeline?
         if let Some(err) = self.last_error_kind.take() {
             Err(err)
         } else {

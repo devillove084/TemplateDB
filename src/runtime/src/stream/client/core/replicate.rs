@@ -20,7 +20,7 @@ use std::{
 use derivative::Derivative;
 
 use super::{
-    memstore::MemStore,
+    memstore::StreamStateStore,
     message::{Learn, MutKind, Mutate, Write},
     progress::Progress,
 };
@@ -57,7 +57,7 @@ enum LearningState {
 pub(super) struct Replicate {
     epoch_info: EpochInfo,
     replicate_policy: ReplicatePolicy,
-    mem_store: MemStore,
+    mem_store: StreamStateStore,
     copy_set: HashMap<String, Progress>,
 
     acked_seq: Sequence,
@@ -78,7 +78,7 @@ impl Replicate {
                 writer: writer_epoch,
             },
             replicate_policy: policy,
-            mem_store: MemStore::new(epoch),
+            mem_store: StreamStateStore::new(epoch),
             copy_set: copy_set
                 .into_iter()
                 .map(|c| (c, Progress::new(epoch)))
@@ -359,7 +359,7 @@ impl Replicate {
         }
         self.acked_seq = Sequence::new(self.epoch_info.segment, actual_acked_index);
         // FIXME(luhuanbing) update entries epoch.
-        self.mem_store = MemStore::recovery(self.epoch_info.writer, actual_acked_index + 1);
+        self.mem_store = StreamStateStore::recovery(self.epoch_info.writer, actual_acked_index + 1);
     }
 }
 

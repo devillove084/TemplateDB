@@ -398,12 +398,12 @@ where
 
         // Switch mem table because log file is switched.
         for mem_table in self.stabled_tables.values_mut() {
-            mem_table.drain_filter(|seq, _| active_mem_table.contains_key(seq));
+            let _ = mem_table.extract_if(|seq, _| active_mem_table.contains_key(seq));
         }
 
         for (log_number, _) in self
             .stabled_tables
-            .drain_filter(|_, mem_table| mem_table.is_empty())
+            .extract_if(|_, mem_table| mem_table.is_empty())
         {
             self.log_file_releaser.release(self.stream_id, log_number);
         }
@@ -453,7 +453,7 @@ where
         }
         let recycled_logs = self
             .stabled_tables
-            .drain_filter(|_, mem_table| mem_table.is_empty())
+            .extract_if(|_, mem_table| mem_table.is_empty())
             .map(|v| v.0)
             .collect::<Vec<_>>();
         for log_number in recycled_logs {

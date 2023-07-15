@@ -26,7 +26,7 @@ use crate::{
     stream::{
         client::{
             core::{
-                message::{Learn, Message, Mutate},
+                message::{Learn, Mutate, StreamLogMsg},
                 stream::StreamStateMachine,
             },
             node::stream::Stream as MasterStream,
@@ -54,7 +54,7 @@ pub(crate) struct Promote {
 enum StreamEvent {
     Tick,
     Promote(Box<Promote>),
-    Msg(Message),
+    Msg(StreamLogMsg),
     Proposal {
         #[derivative(Debug = "ignore")]
         event: Box<[u8]>,
@@ -291,7 +291,6 @@ impl<L: ActiveLauncher> EventChannel<L> {
     }
 
     fn send(&self, event: StreamEvent) {
-        println!("Send event is {:?}", event);
         if let Some(launcher) = {
             let mut state = self.state.lock().unwrap();
             state.events.push_back(event);
@@ -299,7 +298,6 @@ impl<L: ActiveLauncher> EventChannel<L> {
         } {
             launcher.fire(self.stream_id);
         };
-        //println!("Send event is {:?}", event);
     }
 
     #[inline(always)]
@@ -322,7 +320,7 @@ impl<L: ActiveLauncher> EventChannel<L> {
     }
 
     #[inline(always)]
-    pub fn on_msg(&self, msg: Message) {
+    pub fn on_msg(&self, msg: StreamLogMsg) {
         self.send(StreamEvent::Msg(msg));
     }
 

@@ -218,7 +218,7 @@ impl LogWorker {
             let mut requests = self.channel.take();
             while !requests.is_empty() {
                 let mut size = 0;
-                let drained = requests.drain_filter(|req| {
+                let drained = requests.extract_if(|req| {
                     size += req
                         .record
                         .as_ref()

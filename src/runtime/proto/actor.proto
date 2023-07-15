@@ -1,0 +1,192 @@
+// Copyright 2022 The template Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+syntax = "proto3";
+
+import public "stream.proto";
+
+package actor;
+
+service StreamService {
+  rpc UpdateActors(stream UpdateActorsRequest)
+      returns (stream UpdateActorsResponse) {}
+  rpc BuildActors(stream BuildActorRequest)
+      returns (stream BuildActorResponse) {}
+  rpc BroadcastActorInfoContainer(stream BroadcastActorInfoContainerRequest)
+      returns (stream BroadcastActorInfoContainerResponse) {}
+  rpc DropActors(stream DropActorRequest) returns (stream DropActorResponse) {}
+  rpc ForceStopActors(stream ForceStopActorRequest)
+      returns (stream ForceStopActorResponse) {}
+  rpc InjectBarrier(stream InjectBarrierRequest)
+      returns (stream InjectBarrierResponse) {}
+  rpc BarrierComplete(stream BarrierCompleteRequest)
+      returns (stream BarrierCompleteResponse) {}
+  rpc WaitEpochCommit(stream WaitEpochCommitRequest)
+      returns (stream WaitEpochCommitResponse) {}
+}
+
+message HostAddress {
+  string host = 1;
+  int32 port = 2;
+}
+
+message ActorInfo {
+  uint32 actor_id = 1;
+  optional HostAddress host = 2;
+}
+
+message HangingChannel {
+  optional ActorInfo upstream = 1;
+  optional ActorInfo downstream = 2;
+}
+
+message StreamActor {
+  uint32 actor_id = 1;
+  uint32 fragment_id = 2;
+  optional StreamNode nodes = 3;
+  repeated Dispatcher dispatcher = 4;
+  repeated uint32 upstream_actor_id = 5;
+  bool same_worker_node_as_upstream = 6;
+}
+
+message UpdateActorsRequest {
+  string request_id = 1;
+  repeated StreamActor actors = 2;
+  repeated HangingChannel hanging_channels = 3;
+}
+
+enum Code {
+  BehaveUnspecified = 0;
+  OK = 1;
+  UnknownWoker = 2;
+}
+
+message Status {
+  Code code = 1;
+  string message = 2;
+}
+
+message UpdateActorsResponse { optional Status status = 1; }
+
+message BuildActorRequest {
+  string request_id = 1;
+  repeated uint32 actor_id = 2;
+}
+
+message BuildActorResponse {
+  string request_id = 1;
+  optional Status status = 2;
+}
+
+message BroadcastActorInfoContainerRequest { repeated ActorInfo info = 1; }
+
+message BroadcastActorInfoContainerResponse { optional Status status = 1; }
+
+message DropActorRequest {
+  string request_id = 1;
+  repeated uint32 actor_ids = 2;
+}
+
+message DropActorResponse {
+  string request_id = 1;
+  optional Status status = 2;
+}
+
+message ForceStopActorRequest { string request_id = 1; }
+
+message ForceStopActorResponse {
+  string request_id = 1;
+  optional Status status = 2;
+}
+
+message InjectBarrierRequest {
+  string request_id = 1;
+  optional Barrier barrier = 2;
+  repeated uint32 actor_ids_to_send = 3;
+  repeated uint32 actor_ids_to_collect = 4;
+}
+
+message InjectBarrierResponse {
+  string request_id = 1;
+  optional Status status = 2;
+}
+
+message BarrierCompleteRequest {
+  string request_id = 1;
+  uint64 prev_epoch = 2;
+}
+
+// TODO: Complete TemplateStoreEngine
+
+message BarrierCompleteResponse {
+  string request_id = 1;
+  optional Status status = 2;
+  // repeated GroupedPersistContainerInfo synced_persist_container = 3;
+  uint32 worker_id = 4;
+}
+
+message WaitEpochCommitRequest { uint64 epoch = 1; }
+
+message WaitEpochCommitResponse { optional Status status = 1; }
+
+message ConnectorSplit {
+  string split_type = 1;
+  repeated uint32 encodeed_split = 2;
+}
+
+message ConnectorSplits { repeated ConnectorSplit splits = 1; }
+
+message AddMutation {
+  map<uint32, Dispatcher> actor_dispatchers = 1;
+  map<uint32, ConnectorSplits> actor_splits = 2;
+}
+
+message StopMutation { repeated uint32 actors = 1; }
+
+message UpdateMutation {
+  DispatcherUpdate dispatch_update = 1;
+  MergeUpdate merge_update = 2;
+  repeated uint32 dropped_actors = 3;
+  map<uint32, ConnectorSplits> actor_splits = 4;
+}
+
+message SourceChangeSplitMutation {
+  map<uint32, ConnectorSplits> actor_splits = 1;
+}
+
+message PauseMutation {}
+
+message ResumeMutation {}
+
+message Mutation {
+  oneof mutate {
+    AddMutation add_mutate = 1;
+    StopMutation stop_mutate = 2;
+    UpdateMutation update_mutate = 3;
+    SourceChangeSplitMutation source_change_split_mutate = 4;
+    PauseMutation pause_mutate = 5;
+    ResumeMutation resume_mutate = 6;
+  }
+}
+
+message Epoch {
+  uint64 curr = 1;
+  uint64 prev = 2;
+}
+
+message Barrier {
+  optional Epoch epoch = 1;
+  bool checkpoint = 2;
+  repeated uint32 passed_actors = 3;
+  optional Mutation mutation = 4;
+}

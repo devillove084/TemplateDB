@@ -14,20 +14,15 @@
 
 use std::{collections::HashMap, fmt::Display, ops::Range};
 
-use tracing::log::{error, info, warn};
+use tracing::{error, info, warn};
 
 use super::{
-    message::{Learn, Message, Mutate, Restored},
+    message::{Learn, Mutate, Restored, StreamLogMsg},
     replicate::Replicate,
 };
-// use crate::runtime_client::{
-//     core::message::MsgDetail, policy::Policy as ReplicatePolicy, Entry, EpochState, Error,
-// Result,     Role, Sequence,
-// };
-use crate::stream::client::policy::Policy as ReplicatePolicy;
 use crate::{
     stream::{
-        client::{core::message::MsgDetail, EpochState, Role},
+        client::{core::message::MsgDetail, policy::Policy as ReplicatePolicy, EpochState, Role},
         common::{
             error::{Error, Result},
             Entry, Sequence,
@@ -193,7 +188,7 @@ impl StreamStateMachine {
         true
     }
 
-    pub fn step(&mut self, msg: Message) {
+    pub fn step(&mut self, msg: StreamLogMsg) {
         use std::cmp::Ordering;
         match msg.writer_epoch.cmp(&self.writer_epoch) {
             // Allowing sealed responses makes the fast recovering process more flexible.
@@ -394,14 +389,14 @@ mod tests {
     use super::StreamStateMachine;
     use crate::stream::{
         client::{
-            core::message::{Learned, Message, MsgDetail, MutKind, Mutate},
+            core::message::{Learned, MsgDetail, MutKind, Mutate, StreamLogMsg},
             Role,
         },
         common::{error::Error, Entry, Sequence},
     };
 
     fn handle_recovered(sm: &mut StreamStateMachine, seg_epoch: u32) {
-        sm.step(Message {
+        sm.step(StreamLogMsg {
             target: "self".into(),
             segment_epoch: seg_epoch,
             writer_epoch: sm.writer_epoch,
@@ -412,7 +407,7 @@ mod tests {
     fn receive_seals(sm: &mut StreamStateMachine, mutates: &Vec<Mutate>) {
         for mutate in mutates {
             if let MutKind::Seal = &mutate.kind {
-                sm.step(Message {
+                sm.step(StreamLogMsg {
                     target: mutate.target.clone(),
                     segment_epoch: mutate.seg_epoch,
                     writer_epoch: mutate.writer_epoch,
@@ -426,7 +421,7 @@ mod tests {
         for mutate in mutates {
             if let MutKind::Write(write) = &mutate.kind {
                 let index = write.range.end - 1;
-                sm.step(Message {
+                sm.step(StreamLogMsg {
                     target: mutate.target.clone(),
                     segment_epoch: mutate.seg_epoch,
                     writer_epoch: mutate.writer_epoch,
@@ -664,7 +659,7 @@ acked writing or bridge record, write is {:?}",
         let ready = sm.collect().unwrap();
         assert!(ready.restored_segment.is_some());
 
-        sm.step(Message {
+        sm.step(StreamLogMsg {
             target: "a".to_owned(),
             segment_epoch: 1,
             writer_epoch: 2,
@@ -689,7 +684,7 @@ acked writing or bridge record, write is {:?}",
                 }
 
                 if let Some(restored) = ready.restored_segment {
-                    sm.step(Message {
+                    sm.step(StreamLogMsg {
                         target: Default::default(),
                         segment_epoch: restored.segment_epoch,
                         writer_epoch: restored.writer_epoch,
@@ -700,7 +695,7 @@ acked writing or bridge record, write is {:?}",
                 receive_writes(sm, &ready.pending_writes);
                 receive_seals(sm, &ready.pending_writes);
                 for learn in ready.pending_learns {
-                    sm.step(Message {
+                    sm.step(StreamLogMsg {
                         target: learn.target.clone(),
                         segment_epoch: learn.seg_epoch,
                         writer_epoch: learn.writer_epoch,
@@ -708,7 +703,7 @@ acked writing or bridge record, write is {:?}",
                             entries: stores.get(&learn.seg_epoch).cloned().unwrap(),
                         }),
                     });
-                    sm.step(Message {
+                    sm.step(StreamLogMsg {
                         target: learn.target,
                         segment_epoch: learn.seg_epoch,
                         writer_epoch: learn.writer_epoch,

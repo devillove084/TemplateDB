@@ -18,7 +18,16 @@ use derivative::Derivative;
 
 use crate::stream::common::{Entry, Sequence};
 
-#[allow(dead_code)]
+/// Learn a stream base infomaton from other stream, the target is which
+/// this stream learn from.
+/// Segment epoch number is current segment in the
+/// whole system life time.
+/// Writer epoch number is which writer in which epoch,
+/// make `happen-before` grantee in system.
+/// Start index means the position where
+/// we start copy.
+/// ? Why we need to learn msg in the stream? This core inception
+/// ? comes from consensus protocol.
 #[derive(Debug, Clone)]
 pub(crate) struct Learn {
     pub target: String,
@@ -27,7 +36,8 @@ pub(crate) struct Learn {
     pub start_index: u32,
 }
 
-#[allow(dead_code)]
+/// Mutate is same as Learn, start index is change to
+/// mut kind value, which tag this message mutate epoch number.
 #[derive(Debug, Clone)]
 pub(crate) struct Mutate {
     pub target: String,
@@ -39,9 +49,13 @@ pub(crate) struct Mutate {
 #[derive(Debug, Clone)]
 pub(crate) enum MutKind {
     Write(Write),
+    /// ? Why Seal do not have a embeded type?
     Seal,
 }
 
+/// The write request in the stream, carry with acked sequence,
+/// range scope, all write bytes and all entries itself.
+/// ? Why we need range, what range for, and how to use?
 #[derive(Derivative, Clone)]
 #[derivative(Debug)]
 pub(crate) struct Write {
@@ -52,6 +66,7 @@ pub(crate) struct Write {
     pub entries: Vec<Entry>,
 }
 
+/// Indicated the entries that we had been learned.
 #[derive(Derivative, Clone)]
 #[derivative(Debug)]
 pub(crate) struct Learned {
@@ -67,9 +82,10 @@ pub(crate) struct Restored {
     pub writer_epoch: u32,
 }
 
+/// Detail in every stream client send to the server.
+#[allow(dead_code)]
 #[derive(Derivative, Clone)]
 #[derivative(Debug)]
-#[allow(unused)]
 pub(crate) enum MsgDetail {
     Received {
         matched_index: u32,
@@ -104,25 +120,25 @@ impl Display for MsgDetail {
 /// An abstraction of data communication between `StreamStateMachine` and
 /// journal servers.
 #[derive(Debug, Clone)]
-pub(crate) struct Message {
+pub(crate) struct StreamLogMsg {
     pub target: String,
     pub segment_epoch: u32,
     pub writer_epoch: u32,
     pub detail: MsgDetail,
 }
 
-impl Message {
-    #[inline(always)]
-    pub fn master_timeout(segment_epoch: u32, writer_epoch: u32) -> Self {
-        Self::store_timeout("<MASTER>".into(), segment_epoch, writer_epoch)
+impl StreamLogMsg {
+    /// Connect to distributed journal leaderless cluster timeout.
+    pub fn con_cluster_timeout(segment_epoch: u32, writer_epoch: u32) -> Self {
+        Self::store_timeout("<Command_leader>".into(), segment_epoch, writer_epoch)
     }
 
-    #[inline(always)]
+    /// Store stream infomation into journal cluster timeout, but it abstact a target in this.
     pub fn store_timeout(target: String, segment_epoch: u32, writer_epoch: u32) -> Self {
         Self::write_timeout(target, segment_epoch, writer_epoch, None, 0)
     }
 
-    #[inline(always)]
+    /// Generate a write timeout msg
     pub fn write_timeout(
         target: String,
         segment_epoch: u32,
@@ -130,7 +146,7 @@ impl Message {
         range: Option<Range<u32>>,
         bytes: usize,
     ) -> Self {
-        Message {
+        StreamLogMsg {
             target,
             segment_epoch,
             writer_epoch,
@@ -138,9 +154,9 @@ impl Message {
         }
     }
 
-    #[inline(always)]
+    /// Generate a seal msg, seal means stop there, so we only need acked index number.
     pub fn sealed(target: String, segment_epoch: u32, writer_epoch: u32, acked_index: u32) -> Self {
-        Message {
+        StreamLogMsg {
             target,
             segment_epoch,
             writer_epoch,
@@ -148,7 +164,8 @@ impl Message {
         }
     }
 
-    #[inline(always)]
+    /// Generate a received msg, tell journal server we has been received until matched index and
+    /// acked index.
     pub fn received(
         target: String,
         segment_epoch: u32,
@@ -156,7 +173,7 @@ impl Message {
         matched_index: u32,
         acked_index: u32,
     ) -> Self {
-        Message {
+        StreamLogMsg {
             target,
             segment_epoch,
             writer_epoch,
@@ -167,24 +184,24 @@ impl Message {
         }
     }
 
-    #[inline(always)]
+    /// Tell journal server where has been covered.
     pub fn recovered(segment_epoch: u32, writer_epoch: u32) -> Self {
-        Message {
-            target: "<MASTER>".into(),
+        StreamLogMsg {
+            target: "<Command leader>".into(),
             segment_epoch,
             writer_epoch,
             detail: MsgDetail::Recovered,
         }
     }
 
-    #[inline(always)]
+    /// Tell journal server where has been learned.
     pub fn learned(
         target: String,
         segment_epoch: u32,
         writer_epoch: u32,
         learned: Learned,
     ) -> Self {
-        Message {
+        StreamLogMsg {
             target,
             segment_epoch,
             writer_epoch,

@@ -280,7 +280,7 @@ impl VersionSet {
                 }
                 _ => {}
             }
-            // TODO(walter) merge stream meta.
+            // TODO(luhuanbing) merge stream meta.
         }
 
         let version_edit = Box::new(VersionEdit {
@@ -378,7 +378,7 @@ fn recover_manifest<P: AsRef<Path>>(manifest: P) -> Result<(usize, Version)> {
     let file = std::fs::File::open(manifest)?;
     let mut reader = LogReader::new(file, 0, true)?;
     let mut builder = VersionBuilder::default();
-    // FIXME(walter) handle partial write or corruption?
+    // FIXME(luhuanbing) handle partial write or corruption?
     while let Some(content) = reader.read_record()? {
         let edit =
             manifest::VersionEdit::decode(content.as_slice()).expect("corrupted version edit");
@@ -480,7 +480,7 @@ impl VersionBuilder {
                 record.min_log_number = min_log_number;
                 record
                     .recycled_log_numbers
-                    .drain_filter(|log_number| *log_number < record.min_log_number);
+                    .extract_if(|log_number| *log_number < record.min_log_number);
             }
         }
     }

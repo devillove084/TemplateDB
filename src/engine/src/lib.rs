@@ -44,6 +44,7 @@ mod record;
 mod snapshot;
 mod sstable;
 pub mod storage;
+pub mod storage_impl;
 mod table_cache;
 mod version;
 

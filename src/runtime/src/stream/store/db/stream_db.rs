@@ -152,7 +152,7 @@ impl StreamDb {
         std::fs::create_dir_all(&base_dir)?;
         let opt = Arc::new(opt);
 
-        // TODO(walter) add file lock.
+        // TODO(luhuanbing) add file lock.
         if !layout::current(&base_dir).try_exists()? {
             if !opt.create_if_missing {
                 return Err(Error::NotFound(format!(
@@ -266,7 +266,7 @@ impl StreamDb {
         core.streams
             .entry(stream_id)
             .or_insert_with(|| {
-                // FIXME(walter) acquire version set lock in db's lock.
+                // FIXME(luhuanbing) acquire version set lock in db's lock.
                 StreamMixin::new_empty(
                     stream_id,
                     self.version_set.current(),
