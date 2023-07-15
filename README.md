@@ -80,11 +80,14 @@ cargo test # (Optional)cargo nextest test
 <details>
 <summary>Learning TemplateKV</summary>
 
+
 - Design of Dynamic Data Structure
+
 - Design of Stream Operators 
+
 - Design of Unified Consensus Protocol Abstraction Layer
 
-​	   </details>
+  </details>
 
 <details>
 <summary>Performance</summary>
