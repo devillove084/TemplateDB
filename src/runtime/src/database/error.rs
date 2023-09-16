@@ -12,12 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{
-    database::error::KVResult,
-    operators::data_structure::{read::ReadOperator, sink::SinkOperator},
-};
+use thiserror::Error;
 
-#[async_trait::async_trait]
-pub trait Engine {
-    async fn read(&self, operator: ReadOperator) -> KVResult<SinkOperator>;
+#[derive(Error, Debug)]
+pub enum KVError {
+    #[error("{0} is not found")]
+    NotFound(String),
+    #[error("{0} is already here")]
+    AlreadyExists(String),
+    #[error("update data in structure failed: {0}")]
+    UpdateFailed(String),
+    #[error("delete data in structure failed: {0}")]
+    DeleteFailed(String),
 }
+
+pub type KVResult<T> = std::result::Result<T, KVError>;

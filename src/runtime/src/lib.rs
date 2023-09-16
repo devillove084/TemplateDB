@@ -27,6 +27,7 @@ pub mod allocator;
 pub mod consensus;
 pub mod database;
 pub mod gc;
+pub mod operators;
 pub mod stream;
 pub mod stream2;
 

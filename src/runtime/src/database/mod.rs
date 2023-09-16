@@ -14,6 +14,7 @@
 
 pub mod api;
 pub mod config;
+pub mod error;
 pub mod kvengine;
 pub mod lockmanager;
 pub mod mvcc;
