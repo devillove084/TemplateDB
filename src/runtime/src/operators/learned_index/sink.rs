@@ -18,7 +18,7 @@ pub struct Buffer<A: Allocator> {
 
 // impl<A: Allocator> Buffer<A> {
 //     pub fn new() -> Self {
-        
+
 //     }
 // }
 
