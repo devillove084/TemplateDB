@@ -16,6 +16,6 @@ pub mod config;
 pub mod connector;
 pub mod container;
 pub mod env;
+pub mod manager;
 pub mod service;
 pub mod source;
-pub mod manager;

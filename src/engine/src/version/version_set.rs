@@ -15,35 +15,39 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use crate::compaction::{
-    base_range, total_range, Compaction, CompactionInputs, CompactionReason, CompactionStats,
+use std::{
+    cmp::Ordering as CmpOrdering,
+    ops::Add,
+    path::MAIN_SEPARATOR,
+    sync::{atomic::Ordering, Arc},
+    time::SystemTime,
 };
-use crate::db::build_table;
-use crate::db::filename::{generate_filename, parse_filename, update_current, FileType};
-use crate::db::format::{InternalKey, InternalKeyComparator};
-use crate::iterator::Iterator;
-use crate::iterator::{ConcatenateIterator, DerivedIterFactory, KMergeCore, KMergeIter};
-use crate::options::Options;
-use crate::record::reader::Reader;
-use crate::record::writer::Writer;
-use crate::snapshot::{Snapshot, SnapshotList};
-use crate::sstable::table::{TableBuilder, TableIterator};
-use crate::storage::{File, Storage};
-use crate::table_cache::TableCache;
-use crate::util::coding::decode_fixed_64;
-use crate::util::collection::HashSet;
-use crate::util::comparator::Comparator;
-use crate::util::reporter::LogReporter;
-use crate::version::version_edit::{FileDelta, FileMetaData, VersionEdit};
-use crate::version::{LevelFileNumIterator, Version, FILE_META_LENGTH};
-use crate::ReadOptions;
-use crate::{Error, Result};
-use std::cmp::Ordering as CmpOrdering;
-use std::ops::Add;
-use std::path::MAIN_SEPARATOR;
-use std::sync::atomic::Ordering;
-use std::sync::Arc;
-use std::time::SystemTime;
+
+use crate::{
+    compaction::{
+        base_range, total_range, Compaction, CompactionInputs, CompactionReason, CompactionStats,
+    },
+    db::{
+        build_table,
+        filename::{generate_filename, parse_filename, update_current, FileType},
+        format::{InternalKey, InternalKeyComparator},
+    },
+    iterator::{ConcatenateIterator, DerivedIterFactory, Iterator, KMergeCore, KMergeIter},
+    options::Options,
+    record::{reader::Reader, writer::Writer},
+    snapshot::{Snapshot, SnapshotList},
+    sstable::table::{TableBuilder, TableIterator},
+    storage::{File, Storage},
+    table_cache::TableCache,
+    util::{
+        coding::decode_fixed_64, collection::HashSet, comparator::Comparator, reporter::LogReporter,
+    },
+    version::{
+        version_edit::{FileDelta, FileMetaData, VersionEdit},
+        LevelFileNumIterator, Version, FILE_META_LENGTH,
+    },
+    Error, ReadOptions, Result,
+};
 
 struct LevelDiff {
     // set of new deleted files
@@ -385,7 +389,8 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> VersionSet<S, C> {
             (v, record)
         };
 
-        // Initialize new manifest file if necessary by creating a temporary file that contains a snapshot of the current version.
+        // Initialize new manifest file if necessary by creating a temporary file that contains a
+        // snapshot of the current version.
         let mut new_manifest_file = String::new();
         if self.manifest_writer.is_none() {
             new_manifest_file =
@@ -402,8 +407,9 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> VersionSet<S, C> {
         }
 
         // Write to current MANIFEST
-        // In origin C++ implementation, the relative part unlocks the global mutex. But we dont need
-        // to do this in wickdb since we split the mutex into several ones for more subtle controlling.
+        // In origin C++ implementation, the relative part unlocks the global mutex. But we dont
+        // need to do this in wickdb since we split the mutex into several ones for more
+        // subtle controlling.
         if let Some(writer) = self.manifest_writer.as_mut() {
             match writer.add_record(&encoded_edit) {
                 Ok(()) => {
@@ -468,7 +474,8 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> VersionSet<S, C> {
         // But we cannot do this for level-0 since level-0 files can overlap
         // and we must not pick one file and drop another older file if the
         // two files overlap.
-        // TODO: The Level 0 files to be compacted could really large. This might hurt the performance.
+        // TODO: The Level 0 files to be compacted could really large. This might hurt the
+        // performance.
         if level > 0 {
             let mut total = 0;
             for (i, file) in overlapping_inputs.iter().enumerate() {
@@ -577,7 +584,8 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> VersionSet<S, C> {
     }
 
     /// Persistent given memtable into a single sst file to level0.
-    /// If `into_base` is true, the file could be pushed into level1 or level2 if there's no too much overlapping.
+    /// If `into_base` is true, the file could be pushed into level1 or level2 if there's no too
+    /// much overlapping.
     pub fn write_level0_files(
         &mut self,
         db_path: &str,
@@ -868,8 +876,9 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> VersionSet<S, C> {
     }
 
     // Pick up files to compact in `c.level+1` based on given compaction
-    // The input files in `c.level` might expand because of getting a large key range from newly picked files
-    // in `c.level + 1`. And the final key range in `c.level + 1` should be a subset of `c.level`
+    // The input files in `c.level` might expand because of getting a large key range from newly
+    // picked files in `c.level + 1`. And the final key range in `c.level + 1` should be a
+    // subset of `c.level`
     fn setup_other_inputs(&mut self, c: Compaction<S::F, C>) -> Compaction<S::F, C> {
         let mut c = self.add_boundary_inputs(c);
         let current = &self.current();
@@ -892,7 +901,8 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> VersionSet<S, C> {
             let mut expanded0 =
                 current.get_overlapping_inputs(c.level, Some(all_smallest), Some(all_largest));
             // Add boundary for expanded L(n) inputs
-            // The `expanded0` could have a larger key range than the origin `inputs[0]` in given `c`
+            // The `expanded0` could have a larger key range than the origin `inputs[0]` in given
+            // `c`
             add_boundary_inputs_for_compact_files(
                 &self.icmp,
                 &current.files[c.level],
@@ -1004,10 +1014,11 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> VersionSet<S, C> {
     }
 }
 
-// Add SST files which should have been included in `level` compaction but excluded by some reasons (e.g output size limit truncating).
-// This guarantees that all the `InternalKey`s with a same user key in level `level` should be compacted. Otherwise, we might encounter a
-// snapshot reading issue because the older key remains in a lower level when the newest key is at higher level after compaction.
-// `files_to_compact` could be expand after this methods
+// Add SST files which should have been included in `level` compaction but excluded by some reasons
+// (e.g output size limit truncating). This guarantees that all the `InternalKey`s with a same user
+// key in level `level` should be compacted. Otherwise, we might encounter a snapshot reading issue
+// because the older key remains in a lower level when the newest key is at higher level after
+// compaction. `files_to_compact` could be expand after this methods
 fn add_boundary_inputs_for_compact_files<C: Comparator>(
     icmp: &InternalKeyComparator<C>,
     level_files: &[Arc<FileMetaData>],
@@ -1027,8 +1038,9 @@ fn add_boundary_inputs_for_compact_files<C: Comparator>(
             find_smallest_boundary_file(icmp, level_files, largest_key);
         while let Some(file) = &smallest_boundary_file {
             // If a boundary file was found, advance the `largest_key`. Otherwise we're done.
-            // This might leave 'holes' in files to be compacted because we only append the last boundary file.
-            // The 'holes' will be filled later (by calling `get_overlapping_inputs`).
+            // This might leave 'holes' in files to be compacted because we only append the last
+            // boundary file. The 'holes' will be filled later (by calling
+            // `get_overlapping_inputs`).
             files_to_compact.push(file.clone());
             largest_key = &file.largest;
             smallest_boundary_file = find_smallest_boundary_file(icmp, level_files, largest_key);
@@ -1248,9 +1260,11 @@ impl<S: Storage + Clone, C: Comparator> KMergeCore for SSTableIters<S, C> {
 #[cfg(test)]
 mod add_boundary_tests {
     use super::*;
-    use crate::db::format::{InternalKey, InternalKeyComparator, ValueType};
-    use crate::storage::mem::MemStorage;
-    use crate::util::comparator::BytewiseComparator;
+    use crate::{
+        db::format::{InternalKey, InternalKeyComparator, ValueType},
+        storage::mem::MemStorage,
+        util::comparator::BytewiseComparator,
+    };
 
     #[derive(Default)]
     struct AddBoundaryInputTests {
@@ -1313,7 +1327,8 @@ mod add_boundary_tests {
         assert!(files_to_compact.is_empty());
     }
 
-    // ensure the `files_to_compaction` will not be expanded if all the files in the key range are included
+    // ensure the `files_to_compaction` will not be expanded if all the files in the key range are
+    // included
     #[test]
     fn test_no_boundary_files() {
         let mut t = AddBoundaryInputTests::default();

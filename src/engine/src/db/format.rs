@@ -15,14 +15,21 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use crate::filter::FilterPolicy;
-use crate::util::coding::{decode_fixed_64, put_fixed_64};
-use crate::util::comparator::Comparator;
-use crate::util::varint::VarintU32;
-use std::cmp::Ordering;
-use std::fmt::{Debug, Error, Formatter};
-use std::str;
-use std::sync::Arc;
+use std::{
+    cmp::Ordering,
+    fmt::{Debug, Error, Formatter},
+    str,
+    sync::Arc,
+};
+
+use crate::{
+    filter::FilterPolicy,
+    util::{
+        coding::{decode_fixed_64, put_fixed_64},
+        comparator::Comparator,
+        varint::VarintU32,
+    },
+};
 
 /// The max key sequence number. The value is 2^56 - 1 because the seq number
 /// only takes 56 bits when is serialized to `InternalKey`
@@ -132,7 +139,6 @@ impl<'a> Debug for ParsedInternalKey<'a> {
 /// | ----------- n bytes ----------- | --- 7 bytes --- | - 1 byte - |
 ///              user key                  seq number        type
 /// ```
-///
 // TODO: use &'a [u8] instead of Vec<u8>
 #[derive(Default, Clone, PartialEq, Eq)]
 pub struct InternalKey {
@@ -209,7 +215,7 @@ impl Debug for InternalKey {
 /// The format of a `LookupKey`:
 ///
 /// ```text
-///
+/// 
 ///   +---------------------------------+
 ///   | varint32 of internal key length |
 ///   +---------------------------------+ --------------- user key start
@@ -217,7 +223,6 @@ impl Debug for InternalKey {
 ///   +---------------------------------+   internal key
 ///   | sequence (7)        |  seek (1) |
 ///   +---------------------------------+ ---------------
-///
 /// ```
 pub struct LookupKey {
     data: Vec<u8>,

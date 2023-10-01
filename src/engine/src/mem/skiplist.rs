@@ -15,17 +15,20 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use super::arena::*;
-use crate::iterator::Iterator;
-use crate::util::comparator::Comparator;
-use crate::Result;
+use std::{
+    cmp::Ordering as CmpOrdering,
+    mem, ptr,
+    sync::{
+        atomic::{AtomicPtr, AtomicUsize, Ordering},
+        Arc,
+    },
+};
+
 use bytes::Bytes;
 use rand::random;
-use std::cmp::Ordering as CmpOrdering;
-use std::mem;
-use std::ptr;
-use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
-use std::sync::Arc;
+
+use super::arena::*;
+use crate::{iterator::Iterator, util::comparator::Comparator, Result};
 
 const BRANCHING: u32 = 4;
 pub const MAX_HEIGHT: usize = 12;
@@ -99,7 +102,8 @@ pub struct Skiplist<C: Comparator, A: Arena> {
     // The total size memory skiplist served
     //
     // Note:
-    // We only alloc space for `Node` in arena without the content of `key` (only `Bytes` which is pretty small).
+    // We only alloc space for `Node` in arena without the content of `key` (only `Bytes` which is
+    // pretty small).
     size: AtomicUsize,
 }
 
@@ -125,7 +129,6 @@ impl<C: Comparator, A: Arena> Skiplist<C, A> {
     ///
     /// Concurrent insertion is not thread safe but concurrent reading with a
     /// single writer is safe.
-    ///
     pub fn insert(&self, key: impl Into<Bytes>) {
         let key = key.into();
         let length = key.len();
@@ -372,18 +375,24 @@ fn rand_height() -> usize {
 
 #[cfg(test)]
 mod tests {
+    use std::{
+        cmp::Ordering as CmpOrdering,
+        ptr, str,
+        sync::{atomic::AtomicBool, Arc, Condvar, Mutex},
+        thread,
+    };
+
+    use rand::{Rng, RngCore};
+
     use super::*;
-    use crate::iterator::Iterator;
-    use crate::util::coding::{decode_fixed_64, put_fixed_64};
-    use crate::util::comparator::BytewiseComparator;
-    use crate::util::hash::hash as do_hash;
-    use rand::Rng;
-    use rand::RngCore;
-    use std::cmp::Ordering as CmpOrdering;
-    use std::str;
-    use std::sync::atomic::AtomicBool;
-    use std::sync::{Arc, Condvar, Mutex};
-    use std::{ptr, thread};
+    use crate::{
+        iterator::Iterator,
+        util::{
+            coding::{decode_fixed_64, put_fixed_64},
+            comparator::BytewiseComparator,
+            hash::hash as do_hash,
+        },
+    };
 
     fn new_test_skl() -> Skiplist<BytewiseComparator, BlockArena> {
         Skiplist::new(BytewiseComparator::default(), BlockArena::default())

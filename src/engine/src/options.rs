@@ -16,17 +16,19 @@
 // found in the LICENSE file.
 
 // use crate::cache::lru::SharedLRUCache;
-use crate::cache::lru::LRUCache;
-use crate::cache::{Cache, ShardedCache};
-use crate::db::format::InternalFilterPolicy;
-use crate::filter::FilterPolicy;
-use crate::logger::Logger;
-use crate::snapshot::Snapshot;
-use crate::sstable::block::Block;
-use crate::storage::{File, Storage};
-use crate::util::comparator::Comparator;
-use crate::{BloomFilter, LevelFilter, Log};
 use std::sync::Arc;
+
+use crate::{
+    cache::{lru::LRUCache, Cache, ShardedCache},
+    db::format::InternalFilterPolicy,
+    filter::FilterPolicy,
+    logger::Logger,
+    snapshot::Snapshot,
+    sstable::block::Block,
+    storage::{File, Storage},
+    util::comparator::Comparator,
+    BloomFilter, LevelFilter, Log,
+};
 
 const DEFAULT_CACHE_SHARDS: usize = 8;
 

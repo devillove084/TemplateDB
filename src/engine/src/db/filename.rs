@@ -15,10 +15,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use crate::storage::{do_write_string_to_file, Storage};
-use crate::Result;
-use std::ffi::OsStr;
-use std::path::Path;
+use std::{ffi::OsStr, path::Path};
+
+use crate::{
+    storage::{do_write_string_to_file, Storage},
+    Result,
+};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum FileType {

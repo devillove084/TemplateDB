@@ -15,11 +15,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use crate::record::{RecordType, BLOCK_SIZE, HEADER_SIZE};
-use crate::storage::File;
-use crate::util::coding::encode_fixed_32;
-use crate::util::crc32;
-use crate::Result;
+use crate::{
+    record::{RecordType, BLOCK_SIZE, HEADER_SIZE},
+    storage::File,
+    util::{coding::encode_fixed_32, crc32},
+    Result,
+};
 
 /// Writer writes records to an underlying log `File`.
 pub struct Writer<F: File> {

@@ -15,9 +15,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-use crate::util::comparator::Comparator;
-use crate::{Error, Result};
 use std::cmp::Ordering;
+
+use crate::{util::comparator::Comparator, Error, Result};
 
 /// A common trait for iterating all the key/value entries.
 ///
@@ -425,12 +425,9 @@ impl<T: KMergeCore> Iterator for KMergeIter<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::iterator::*;
-    use crate::rand::Rng;
-    use crate::util::comparator::BytewiseComparator;
-    use crate::Result;
-    use std::cmp::Ordering;
-    use std::str;
+    use std::{cmp::Ordering, str};
+
+    use crate::{iterator::*, rand::Rng, util::comparator::BytewiseComparator, Result};
 
     /// An helper to merge several `I` in merge iterating style
     struct SimpleKMerger<I: Iterator, C: Comparator> {

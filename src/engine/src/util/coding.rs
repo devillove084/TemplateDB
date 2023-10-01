@@ -15,8 +15,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-use std::mem::transmute;
-use std::ptr::copy_nonoverlapping;
+use std::{mem::transmute, ptr::copy_nonoverlapping};
 
 /// Encodes `value` in little-endian and puts it in the first 4-bytes of `dst`.
 ///

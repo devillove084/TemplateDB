@@ -11,16 +11,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::storage::{File, Storage};
-use crate::util::collection::HashMap;
-use crate::{Error, Result};
-use std::collections::hash_map::Entry;
-use std::io::{Cursor, Error as IOError, ErrorKind, Read, Seek, SeekFrom, Write};
-use std::path::{Component, Path, PathBuf, MAIN_SEPARATOR};
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::{Arc, RwLock};
-use std::thread;
-use std::time::Duration;
+use std::{
+    collections::hash_map::Entry,
+    io::{Cursor, Error as IOError, ErrorKind, Read, Seek, SeekFrom, Write},
+    path::{Component, Path, PathBuf, MAIN_SEPARATOR},
+    sync::{
+        atomic::{AtomicBool, AtomicUsize, Ordering},
+        Arc, RwLock,
+    },
+    thread,
+    time::Duration,
+};
+
+use crate::{
+    storage::{File, Storage},
+    util::collection::HashMap,
+    Error, Result,
+};
 
 /// An in memory file system based on a simple HashMap with fault injection
 /// abilities.
@@ -35,7 +42,6 @@ use std::time::Duration;
 ///
 /// `MemStorage` do not support computing `.` or `..` in `Path` for convenience.
 /// A `test/../test/a' will be treat as `test/test/a`
-///
 #[derive(Clone)]
 pub struct MemStorage {
     inner: Arc<RwLock<HashMap<String, Node>>>,
@@ -592,8 +598,10 @@ impl File for InmemFile {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::storage::{File, Storage};
-    use crate::util::coding::put_fixed_32;
+    use crate::{
+        storage::{File, Storage},
+        util::coding::put_fixed_32,
+    };
 
     impl MemStorage {
         fn assert_node_exists<P: AsRef<Path>>(&self, target: P) -> Node {

@@ -15,11 +15,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use crate::db::format::ValueType;
-use crate::mem::MemTable;
-use crate::util::coding::{decode_fixed_32, decode_fixed_64, encode_fixed_32, encode_fixed_64};
-use crate::util::varint::VarintU32;
-use crate::{Comparator, Error, Result};
+use crate::{
+    db::format::ValueType,
+    mem::MemTable,
+    util::{
+        coding::{decode_fixed_32, decode_fixed_64, encode_fixed_32, encode_fixed_64},
+        varint::VarintU32,
+    },
+    Comparator, Error, Result,
+};
 
 pub const HEADER_SIZE: usize = 12;
 
@@ -27,7 +31,7 @@ pub const HEADER_SIZE: usize = 12;
 ///
 ///
 /// ```text
-///
+/// 
 /// The contents structure:
 ///
 ///  +---------------------+
@@ -43,7 +47,6 @@ pub const HEADER_SIZE: usize = 12;
 ///  +----------+--------------+----------+----------------+------------+
 ///  | key type | key len(var) | key data | value len(var) | value data |
 ///  +----------+--------------+----------+----------------+------------+
-///
 /// ```
 /// The updates are applied in the order in which they are added
 /// to the `WriteBatch`.
@@ -52,7 +55,6 @@ pub const HEADER_SIZE: usize = 12;
 /// external synchronization, but if any of the threads may call a
 /// non-const method, all threads accessing the same WriteBatch must use
 /// external synchronization.
-///
 #[derive(Clone)]
 pub struct WriteBatch {
     contents: Vec<u8>,
@@ -201,11 +203,13 @@ impl WriteBatch {
 
 #[cfg(test)]
 mod tests {
-    use crate::batch::WriteBatch;
-    use crate::db::format::{InternalKeyComparator, ParsedInternalKey, ValueType};
-    use crate::iterator::Iterator;
-    use crate::mem::MemTable;
-    use crate::util::comparator::BytewiseComparator;
+    use crate::{
+        batch::WriteBatch,
+        db::format::{InternalKeyComparator, ParsedInternalKey, ValueType},
+        iterator::Iterator,
+        mem::MemTable,
+        util::comparator::BytewiseComparator,
+    };
 
     fn print_contents(batch: &WriteBatch) -> String {
         let mem = MemTable::new(

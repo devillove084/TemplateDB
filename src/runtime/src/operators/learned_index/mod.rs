@@ -1,10 +1,14 @@
+pub mod allocator;
 pub mod delete;
-pub mod entry;
 pub mod error;
 pub mod linear;
+pub mod message;
 pub mod nonlinear;
+pub mod opt;
+pub mod planner;
 pub mod read;
 pub mod sink;
 pub mod state;
 pub mod update;
 pub mod write;
+pub mod pointer;

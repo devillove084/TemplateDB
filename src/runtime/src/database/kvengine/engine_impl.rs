@@ -12,12 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{
-    database::error::KVResult,
-    operators::data_structure::{read::ReadOperator, sink::SinkOperator},
-};
-
 #[async_trait::async_trait]
-pub trait Engine {
-    async fn read(&self, operator: ReadOperator) -> KVResult<SinkOperator>;
-}
+pub trait Engine {}

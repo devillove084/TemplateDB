@@ -15,9 +15,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-use crate::filter::FilterPolicy;
-use crate::util::coding::{decode_fixed_32, put_fixed_32};
 use std::sync::Arc;
+
+use crate::{
+    filter::FilterPolicy,
+    util::coding::{decode_fixed_32, put_fixed_32},
+};
 
 const FILTER_BASE_LG: usize = 11;
 const FILTER_BASE: usize = 1 << FILTER_BASE_LG; // 2KiB
@@ -175,8 +178,7 @@ impl FilterBlockReader {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::filter::FilterPolicy;
-    use crate::util::hash::hash;
+    use crate::{filter::FilterPolicy, util::hash::hash};
 
     struct TestHashFilter {}
 

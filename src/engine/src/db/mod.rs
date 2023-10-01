@@ -15,39 +15,49 @@ pub mod filename;
 pub mod format;
 pub mod iterator;
 
-use crate::batch::{WriteBatch, HEADER_SIZE};
-use crate::compaction::{Compaction, CompactionStats, ManualCompaction};
-use crate::db::filename::{generate_filename, parse_filename, update_current, FileType};
-use crate::db::format::{
-    InternalKey, InternalKeyComparator, LookupKey, ParsedInternalKey, ValueType, MAX_KEY_SEQUENCE,
-    VALUE_TYPE_FOR_SEEK,
+use std::{
+    cmp::Ordering as CmpOrdering,
+    collections::vec_deque::VecDeque,
+    mem,
+    path::Path,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Condvar, Mutex, MutexGuard, RwLock,
+    },
+    thread,
+    time::{Duration, Instant},
 };
-use crate::db::iterator::{DBIterator, DBIteratorCore};
-use crate::iterator::{Iterator, KMergeIter};
-use crate::mem::{MemTable, MemTableIterator};
-use crate::options::{Options, ReadOptions, WriteOptions};
-use crate::record::reader::Reader;
-use crate::record::writer::Writer;
-use crate::snapshot::Snapshot;
-use crate::sstable::table::TableBuilder;
-use crate::storage::{File, Storage};
-use crate::table_cache::TableCache;
-use crate::util::reporter::LogReporter;
-use crate::version::version_edit::{FileMetaData, VersionEdit};
-use crate::version::version_set::{SSTableIters, VersionSet};
-use crate::version::Version;
-use crate::Comparator;
-use crate::{Error, Result};
+
 use crossbeam_channel::{Receiver, Sender};
 use crossbeam_utils::sync::ShardedLock;
-use std::cmp::Ordering as CmpOrdering;
-use std::collections::vec_deque::VecDeque;
-use std::mem;
-use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Condvar, Mutex, MutexGuard, RwLock};
-use std::thread;
-use std::time::{Duration, Instant};
+
+use crate::{
+    batch::{WriteBatch, HEADER_SIZE},
+    compaction::{Compaction, CompactionStats, ManualCompaction},
+    db::{
+        filename::{generate_filename, parse_filename, update_current, FileType},
+        format::{
+            InternalKey, InternalKeyComparator, LookupKey, ParsedInternalKey, ValueType,
+            MAX_KEY_SEQUENCE, VALUE_TYPE_FOR_SEEK,
+        },
+        iterator::{DBIterator, DBIteratorCore},
+    },
+    iterator::{Iterator, KMergeIter},
+    mem::{MemTable, MemTableIterator},
+    options::{Options, ReadOptions, WriteOptions},
+    record::{reader::Reader, writer::Writer},
+    snapshot::Snapshot,
+    sstable::table::TableBuilder,
+    storage::{File, Storage},
+    table_cache::TableCache,
+    util::reporter::LogReporter,
+    version::{
+        version_edit::{FileMetaData, VersionEdit},
+        version_set::{SSTableIters, VersionSet},
+        Version,
+    },
+    Comparator, Error, Result,
+};
 
 /// A `DB` is a persistent ordered map from keys to values.
 /// A `DB` is safe for concurrent access from multiple threads without
@@ -247,8 +257,8 @@ impl<S: Storage + Clone, C: Comparator + 'static> WickDB<S, C> {
     //
     // Steps:
     // 1. Grouping the batches in the queue into a big enough batch
-    // 2. Make sure there is enough space in the memtable. This might trigger a minor compaction
-    //    or even several major compaction.
+    // 2. Make sure there is enough space in the memtable. This might trigger a minor compaction or
+    //    even several major compaction.
     // 3. Write into WAL (.log file)
     // 4. Write into Memtable
     // 5. Update sequence of version set
@@ -779,7 +789,8 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> DBImpl<S, C> {
     }
 
     // Delete any unneeded files and stale in-memory entries.
-    // This func could delete generated compaction files when the compaction is failed due some reasons (e.g. block entry currupted)
+    // This func could delete generated compaction files when the compaction is failed due some
+    // reasons (e.g. block entry currupted)
     fn delete_obsolete_files(&self, mut versions: MutexGuard<VersionSet<S, C>>) -> Result<()> {
         versions.lock_live_files();
         // ignore IO error on purpose
@@ -985,7 +996,8 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> DBImpl<S, C> {
         }
     }
 
-    // Force current memtable contents(even if the memtable is not full) to be compacted into sst files
+    // Force current memtable contents(even if the memtable is not full) to be compacted into sst
+    // files
     fn force_compact_mem_table(&self) -> Result<()> {
         let empty_batch = WriteBatch::default();
         // Schedule a force memory compaction
@@ -1323,7 +1335,8 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> DBImpl<S, C> {
     // 1. no background compaction is running
     // 2. DB is not shutting down
     // 3. no error has been encountered
-    // 4. there is an immutable table or a manual compaction request or current version needs to be compacted
+    // 4. there is an immutable table or a manual compaction request or current version needs to be
+    //    compacted
     fn maybe_schedule_compaction(&self, version: Arc<Version<C>>) -> bool {
         if self.background_compaction_scheduled.load(Ordering::Acquire)
             // Already scheduled
@@ -1486,14 +1499,18 @@ pub(crate) fn build_table<S: Storage + Clone, C: Comparator + 'static>(
 
 #[cfg(test)]
 mod tests {
+    use std::{
+        ops::{Deref, DerefMut},
+        str,
+        sync::atomic::AtomicUsize,
+    };
+
+    use rand::{distributions::Alphanumeric, thread_rng, Rng};
+
     use super::*;
-    use crate::storage::mem::MemStorage;
-    use crate::{BloomFilter, BytewiseComparator, CompressionType, Options};
-    use rand::distributions::Alphanumeric;
-    use rand::{thread_rng, Rng};
-    use std::ops::{Deref, DerefMut};
-    use std::str;
-    use std::sync::atomic::AtomicUsize;
+    use crate::{
+        storage::mem::MemStorage, BloomFilter, BytewiseComparator, CompressionType, Options,
+    };
 
     impl<S: Storage + Clone, C: Comparator + 'static> WickDB<S, C> {
         fn options(&self) -> Arc<Options<C>> {
@@ -1611,7 +1628,8 @@ mod tests {
             DBTest { store, opt, db }
         }
 
-        // Close the inner db without destroy the contents and establish a new WickDB on same db path with same option
+        // Close the inner db without destroy the contents and establish a new WickDB on same db
+        // path with same option
         fn reopen(&mut self) -> Result<()> {
             self.db.close()?;
             let db = WickDB::open_db(self.opt.clone(), &self.db.inner.db_path, self.store.clone())?;
@@ -2824,9 +2842,7 @@ mod tests {
 
     #[test]
     fn test_custom_comparator() {
-        use std::cmp::Ordering;
-        use std::str;
-        use std::usize;
+        use std::{cmp::Ordering, str, usize};
         #[derive(Clone, Default)]
         struct NumberComparator {}
         fn to_number(n: &[u8]) -> usize {

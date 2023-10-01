@@ -18,10 +18,13 @@
 pub mod file;
 pub mod mem;
 
+use std::{
+    io,
+    io::SeekFrom,
+    path::{Path, PathBuf},
+};
+
 use crate::{Error, Result};
-use std::io;
-use std::io::SeekFrom;
-use std::path::{Path, PathBuf};
 
 /// `Storage` is a namespace for files.
 ///

@@ -15,13 +15,20 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-use crate::iterator::Iterator;
-use crate::util::coding::{decode_fixed_32, put_fixed_32};
-use crate::util::comparator::Comparator;
-use crate::util::varint::VarintU32;
-use crate::{Error, Result};
-use std::cmp::{min, Ordering};
-use std::sync::Arc;
+use std::{
+    cmp::{min, Ordering},
+    sync::Arc,
+};
+
+use crate::{
+    iterator::Iterator,
+    util::{
+        coding::{decode_fixed_32, put_fixed_32},
+        comparator::Comparator,
+        varint::VarintU32,
+    },
+    Error, Result,
+};
 
 // TODO: remove all magic number
 const U32_LEN: usize = std::mem::size_of::<u32>();
@@ -34,13 +41,11 @@ const U32_LEN: usize = std::mem::size_of::<u32>();
 /// Block Key/value entry:
 ///
 /// ```text
-///
+/// 
 ///     +-------+---------+-----------+---------+--------------------+--------------+----------------+
 ///     | shared (varint) | not shared (varint) | value len (varint) | key (varlen) | value (varlen) |
 ///     +-----------------+---------------------+--------------------+--------------+----------------+
-///
 /// ```
-///
 #[derive(Clone, Debug)]
 pub struct Block {
     data: Arc<Vec<u8>>,
@@ -56,7 +61,6 @@ impl Block {
     /// # Errors
     ///
     /// If the given `data` is invalid, return an error with `Status::Corruption`
-    ///
     pub fn new(data: Vec<u8>) -> Result<Self> {
         let size = data.len();
         if size >= U32_LEN {
@@ -457,7 +461,6 @@ impl<C: Comparator> BlockBuilder<C> {
     /// # Panic
     ///
     /// * BlockBuilder is not finished
-    ///
     #[inline]
     pub fn reset(&mut self) {
         assert!(
@@ -474,13 +477,17 @@ impl<C: Comparator> BlockBuilder<C> {
 
 #[cfg(test)]
 mod tests {
-    use crate::iterator::Iterator;
-    use crate::sstable::block::BlockBuilder;
-    use crate::sstable::block::{Block, BlockIterator};
-    use crate::util::coding::{decode_fixed_32, put_fixed_32};
-    use crate::util::comparator::BytewiseComparator;
-    use crate::util::varint::VarintU32;
     use std::str;
+
+    use crate::{
+        iterator::Iterator,
+        sstable::block::{Block, BlockBuilder, BlockIterator},
+        util::{
+            coding::{decode_fixed_32, put_fixed_32},
+            comparator::BytewiseComparator,
+            varint::VarintU32,
+        },
+    };
 
     fn new_test_block() -> Vec<u8> {
         let mut samples = vec!["1", "12", "123", "abc", "abd", "acd", "bbb"];

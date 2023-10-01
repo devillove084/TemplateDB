@@ -73,11 +73,9 @@ pub(crate) trait ExecutorTrait: Clone {
     // fn executed(
     //     &mut self,
     //     _time: &dyn SysTime,
-    // ) -> Option<CommittedAndExecuted> {
-    //     // protocols that are interested in notifying the worker
-    //     // `GC_WORKER_INDEX` (see fantoch::run::prelude) with these executed
-    //     // notifications should overwrite this
-    //     None
+    // ) -> Option<CommittedAndExecuted> { // protocols that are interested in notifying the worker
+    //   // `GC_WORKER_INDEX` (see fantoch::run::prelude) with these executed // notifications
+    //   should overwrite this None
     // }
 
     // fn parallel() -> bool;

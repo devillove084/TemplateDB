@@ -17,10 +17,12 @@
 
 pub mod lru;
 
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
-use std::marker::PhantomData;
-use std::sync::Arc;
+use std::{
+    collections::hash_map::DefaultHasher,
+    hash::{Hash, Hasher},
+    marker::PhantomData,
+    sync::Arc,
+};
 
 /// A `Cache` is an interface that maps keys to values.
 /// It has internal synchronization and may be safely accessed concurrently from
@@ -118,11 +120,17 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::{
+        sync::{
+            atomic::{AtomicU64, Ordering},
+            Arc, Mutex,
+        },
+        thread,
+    };
+
     use lru::*;
-    use std::sync::atomic::{AtomicU64, Ordering};
-    use std::sync::{Arc, Mutex};
-    use std::thread;
+
+    use super::*;
 
     fn new_test_lru_shards(n: usize) -> Vec<LRUCache<String, String>> {
         (0..n).into_iter().fold(vec![], |mut acc, _| {

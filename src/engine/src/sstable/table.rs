@@ -15,21 +15,28 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-use crate::cache::Cache;
-use crate::filter::FilterPolicy;
-use crate::iterator::{ConcatenateIterator, DerivedIterFactory, Iterator};
-use crate::options::{CompressionType, Options, ReadOptions};
-use crate::sstable::block::{Block, BlockBuilder, BlockIterator};
-use crate::sstable::filter_block::{FilterBlockBuilder, FilterBlockReader};
-use crate::sstable::{BlockHandle, Footer, BLOCK_TRAILER_SIZE, FOOTER_ENCODED_LENGTH};
-use crate::storage::File;
-use crate::util::coding::{decode_fixed_32, put_fixed_32, put_fixed_64};
-use crate::util::comparator::Comparator;
-use crate::util::crc32::{extend, hash, mask, unmask};
-use crate::{Error, Result};
+use std::{cmp::Ordering, sync::Arc};
+
 use snap::raw::max_compress_len;
-use std::cmp::Ordering;
-use std::sync::Arc;
+
+use crate::{
+    cache::Cache,
+    filter::FilterPolicy,
+    iterator::{ConcatenateIterator, DerivedIterFactory, Iterator},
+    options::{CompressionType, Options, ReadOptions},
+    sstable::{
+        block::{Block, BlockBuilder, BlockIterator},
+        filter_block::{FilterBlockBuilder, FilterBlockReader},
+        BlockHandle, Footer, BLOCK_TRAILER_SIZE, FOOTER_ENCODED_LENGTH,
+    },
+    storage::File,
+    util::{
+        coding::{decode_fixed_32, put_fixed_32, put_fixed_64},
+        comparator::Comparator,
+        crc32::{extend, hash, mask, unmask},
+    },
+    Error, Result,
+};
 
 /// A `Table` is a sorted map from strings to strings, which must be immutable and persistent.
 /// A `Table` may be safely accessed from multiple threads
@@ -150,7 +157,6 @@ impl<F: File> Table<F> {
     /// returns the block iterator direclty
     ///
     /// The given `key` is an internal key so the `cmp` must be a InternalKeyComparator
-    ///
     pub fn internal_get<TC: Comparator>(
         &self,
         options: ReadOptions,
@@ -161,9 +167,10 @@ impl<F: File> Table<F> {
         // seek to the first 'last key' bigger than 'key'
         index_iter.seek(key);
         if index_iter.valid() {
-            // It's called 'maybe_contained' not only because the filter policy may report the falsy result,
-            // but also even if we've found a block with the last key bigger than the target
-            // the key may not be contained if the block is the first block of the sstable.
+            // It's called 'maybe_contained' not only because the filter policy may report the falsy
+            // result, but also even if we've found a block with the last key bigger
+            // than the target the key may not be contained if the block is the first
+            // block of the sstable.
             let mut maybe_contained = true;
 
             let handle_val = index_iter.value();
@@ -329,7 +336,6 @@ impl<C: Comparator, F: File> TableBuilder<C, F> {
     ///
     /// * If key is after any previously added key according to comparator.
     /// * TableBuilder is closed
-    ///
     pub fn add(&mut self, key: &[u8], value: &[u8]) -> Result<()> {
         self.assert_not_closed();
         if self.num_entries > 0 {
@@ -366,7 +372,6 @@ impl<C: Comparator, F: File> TableBuilder<C, F> {
     /// # Panics
     ///
     /// * The table builder is closed
-    ///
     pub fn flush(&mut self) -> Result<()> {
         self.assert_not_closed();
         if !self.data_block.is_empty() {
@@ -396,7 +401,6 @@ impl<C: Comparator, F: File> TableBuilder<C, F> {
     /// # Panics
     ///
     /// * The table builder is closed
-    ///
     pub fn finish(&mut self, sync: bool) -> Result<()> {
         self.flush()?;
         self.assert_not_closed();
@@ -493,7 +497,8 @@ impl<C: Comparator, F: File> TableBuilder<C, F> {
     // Add a key into the index block if neccessary
     fn maybe_append_index_block(&mut self, key: Option<&[u8]>) -> bool {
         if self.pending_index_entry {
-            // We've flushed a data block to the file so adding an relate index entry into index block
+            // We've flushed a data block to the file so adding an relate index entry into index
+            // block
             assert!(self.data_block.is_empty(), "[table builder] the data block buffer is not empty after flushed, something is wrong");
             let s = if let Some(k) = key {
                 self.cmp.separator(&self.last_key, k)
@@ -613,15 +618,20 @@ fn read_block<F: File>(file: &F, handle: &BlockHandle, verify_checksum: bool) ->
 
 #[cfg(test)]
 mod tests {
-    use crate::filter::bloom::BloomFilter;
-    use crate::iterator::Iterator;
-    use crate::sstable::block::Block;
-    use crate::sstable::table::{read_block, Table, TableBuilder};
-    use crate::sstable::BlockHandle;
-    use crate::storage::mem::MemStorage;
-    use crate::util::comparator::BytewiseComparator;
-    use crate::{File, Options, ReadOptions, Storage};
     use std::sync::Arc;
+
+    use crate::{
+        filter::bloom::BloomFilter,
+        iterator::Iterator,
+        sstable::{
+            block::Block,
+            table::{read_block, Table, TableBuilder},
+            BlockHandle,
+        },
+        storage::mem::MemStorage,
+        util::comparator::BytewiseComparator,
+        File, Options, ReadOptions, Storage,
+    };
 
     #[test]
     fn test_build_empty_table_with_meta_block() {

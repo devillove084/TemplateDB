@@ -15,8 +15,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use crate::filter::FilterPolicy;
-use crate::util::hash::hash;
+use crate::{filter::FilterPolicy, util::hash::hash};
 
 pub struct BloomFilter {
     // the hash count for a key

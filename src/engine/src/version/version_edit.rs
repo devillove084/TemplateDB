@@ -15,16 +15,23 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use crate::db::format::InternalKey;
-use crate::util::collection::HashSet;
-use crate::util::varint::{VarintU32, VarintU64};
-use crate::version::version_edit::Tag::{
-    CompactPointer, Comparator, DeletedFile, LastSequence, LogNumber, NewFile, NextFileNumber,
-    PrevLogNumber, Unknown,
+use std::{
+    fmt::{Debug, Formatter},
+    sync::atomic::{AtomicUsize, Ordering},
 };
-use crate::{Error, Result};
-use std::fmt::{Debug, Formatter};
-use std::sync::atomic::{AtomicUsize, Ordering};
+
+use crate::{
+    db::format::InternalKey,
+    util::{
+        collection::HashSet,
+        varint::{VarintU32, VarintU64},
+    },
+    version::version_edit::Tag::{
+        CompactPointer, Comparator, DeletedFile, LastSequence, LogNumber, NewFile, NextFileNumber,
+        PrevLogNumber, Unknown,
+    },
+    Error, Result,
+};
 
 // Tags for the VersionEdit disk format.
 // Tag 8 is no longer used.
@@ -448,8 +455,10 @@ fn get_level(max_levels: usize, src: &mut &[u8]) -> Option<u32> {
 
 #[cfg(test)]
 mod tests {
-    use crate::db::format::{InternalKey, ValueType};
-    use crate::version::version_edit::VersionEdit;
+    use crate::{
+        db::format::{InternalKey, ValueType},
+        version::version_edit::VersionEdit,
+    };
 
     fn assert_encode_decode(edit: &VersionEdit) {
         let mut encoded = vec![];

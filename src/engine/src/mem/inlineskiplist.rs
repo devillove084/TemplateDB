@@ -1,14 +1,17 @@
-use crate::mem::arena::Arena;
-use crate::Comparator;
-use crate::{Iterator, Result};
+use std::{
+    cmp::Ordering as CmpOrdering,
+    mem, ptr,
+    ptr::{null, null_mut, NonNull},
+    sync::{
+        atomic::{AtomicPtr, AtomicUsize, Ordering},
+        Arc,
+    },
+};
+
 use bytes::Bytes;
 use rand::random;
-use std::cmp::Ordering as CmpOrdering;
-use std::mem;
-use std::ptr;
-use std::ptr::{null, null_mut, NonNull};
-use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
-use std::sync::Arc;
+
+use crate::{mem::arena::Arena, Comparator, Iterator, Result};
 
 const MAX_HEIGHT: usize = 20;
 const HEIGHT_INCREASE: u32 = u32::MAX / 3;
@@ -65,7 +68,8 @@ struct InlineSkipListInner<A: Arena> {
     // The total size memory skiplist served
     //
     // Note:
-    // We only alloc space for `Node` in arena without the content of `key` (only `Bytes` which is pretty small).
+    // We only alloc space for `Node` in arena without the content of `key` (only `Bytes` which is
+    // pretty small).
     size: AtomicUsize,
 }
 
@@ -218,18 +222,21 @@ where
         }
         let node = unsafe { &*np };
 
-        // We always insert from the base level and up. After you add a node in base level, we cannot
-        // create a node in the level above because it would have discovered the node in the base level.
+        // We always insert from the base level and up. After you add a node in base level, we
+        // cannot create a node in the level above because it would have discovered the node
+        // in the base level.
         for i in 0..height {
             loop {
                 if prev[i].is_null() {
                     assert!(i > 1);
-                    // We haven't computed prev, next for this level because height exceeds old listHeight.
-                    // For these levels, we expect the lists to be sparse, so we can just search from head.
+                    // We haven't computed prev, next for this level because height exceeds old
+                    // listHeight. For these levels, we expect the lists to be
+                    // sparse, so we can just search from head.
                     let (p, n) = self.find_splice_for_level(&node.key, self.inner.head.as_ptr(), i);
 
-                    // Someone adds the exact same key before we are able to do so. This can only happen on
-                    // the base level. But we know we are not on the base level.
+                    // Someone adds the exact same key before we are able to do so. This can only
+                    // happen on the base level. But we know we are not on the
+                    // base level.
                     prev[i] = p;
                     next[i] = n;
                     assert_ne!(p, n);
@@ -247,8 +254,9 @@ where
                         }
                         Err(_) => {
                             // CAS failed. We need to recompute prev and next.
-                            // It is unlikely to be helpful to try to use a different level as we redo the search,
-                            // because it is unlikely that lots of nodes are inserted between prev[i] and next[i].
+                            // It is unlikely to be helpful to try to use a different level as we
+                            // redo the search, because it is unlikely
+                            // that lots of nodes are inserted between prev[i] and next[i].
                             let (p, n) = self.find_splice_for_level(&node.key, prev[i], i);
                             if p == n {
                                 // In wickdb, this should never happen
@@ -421,12 +429,10 @@ fn random_height() -> usize {
 
 #[cfg(test)]
 mod tests {
+    use std::{sync::mpsc, thread, time::Duration};
+
     use super::*;
-    use crate::mem::arena::OffsetArena;
-    use crate::BytewiseComparator;
-    use std::sync::mpsc;
-    use std::thread;
-    use std::time::Duration;
+    use crate::{mem::arena::OffsetArena, BytewiseComparator};
 
     fn new_test_skl() -> InlineSkipList<BytewiseComparator, OffsetArena> {
         InlineSkipList::new(

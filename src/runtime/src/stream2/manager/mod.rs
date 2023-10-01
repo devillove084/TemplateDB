@@ -13,5 +13,5 @@
 // limitations under the License.
 
 pub mod context;
-pub mod stream_manager;
 pub mod scheduler;
+pub mod stream_manager;

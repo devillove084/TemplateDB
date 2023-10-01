@@ -15,16 +15,20 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use crate::cache::lru::LRUCache;
-use crate::cache::Cache;
-use crate::db::filename::{generate_filename, FileType};
-use crate::options::{Options, ReadOptions};
-use crate::sstable::block::BlockIterator;
-use crate::sstable::table::{new_table_iterator, Table, TableIterator};
-use crate::storage::Storage;
-use crate::util::comparator::Comparator;
-use crate::Result;
 use std::sync::Arc;
+
+use crate::{
+    cache::{lru::LRUCache, Cache},
+    db::filename::{generate_filename, FileType},
+    options::{Options, ReadOptions},
+    sstable::{
+        block::BlockIterator,
+        table::{new_table_iterator, Table, TableIterator},
+    },
+    storage::Storage,
+    util::comparator::Comparator,
+    Result,
+};
 
 /// A `TableCache` is the cache for the sst files and the sstable in them
 pub struct TableCache<S: Storage + Clone, C: Comparator> {
@@ -46,7 +50,8 @@ impl<S: Storage + Clone, C: Comparator + 'static> TableCache<S, C> {
         }
     }
 
-    /// Try to find the sst file from cache. If not found, try to find the file from storage and insert it into the cache
+    /// Try to find the sst file from cache. If not found, try to find the file from storage and
+    /// insert it into the cache
     pub fn find_table<TC: Comparator>(
         &self,
         cmp: TC,

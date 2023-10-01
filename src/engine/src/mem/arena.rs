@@ -11,11 +11,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::cell::RefCell;
-use std::mem;
-use std::ptr;
-use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::{
+    cell::RefCell,
+    mem, ptr,
+    sync::{
+        atomic::{AtomicPtr, AtomicUsize, Ordering},
+        Arc,
+    },
+};
 
 const BLOCK_SIZE: usize = 4096;
 
@@ -120,7 +123,6 @@ impl OffsetArena {
 ///
 /// `BlockArena` must only be used with single thread writing since we use `RefCell` when
 /// allocating new blocks.
-///
 #[derive(Default)]
 pub struct BlockArena {
     ptr: AtomicPtr<u8>,
@@ -199,10 +201,11 @@ impl Arena for BlockArena {
 
 #[cfg(test)]
 mod tests {
-    use crate::mem::arena::{Arena, BlockArena, BLOCK_SIZE};
+    use std::{ptr, sync::atomic::Ordering};
+
     use rand::Rng;
-    use std::ptr;
-    use std::sync::atomic::Ordering;
+
+    use crate::mem::arena::{Arena, BlockArena, BLOCK_SIZE};
 
     #[test]
     fn test_new_arena() {

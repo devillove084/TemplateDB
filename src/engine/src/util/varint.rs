@@ -100,7 +100,6 @@ macro_rules! impl_varint {
             ///  n == 0:buf too small
             ///  n  < 0: value larger than 64 bits (overflow)
             ///          and -n is the number of bytes read
-            ///
             pub fn common_read(src: &[u8]) -> ($uint, isize) {
                 let mut n: $uint = 0;
                 let mut shift: u32 = 0;

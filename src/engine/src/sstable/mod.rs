@@ -38,26 +38,24 @@
 ///     +--------------+--------------+--------------+--------------+-----------------+-------------+--------+
 ///
 ///     Each block followed by a 5-bytes trailer contains compression type and checksum.
-///
 /// ```
 ///
 /// ## Common Table block trailer:
 ///
 /// ```text
-///
+/// 
 ///     +---------------------------+-------------------+
 ///     | compression type (1-byte) | checksum (4-byte) |
 ///     +---------------------------+-------------------+
 ///
 ///     The checksum is a CRC-32 computed using Castagnoli's polynomial. Compression
 ///     type also included in the checksum.
-///
 /// ```
 ///
 /// ## Table footer:
 ///
 /// ```text
-///
+/// 
 ///       +------------------- 40-bytes -------------------+
 ///      /                                                  \
 ///     +------------------------+--------------------+------+-----------------+
@@ -65,7 +63,6 @@
 ///     +------------------------+--------------------+------+-----------------+
 ///
 ///     The magic are first 64-bit of SHA-1 sum of "http://code.google.com/p/leveldb/".
-///
 /// ```
 ///
 /// NOTE: All fixed-length integer are little-endian.
@@ -86,7 +83,6 @@
 ///     +---------------+---------------+---------------+---------------+------------------+----------------+
 ///     | block entry 1 | block entry 2 |      ...      | block entry n | restarts trailer | common trailer |
 ///     +---------------+---------------+---------------+---------------+------------------+----------------+
-///
 /// ```
 /// Key/value entry:
 ///
@@ -120,19 +116,17 @@
 ///     +------------+-----------+---+----+
 ///      \                      /     \
 ///       +-- restart points --+       + restart points length
-///
 /// ```
 ///
 /// # Block restarts trailer
 ///
 /// ```text
-///
+/// 
 ///       +-- 4-bytes --+
 ///      /               \
 ///     +-----------------+-----------------+-----------------+------------------------------+
 ///     | restart point 1 |       ....      | restart point n | restart points len (4-bytes) |
 ///     +-----------------+-----------------+-----------------+------------------------------+
-///
 /// ```
 ///
 /// NOTE: All fixed-length integer are little-endian.
@@ -145,25 +139,23 @@
 /// Filter block data structure:
 ///
 /// ```text
-///
+/// 
 ///       + offset 1      + offset 2      + offset n      + trailer offset
 ///      /               /               /               /
 ///     +---------------+---------------+---------------+---------+
 ///     | filter data 1 |      ...      | filter data n | trailer |
 ///     +---------------+---------------+---------------+---------+
-///
 /// ```
 ///
 /// Filter block trailer:
 ///
 /// ```text
-///
+/// 
 ///       +- 4-bytes -+
 ///      /             \
 ///     +---------------+---------------+---------------+-------------------------------+------------------+
 ///     | data 1 offset |      ....     | data n offset | data-offsets length (4-bytes) | base Lg (1-byte) |
 ///     +---------------+---------------+---------------+-------------------------------+------------------+
-///
 /// ```
 ///
 /// NOTE: The filter block is not compressed
@@ -171,34 +163,34 @@
 /// # Index block
 ///
 /// Index block consist of one or more block handle data and a common block trailer.
-/// The 'separator key' is the key just bigger than the last key in the data block which the 'block handle' pointed to
+/// The 'separator key' is the key just bigger than the last key in the data block which the 'block
+/// handle' pointed to
 ///
 /// ```text
-///
+/// 
 ///     +---------------+--------------+
 ///     |      key      |    value     |
 ///     +---------------+--------------+
 ///     | separator key | block handle |---- a block handle points a data block starting offset and the its size
 ///     | ...           | ...          |
 ///     +---------------+--------------+
-///
 /// ```
 ///
 /// NOTE: All fixed-length integer are little-endian.
 ///
 /// # Meta block
 ///
-/// This meta block contains a bunch of stats. The key is the name of the statistic. The value contains the statistic.
-/// For the current implementation, the meta block only contains the filter meta data:
+/// This meta block contains a bunch of stats. The key is the name of the statistic. The value
+/// contains the statistic. For the current implementation, the meta block only contains the filter
+/// meta data:
 ///
 /// ```text
-///
+/// 
 ///     +-------------+---------------------+
 ///     |     key     |        value        |
 ///     +-------------+---------------------+
 ///     | filter name | filter block handle |
 ///     +-------------+---------------------+
-///
 /// ```
 ///
 /// NOTE: All fixed-length integer are little-endian.
@@ -206,9 +198,13 @@ pub mod block;
 mod filter_block;
 pub mod table;
 
-use crate::util::coding::{decode_fixed_64, put_fixed_64};
-use crate::util::varint::{VarintU64, MAX_VARINT_LEN_U64};
-use crate::{Error, Result};
+use crate::{
+    util::{
+        coding::{decode_fixed_64, put_fixed_64},
+        varint::{VarintU64, MAX_VARINT_LEN_U64},
+    },
+    Error, Result,
+};
 
 const TABLE_MAGIC_NUMBER: u64 = 0xdb4775248b80fb57;
 
@@ -303,7 +299,6 @@ impl Footer {
     /// # Error
     ///
     /// Returns `Status::Corruption` when decoding meta index or index handle fails
-    ///
     pub fn decode_from(src: &[u8]) -> Result<(Self, usize)> {
         let magic = decode_fixed_64(&src[FOOTER_ENCODED_LENGTH - 8..]);
         if magic != TABLE_MAGIC_NUMBER {
@@ -371,27 +366,32 @@ mod test_footer {
 
 #[cfg(test)]
 mod tests {
-    use crate::db::format::{
-        InternalKey, InternalKeyComparator, ParsedInternalKey, ValueType, MAX_KEY_SEQUENCE,
-        VALUE_TYPE_FOR_SEEK,
+    use std::{cell::Cell, cmp::Ordering, sync::Arc};
+
+    use rand::{prelude::ThreadRng, Rng};
+
+    use crate::{
+        db::{
+            format::{
+                InternalKey, InternalKeyComparator, ParsedInternalKey, ValueType, MAX_KEY_SEQUENCE,
+                VALUE_TYPE_FOR_SEEK,
+            },
+            WickDB, WickDBIterator, DB,
+        },
+        iterator::Iterator,
+        mem::{MemTable, MemTableIterator},
+        options::{Options, ReadOptions},
+        sstable::{block::*, table::*},
+        storage::{
+            mem::{FileNode, MemStorage},
+            File, Storage,
+        },
+        util::{
+            collection::HashSet,
+            comparator::{BytewiseComparator, Comparator},
+        },
+        Error, Result, WriteBatch, WriteOptions,
     };
-    use crate::db::{WickDB, WickDBIterator, DB};
-    use crate::iterator::Iterator;
-    use crate::mem::{MemTable, MemTableIterator};
-    use crate::options::{Options, ReadOptions};
-    use crate::sstable::block::*;
-    use crate::sstable::table::*;
-    use crate::storage::mem::{FileNode, MemStorage};
-    use crate::storage::{File, Storage};
-    use crate::util::collection::HashSet;
-    use crate::util::comparator::{BytewiseComparator, Comparator};
-    use crate::{Error, Result};
-    use crate::{WriteBatch, WriteOptions};
-    use rand::prelude::ThreadRng;
-    use rand::Rng;
-    use std::cell::Cell;
-    use std::cmp::Ordering;
-    use std::sync::Arc;
 
     // Return the reverse of given key
     fn reverse(key: &[u8]) -> Vec<u8> {

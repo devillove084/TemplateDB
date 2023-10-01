@@ -15,15 +15,19 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-use crate::cache::Cache;
-use crate::util::collection::HashMap;
-use std::fmt::Debug;
-use std::hash::{Hash, Hasher};
-use std::mem;
-use std::mem::MaybeUninit;
-use std::ptr;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex};
+use std::{
+    fmt::Debug,
+    hash::{Hash, Hasher},
+    mem,
+    mem::MaybeUninit,
+    ptr,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc, Mutex,
+    },
+};
+
+use crate::{cache::Cache, util::collection::HashMap};
 
 #[derive(Copy, Clone)]
 struct Key<K> {
@@ -252,9 +256,9 @@ unsafe impl<K: Sync, V: Sync + Clone> Sync for LRUCache<K, V> {}
 
 #[cfg(test)]
 mod tests {
+    use std::{cell::RefCell, rc::Rc};
+
     use super::*;
-    use std::cell::RefCell;
-    use std::rc::Rc;
 
     const CACHE_SIZE: usize = 100;
 

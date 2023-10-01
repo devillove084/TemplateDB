@@ -11,16 +11,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::db::format::ValueType;
-use crate::db::format::{extract_user_key, InternalKey, ParsedInternalKey, VALUE_TYPE_FOR_SEEK};
-use crate::db::DBImpl;
-use crate::iterator::{Iterator, KMergeCore};
-use crate::storage::Storage;
-use crate::util::comparator::Comparator;
-use crate::{Error, Result};
+use std::{cmp::Ordering, sync::Arc};
+
 use rand::Rng;
-use std::cmp::Ordering;
-use std::sync::Arc;
+
+use crate::{
+    db::{
+        format::{
+            extract_user_key, InternalKey, ParsedInternalKey, ValueType, VALUE_TYPE_FOR_SEEK,
+        },
+        DBImpl,
+    },
+    iterator::{Iterator, KMergeCore},
+    storage::Storage,
+    util::comparator::Comparator,
+    Error, Result,
+};
 
 #[derive(Eq, PartialEq)]
 enum Direction {

@@ -15,26 +15,30 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use crate::db::format::{
-    InternalKey, InternalKeyComparator, LookupKey, ParsedInternalKey, ValueType, MAX_KEY_SEQUENCE,
-    VALUE_TYPE_FOR_SEEK,
+use std::{
+    cell::{Cell, RefCell},
+    cmp::Ordering as CmpOrdering,
+    fmt, mem,
+    rc::Rc,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc, RwLock,
+    },
 };
-use crate::iterator::Iterator;
-use crate::options::{Options, ReadOptions};
-use crate::storage::Storage;
-use crate::table_cache::TableCache;
-use crate::util::coding::encode_fixed_64;
-use crate::util::comparator::Comparator;
-use crate::version::version_edit::FileMetaData;
-use crate::version::version_set::total_file_size;
-use crate::{Error, Result};
-use std::cell::{Cell, RefCell};
-use std::cmp::Ordering as CmpOrdering;
-use std::fmt;
-use std::mem;
-use std::rc::Rc;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, RwLock};
+
+use crate::{
+    db::format::{
+        InternalKey, InternalKeyComparator, LookupKey, ParsedInternalKey, ValueType,
+        MAX_KEY_SEQUENCE, VALUE_TYPE_FOR_SEEK,
+    },
+    iterator::Iterator,
+    options::{Options, ReadOptions},
+    storage::Storage,
+    table_cache::TableCache,
+    util::{coding::encode_fixed_64, comparator::Comparator},
+    version::{version_edit::FileMetaData, version_set::total_file_size},
+    Error, Result,
+};
 
 pub mod version_edit;
 pub mod version_set;
@@ -160,8 +164,9 @@ impl<C: Comparator + 'static> Version<C> {
                 } else {
                     let target = &files[index];
                     // If what we found is the first file, it could still not includes the target
-                    // so let's check the smallest ukey. We use `ukey` because of the given `LookupKey`
-                    // may contains the same `ukey` as the `smallest` but a bigger `seq` number than it, which is smaller
+                    // so let's check the smallest ukey. We use `ukey` because of the given
+                    // `LookupKey` may contains the same `ukey` as the
+                    // `smallest` but a bigger `seq` number than it, which is smaller
                     // in a comparison by `icmp`.
                     if ucmp.compare(ukey, target.smallest.user_key()) != CmpOrdering::Less
                         && level + 1 < self.options.max_levels as usize
@@ -386,7 +391,8 @@ impl<C: Comparator + 'static> Version<C> {
                     // we reach the end but not found a file matches
                 } else {
                     let target = files[index].clone();
-                    // if what we found is just the first file, it could still not includes the target
+                    // if what we found is just the first file, it could still not includes the
+                    // target
                     if ucmp.compare(user_key, target.smallest.data()) != CmpOrdering::Less
                         && !func(level, target)
                     {
@@ -487,8 +493,8 @@ impl<C: Comparator + 'static> Version<C> {
     }
 
     // Return all files in `level` that overlap [`begin`, `end`]
-    // Notice that both `begin` and `end` is `InternalKey` but we just compare the user key directly.
-    // Since files in level0 probably overlaps with each other, the final output
+    // Notice that both `begin` and `end` is `InternalKey` but we just compare the user key
+    // directly. Since files in level0 probably overlaps with each other, the final output
     // total range could be larger than [begin, end]
     //
     // A `None` begin is considered as -infinite
@@ -730,8 +736,10 @@ impl<C: Comparator + 'static> Iterator for LevelFileNumIterator<C> {
 #[cfg(test)]
 mod find_file_tests {
     use super::*;
-    use crate::db::format::{InternalKey, InternalKeyComparator, ValueType};
-    use crate::util::comparator::BytewiseComparator;
+    use crate::{
+        db::format::{InternalKey, InternalKeyComparator, ValueType},
+        util::comparator::BytewiseComparator,
+    };
 
     #[derive(Default)]
     struct FindFileTest {

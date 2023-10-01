@@ -15,15 +15,21 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE SysFile. See the AUTHORS SysFile for names of contributors.
 
-use crate::storage::{File, Storage};
-use crate::{Error, Result};
-use fs2::FileExt;
-use std::fs::{
-    create_dir_all, read_dir, remove_dir, remove_dir_all, remove_file, rename, File as SysFile,
-    OpenOptions,
+use std::{
+    fs::{
+        create_dir_all, read_dir, remove_dir, remove_dir_all, remove_file, rename, File as SysFile,
+        OpenOptions,
+    },
+    io::{BufReader, Read, Seek, SeekFrom, Write},
+    path::{Path, PathBuf},
 };
-use std::io::{BufReader, Read, Seek, SeekFrom, Write};
-use std::path::{Path, PathBuf};
+
+use fs2::FileExt;
+
+use crate::{
+    storage::{File, Storage},
+    Error, Result,
+};
 
 #[derive(Clone, Default)]
 pub struct FileStorage;
@@ -154,9 +160,9 @@ impl File for SysFile {
 }
 #[cfg(test)]
 mod tests {
+    use std::{fs::remove_file, io::Write};
+
     use super::*;
-    use std::fs::remove_file;
-    use std::io::Write;
 
     #[test]
     fn test_read_exact_at() {

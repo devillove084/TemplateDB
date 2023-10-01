@@ -15,12 +15,19 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-use crate::record::reader::ReaderError::{BadRecord, EOF};
-use crate::record::{RecordType, BLOCK_SIZE, HEADER_SIZE};
-use crate::storage::File;
-use crate::util::coding::decode_fixed_32;
-use crate::util::crc32::{hash, unmask};
 use std::io::SeekFrom;
+
+use crate::{
+    record::{
+        reader::ReaderError::{BadRecord, EOF},
+        RecordType, BLOCK_SIZE, HEADER_SIZE,
+    },
+    storage::File,
+    util::{
+        coding::decode_fixed_32,
+        crc32::{hash, unmask},
+    },
+};
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug)]
@@ -54,7 +61,8 @@ pub trait Reporter {
 /// A `Reader` is used for reading records from log file.
 /// The `Reader` always starts reading the records at `initial_offset` of the `file`.
 pub struct Reader<F: File> {
-    // NOTICE: we probably mutate the underlying file in the FilePtr by calling `seek()` and this is not thread safe
+    // NOTICE: we probably mutate the underlying file in the FilePtr by calling `seek()` and this
+    // is not thread safe
     file: F,
     reporter: Option<Box<dyn Reporter>>,
     // We should check sum for the record or not
@@ -188,13 +196,15 @@ impl<F: File> Reader<F> {
                             // continue reading until find a new first or full record
                             } else {
                                 buf.extend(record.data);
-                                // notice that we update the last_record_offset after we get the Last part but not the First
+                                // notice that we update the last_record_offset after we get the
+                                // Last part but not the First
                                 self.last_record_offset = prospective_record_offset;
                                 return true;
                             }
                         }
                         RecordType::Zero => {
-                            /* zero type record is considered as irrelevant and should never be read out*/
+                            /* zero type record is considered as irrelevant and should never be
+                             * read out */
                         }
                     }
                 }
@@ -202,9 +212,10 @@ impl<F: File> Reader<F> {
                     match e {
                         ReaderError::EOF => {
                             if in_fragmented_record {
-                                // This can be caused by the writer dying immediately after writing a
-                                // physical record but before completing the next
-                                // one; don't treat it as a corruption,
+                                // This can be caused by the writer dying immediately after writing
+                                // a physical record but before
+                                // completing the next one; don't
+                                // treat it as a corruption,
                                 // just ignore the entire logical record.
                                 buf.clear();
                             }

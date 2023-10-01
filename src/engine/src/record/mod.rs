@@ -15,7 +15,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-/// The log file contents are a sequence of 32KB blocks. The only exception is that the tail of the file may contain a partial block.
+/// The log file contents are a sequence of 32KB blocks. The only exception is that the tail of the
+/// file may contain a partial block.
 pub mod reader;
 pub mod writer;
 
@@ -48,28 +49,32 @@ impl From<usize> for RecordType {
 /// The format of a record header :
 ///
 /// ```text
-///
+/// 
 /// | ----- 4bytes ----- | -- 2bytes -- | - 1byte - |
 ///      CRC checksum         length     record type
-///
 /// ```
 pub const HEADER_SIZE: usize = 7;
 
 #[cfg(test)]
 mod tests {
-    use crate::record::reader::{Reader, Reporter};
-    use crate::record::writer::Writer;
-    use crate::record::RecordType::{First, Last, Middle};
-    use crate::record::{BLOCK_SIZE, HEADER_SIZE};
-    use crate::storage::File;
-    use crate::util::coding::encode_fixed_32;
-    use crate::util::crc32::{hash, mask};
-    use crate::{Error, Result};
+    use std::{cell::RefCell, cmp::min, io::SeekFrom, rc::Rc};
+
     use rand::Rng;
-    use std::cell::RefCell;
-    use std::cmp::min;
-    use std::io::SeekFrom;
-    use std::rc::Rc;
+
+    use crate::{
+        record::{
+            reader::{Reader, Reporter},
+            writer::Writer,
+            RecordType::{First, Last, Middle},
+            BLOCK_SIZE, HEADER_SIZE,
+        },
+        storage::File,
+        util::{
+            coding::encode_fixed_32,
+            crc32::{hash, mask},
+        },
+        Error, Result,
+    };
 
     // Construct a string of the specified length made out of the supplied
     // partial string.

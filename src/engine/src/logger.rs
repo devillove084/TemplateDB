@@ -11,13 +11,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::db::filename::{generate_filename, FileType};
-use crate::storage::{File, Storage};
+use std::sync::Mutex;
 
 use log::{LevelFilter, Log, Metadata, Record};
 use slog::{o, Drain, Level};
 
-use std::sync::Mutex;
+use crate::{
+    db::filename::{generate_filename, FileType},
+    storage::{File, Storage},
+};
 
 /// A `slog` based logger which can be used with `log` crate
 ///
@@ -156,11 +158,10 @@ impl<F: File> Drain for FileBasedDrain<F> {
 #[cfg(test)]
 mod tests {
 
+    use std::{thread, time::Duration};
+
     use super::*;
     use crate::storage::mem::MemStorage;
-
-    use std::thread;
-    use std::time::Duration;
 
     #[test]
     fn test_default_logger() {
