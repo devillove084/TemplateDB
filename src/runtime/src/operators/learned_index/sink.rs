@@ -8,6 +8,7 @@ pub trait GetSource {
     async fn read_from_buffer<A: Allocator>(&self, buffer: Buffer<A>) -> OperatorOnResult<()>;
 }
 
+#[allow(dead_code)]
 #[derive(Default)]
 pub struct Buffer<A: Allocator> {
     allocator: A,
@@ -22,10 +23,12 @@ pub struct Buffer<A: Allocator> {
 //     }
 // }
 
+#[allow(dead_code)]
 pub struct SinkSource<S: GetSource> {
     source: S,
 }
 
+#[allow(dead_code)]
 pub struct SinkOperator<S: GetSource, A: Allocator> {
     sink_source: SinkSource<S>,
     buffer: Buffer<A>,

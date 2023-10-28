@@ -16,9 +16,11 @@
 // found in the LICENSE file.
 
 pub mod arena;
-pub mod bwtree;
+// pub mod bwtree;
 pub mod inlineskiplist;
 pub mod skiplist;
+pub mod handler;
+pub mod memtable_actor;
 
 use std::cmp::Ordering;
 
@@ -74,6 +76,7 @@ impl<C: Comparator> Comparator for KeyComparator<C> {
 }
 
 /// In-memory write buffer
+#[derive(Clone)]
 pub struct MemTable<C: Comparator> {
     cmp: KeyComparator<C>,
     table: InlineSkipList<KeyComparator<C>, OffsetArena>,

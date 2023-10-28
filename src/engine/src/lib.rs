@@ -10,6 +10,7 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#![feature(async_closure)]
 
 #![allow(clippy::rc_buffer)]
 #[macro_use]
@@ -48,6 +49,10 @@ pub mod storage_impl;
 mod table_cache;
 mod version;
 
+pub mod memtable_service {
+    tonic::include_proto!("memtable");
+}
+
 pub use batch::WriteBatch;
 pub use cache::Cache;
 pub use compaction::ManualCompaction;
@@ -63,3 +68,4 @@ pub use util::{
     comparator::{BytewiseComparator, Comparator},
     varint::*,
 };
+pub use memtable_service::*;

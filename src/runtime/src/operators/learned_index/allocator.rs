@@ -9,6 +9,7 @@ impl Actor for AllocatorActor {
     type Context = Context<AllocatorActor>;
 }
 
+#[allow(unused_variables)]
 unsafe impl Allocator for AllocatorActor {
     fn allocate(
         &self,

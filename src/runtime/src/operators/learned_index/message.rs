@@ -1,6 +1,6 @@
-use actix::{dev::MessageResponse, Actor, Message, MessageResult};
+use actix::Message;
 
-use super::{error::OperatorError, opt::Operation, pointer::Pointer, state::ActorID};
+use super::{opt::Operation, pointer::Pointer};
 
 #[derive(Debug, Message)]
 #[rtype(result = "DataMessage")]
@@ -13,6 +13,7 @@ pub struct ControlMessage {
 //     type Result = DataMessage;
 // }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct DataMessage {
     data: String,
@@ -55,7 +56,7 @@ impl ControlMessage {
 }
 
 impl DataMessage {
-    pub fn new(value: String) -> Self {
+    pub fn new(_value: String) -> Self {
         DataMessage {
             size: 0,
             is_continous: false,

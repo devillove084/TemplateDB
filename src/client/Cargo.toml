@@ -17,3 +17,8 @@ tempfile = "3.3.0"
 derivative = "2.2.0"
 tracing = "0.1.36"
 libc = "0.2.132"
+clap = { version = "4.4.6", features = ["derive"] }
+
+[[bin]]
+name = "templatekv"
+path = "src/cmd/templatekv.rs"

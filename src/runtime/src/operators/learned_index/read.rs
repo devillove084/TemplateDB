@@ -1,16 +1,15 @@
 use actix::{
-    dev::MessageResponse, Actor, ActorState, Context, Handler, Message, MessageResult, Recipient,
+    Actor, ActorState, Context, Handler, MessageResult,
 };
 
 use super::{
     allocator::AllocatorActor,
-    error::OperatorError,
     message::{ControlMessage, DataMessage},
     opt::Operation,
     sink::Buffer,
-    state::ActorID,
 };
 
+#[allow(dead_code)]
 pub struct ReadActor {
     state: ActorState,
     buffer: Buffer<AllocatorActor>,
@@ -20,10 +19,11 @@ impl Actor for ReadActor {
     type Context = Context<ReadActor>;
 }
 
+#[allow(dead_code)]
 impl Handler<ControlMessage> for ReadActor {
     type Result = MessageResult<ControlMessage>;
 
-    fn handle(&mut self, msg: ControlMessage, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: ControlMessage, _ctx: &mut Self::Context) -> Self::Result {
         let opt = msg.get_operation();
         if opt == Operation::Read {
             return MessageResult(DataMessage::new(msg.read_from_pointer()));
@@ -32,9 +32,10 @@ impl Handler<ControlMessage> for ReadActor {
     }
 }
 
+#[allow(dead_code)]
 #[cfg(test)]
 mod test {
-    use actix::{Actor, AsyncContext, Context, System};
+    use actix::{Actor, System};
 
     use super::ReadActor;
     use crate::operators::learned_index::{

@@ -231,13 +231,13 @@ impl<I: Iterator, F: DerivedIterFactory> Iterator for ConcatenateIterator<I, F> 
 
     fn next(&mut self) {
         self.valid_or_panic();
-        self.derived.as_mut().map_or((), |di| di.next());
+        let _ = self.derived.as_mut().map_or((), |di| di.next());
         self.skip_forward();
     }
 
     fn prev(&mut self) {
         self.valid_or_panic();
-        self.derived.as_mut().map_or((), |di| di.prev());
+        let _ = self.derived.as_mut().map_or((), |di| di.prev());
         self.skip_backward();
     }
 
