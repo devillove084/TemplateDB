@@ -1,9 +1,17 @@
 [workspace]
 members = [
     "src/client", 
-    "src/engine", 
+    "src/storage_engine", 
     "src/runtime",
     "src/util/pro-macro",
+    "workspace-hack",
 ]
 
 resolver = "2"
+
+[workspace.dependencies]
+workspace-hack = "0.1.0"
+
+# make backtrace + color-eyre faster on debug builds
+[profile.dev.package.backtrace]
+opt-level = 3

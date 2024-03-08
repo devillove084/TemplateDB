@@ -1,0 +1,27 @@
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+name: cargo hakari
+
+jobs:
+  workspace-hack-check:
+    name: Check workspace-hack
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install cargo-hakari
+        uses: taiki-e/install-action@715c07ff046a1badca82fa42e5708f37e405a997 # v2
+        with:
+          tool: cargo-hakari
+      - name: Check workspace-hack Cargo.toml is up-to-date
+        run: cargo hakari generate --diff
+      - name: Check all crates depend on workspace-hack
+        run: cargo hakari manage-deps --dry-run

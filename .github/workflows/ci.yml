@@ -1,92 +1,72 @@
-# Copyright 2022 The template Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-name: CI
-
-env:
-  RUSTUP_MAX_RETRIES: 10
-  CARGO_NET_RETRY: 10
-  CARGO_INCREMENTAL: 0        # reduce an extra dependency-tracking overhead added by incremental
-  CARGO_PROFILE_DEV_DEBUG: 0  # disable debug info for reducing binary size
-  CI: 1
-
 on:
   push:
+    branches: [main]
   pull_request:
-    paths-ignore:
-      - "docs/**"
-      - "**.md"
-      - "scripts/**"
-      - "conf/**"
+    branches:
+      - main
 
-concurrency:
-  group: ${{ github.ref }}-${{ github.workflow }}
-  cancel-in-progress: true
+name: CI
+env:
+  RUSTFLAGS: -D warnings
+  CARGO_TERM_COLOR: always
 
 jobs:
-  license:
-    name: Check license header
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: apache/skywalking-eyes/header@501a28d2fb4a9b962661987e50cf0219631b32ff
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          config: tools/ci/licenserc.yml
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2
+      - name: Lint (clippy)
+        run: cargo clippy --all-features --all-targets
+      - name: Lint (rustfmt)
+        run: cargo xfmt --check
 
-  test:
-    name: Run tests
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
+  build:
+    name: Build and test
     runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          # macos-14 for M1 runners
+          - macos-14
+        rust-version: [nightly]
+      fail-fast: false
     steps:
-    - uses: abelfodil/protoc-action@v1
-      with:
-        protoc-version: '3.19.4'
-        enable-dart: false
-    - uses: actions/checkout@v2
-    - name: Install cargo-nextest
-      uses: baptiste0928/cargo-install@v1
-      with:
-        crate: cargo-nextest
-    - name: Checkout repository
-      uses: actions/checkout@v2
-    - uses: Swatinem/rust-cache@v1
-    - name: Cargo build
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-    - name: Check diff
-      run: git diff --exit-code
-    - name: Check clippy
-      uses: actions-rs/cargo@v1
-      with:
-        command: clippy
-        args: --workspace --tests --all-features -- -D warnings
-    - name: Check format
-      uses: actions-rs/cargo@v1
-      with:
-        command: fmt
-        args: --all -- --check
-    - name: Cargo test
-      uses: actions-rs/cargo@v1
-      with:
-        command: nextest
-        args: run
-    - name: Run miri tests
-      uses: actions-rs/cargo@v1
-      with:
-        command: miri
-        args: nextest run
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust-version }}
+      - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2
+        with:
+          # Matrix instances (other than OS) need to be added to this explicitly
+          key: ${{ matrix.rust-version }}
+      - name: Install latest nextest release
+        uses: taiki-e/install-action@nextest
+      - name: Build quick-junit
+        run: cargo build --package quick-junit
+      - name: Build nextest-metadata
+        run: cargo build --package nextest-metadata
+      - name: Build cargo-nextest without self-update
+        run: cargo build --package cargo-nextest --no-default-features --features default-no-update
+      - name: Build cargo-nextest
+        run: cargo build --package cargo-nextest
+      - name: Build all targets
+        run: cargo build --all-targets
+      - name: Build all targets with all features
+        run: cargo build --all-targets --all-features
+      - name: Doctests
+        run: cargo test --doc
+      - name: Test with locally built nextest
+        run: cargo local-nt run --profile ci
+      - name: Test with latest nextest release
+        run: cargo nextest run --profile ci
+      - name: Test without double-spawning
+        if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'macos-14' }}
+        env:
+          NEXTEST_DOUBLE_SPAWN: 0
+        run: cargo local-nt run --profile ci

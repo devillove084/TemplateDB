@@ -1,0 +1,39 @@
+syntax = "proto3";
+package memtable;
+
+service MemtableService {
+	rpc ListKV (ListKVRequest) returns (ListKVResponse);
+	rpc UpdateKV (UpdateKVRequest) returns (UpdateKVResponse);
+}
+
+message ListKVRequest {
+  string tenant = 1;
+  uint64 seq = 2;
+  string key = 3;
+}
+
+message ListKVResponse {
+  string value = 1;
+}
+
+enum ValueType {
+  NormalValue = 0;
+  Deletion = 1;
+  Unknown = 2;
+}
+
+message UpdateKVRequest {
+  string tenant = 1;
+  uint64 seq = 2;
+  ValueType value_type = 3;
+  string key = 4;
+  optional string value = 5;
+}
+
+message UpdateKVResponse {
+	string tenant = 1;
+  uint64 seq = 2;
+  ValueType value_type = 3;
+	bool ack = 4;
+}
+
