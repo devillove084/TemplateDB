@@ -1116,31 +1116,31 @@ mod tests {
         ]
     }
 
-    fn random_key(length: usize) -> Vec<u8> {
-        let chars = vec![
-            '0', '1', 'a', 'b', 'c', 'd', 'e', '\u{00fd}', '\u{00fe}', '\u{00ff}',
-        ];
-        let mut rnd = rand::thread_rng();
-        let mut result = vec![];
-        for _ in 0..length {
-            let i = rnd.gen_range(0, chars.len());
-            let v = chars.get(i).unwrap();
-            let mut buf = vec![0; v.len_utf8()];
-            v.encode_utf8(&mut buf);
-            result.append(&mut buf);
-        }
-        result
-    }
+    // fn random_key(length: usize) -> Vec<u8> {
+    //     let chars = vec![
+    //         '0', '1', 'a', 'b', 'c', 'd', 'e', '\u{00fd}', '\u{00fe}', '\u{00ff}',
+    //     ];
+    //     let mut rnd = rand::thread_rng();
+    //     let mut result = vec![];
+    //     for _ in 0..length {
+    //         let i = rnd.gen_range(0, chars.len());
+    //         let v = chars.get(i).unwrap();
+    //         let mut buf = vec![0; v.len_utf8()];
+    //         v.encode_utf8(&mut buf);
+    //         result.append(&mut buf);
+    //     }
+    //     result
+    // }
 
-    fn random_value(length: usize) -> Vec<u8> {
-        let mut result = vec![0u8; length];
-        let mut rnd = rand::thread_rng();
-        for i in 0..length {
-            let v = rnd.gen_range(0, 96);
-            result[i] = v as u8;
-        }
-        result
-    }
+    // fn random_value(length: usize) -> Vec<u8> {
+    //     let mut result = vec![0u8; length];
+    //     let mut rnd = rand::thread_rng();
+    //     for i in 0..length {
+    //         let v = rnd.gen_range(0, 96);
+    //         result[i] = v as u8;
+    //     }
+    //     result
+    // }
 
     macro_rules! test_harness {
         ($kv:expr) => {
