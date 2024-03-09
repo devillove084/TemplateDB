@@ -1,10 +1,10 @@
 [workspace]
-members = [
-    "src/client", 
+members = [ 
     "src/storage_engine", 
     "src/runtime",
     "src/util/pro-macro",
     "workspace-hack",
+    "src/query_engine",
 ]
 
 resolver = "2"

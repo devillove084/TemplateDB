@@ -15,8 +15,10 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@nightly
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2
@@ -45,6 +47,8 @@ jobs:
         with:
           # Matrix instances (other than OS) need to be added to this explicitly
           key: ${{ matrix.rust-version }}
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
       - name: Install latest nextest release
         uses: taiki-e/install-action@nextest
       - name: Build quick-junit

@@ -19,6 +19,8 @@ jobs:
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
         # Nightly Rust is used for cargo llvm-cov --doc below.
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
       - uses: dtolnay/rust-toolchain@nightly
         with:
           components: llvm-tools-preview

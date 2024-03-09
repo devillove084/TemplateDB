@@ -16,7 +16,9 @@ jobs:
       RUSTFLAGS: -D warnings
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+      - uses: dtolnay/rust-toolchain@nightly
       - name: Install cargo-hakari
         uses: taiki-e/install-action@715c07ff046a1badca82fa42e5708f37e405a997 # v2
         with:
