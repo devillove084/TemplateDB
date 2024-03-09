@@ -25,7 +25,7 @@ jobs:
       - name: Lint (clippy)
         run: cargo clippy --all-features --all-targets
       - name: Lint (rustfmt)
-        run: cargo xfmt --check
+        run: cargo fmt --check
 
   build:
     name: Build and test
