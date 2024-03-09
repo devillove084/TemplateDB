@@ -1,6 +1,6 @@
 use crc32fast::Hasher;
 
-const MASK_DELTA: u32 = 0xa282ead8;
+const MASK_DELTA: u32 = 0xa282_ead8;
 
 /// Returns a `u32` crc checksum for give data
 pub fn hash(data: &[u8]) -> u32 {

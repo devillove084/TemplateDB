@@ -18,7 +18,7 @@ use crate::{
     cache::table_cache::TableCache,
     compaction::compact::{Compaction, CompactionStats, ManualCompaction},
     db_trait::DB,
-    error::{TemplateResult, TemplateKVError},
+    error::{TemplateKVError, TemplateResult},
     iterator::{
         db_iter::{DBIterator, DBIteratorCore},
         kmerge_iter::KMergeIter,
@@ -128,19 +128,16 @@ impl<S: Storage + Clone, C: Comparator + 'static> DB for TemplateDB<S, C> {
 }
 
 impl<S: Storage + Clone, C: Comparator + 'static> TemplateDB<S, C> {
-    /// Create a new TemplateDB
+    /// Create a new `TemplateDB`
     pub fn open_db<P: AsRef<Path>>(
         mut options: Options<C>,
         db_path: P,
         storage: S,
     ) -> TemplateResult<Self> {
-        let db_path = match db_path.as_ref().to_owned().into_os_string().into_string() {
-            Ok(s) => s,
-            Err(_) => {
-                return Err(TemplateKVError::Customized(
-                    "Invalid db path. Expect to use Unicode db path.".to_owned(),
-                ))
-            }
+        let Ok(db_path) = db_path.as_ref().to_owned().into_os_string().into_string() else {
+            return Err(TemplateKVError::Customized(
+                "Invalid db path. Expect to use Unicode db path.".to_owned(),
+            ));
         };
         options.initialize(&db_path, &storage);
         debug!("Open db: '{:?}'", &db_path);
@@ -149,7 +146,7 @@ impl<S: Storage + Clone, C: Comparator + 'static> TemplateDB<S, C> {
         let mut versions = db.versions.lock().unwrap();
         if versions.record_writer.is_none() {
             let new_log_number = versions.inc_next_file_number();
-            let log_file = db.env.create(&generate_filename(
+            let log_file = db.env.create(generate_filename(
                 &db.db_path,
                 FileType::Log,
                 new_log_number,
@@ -195,7 +192,7 @@ impl<S: Storage + Clone, C: Comparator + 'static> TemplateDB<S, C> {
     }
 
     /// Returns true if the given snapshot is removed
-    pub fn release_snapshot(&self, s: Arc<Snapshot>) -> bool {
+    #[must_use] pub fn release_snapshot(&self, s: Arc<Snapshot>) -> bool {
         let mut vset = self.inner.versions.lock().unwrap();
         vset.snapshots.release(s)
     }
@@ -259,12 +256,12 @@ impl<S: Storage + Clone, C: Comparator + 'static> TemplateDB<S, C> {
                                 res = grouped.batch.insert_into(&*memtable);
                             }
                             match res {
-                                Ok(_) => {
+                                Ok(()) => {
                                     for signal in signals {
                                         if let Err(e) = signal.send(Ok(())) {
                                             error!(
                                                 "[process batch] Fail sending finshing signal to waiting batch: {}", e
-                                            )
+                                            );
                                         }
                                     }
                                 }
@@ -294,7 +291,7 @@ impl<S: Storage + Clone, C: Comparator + 'static> TemplateDB<S, C> {
                                 if let Err(e) = signal.send(Ok(())) {
                                     error!(
                                         "[process batch] Fail sending finishing signal to waiting batch: {}", e
-                                    )
+                                    );
                                 }
                             }
                         }
@@ -306,7 +303,7 @@ impl<S: Storage + Clone, C: Comparator + 'static> TemplateDB<S, C> {
                         )))) {
                             error!(
                                 "[process batch] fail to send finishing signal to waiting batch: {}", e
-                            )
+                            );
                         }
                     }
                 }
@@ -477,7 +474,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> DBImpl<S, C> {
         // search the memtable
         if let Some(result) = self.mem.read().unwrap().get(&lookup_key) {
             match result {
-                Ok(value) => return Ok(Some(value.to_vec())),
+                Ok(value) => return Ok(Some(value.clone())),
                 // mem.get only returns Err() when it get a Deletion of the key
                 Err(_) => return Ok(None),
             }
@@ -486,7 +483,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> DBImpl<S, C> {
         if let Some(im_mem) = self.im_mem.read().unwrap().as_ref() {
             if let Some(result) = im_mem.get(&lookup_key) {
                 match result {
-                    Ok(value) => return Ok(Some(value.to_vec())),
+                    Ok(value) => return Ok(Some(value.clone())),
                     Err(_) => return Ok(None),
                 }
             }
@@ -520,12 +517,12 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> DBImpl<S, C> {
         // Try acquire file lock
         let lock_file = self
             .env
-            .create(&generate_filename(&self.db_path, FileType::Lock, 0))?;
+            .create(generate_filename(&self.db_path, FileType::Lock, 0))?;
         lock_file.lock()?;
         self.db_lock = Some(lock_file);
         if !self
             .env
-            .exists(&generate_filename(&self.db_path, FileType::Current, 0))
+            .exists(generate_filename(&self.db_path, FileType::Current, 0))
         {
             if self.options.create_if_missing {
                 // Create new necessary files for DB
@@ -558,7 +555,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> DBImpl<S, C> {
             }
         } else if self.options.error_if_exists {
             return Err(TemplateKVError::InvalidArgument(
-                self.db_path.to_owned() + " exists (error_if_exists is true)",
+                self.db_path.clone() + " exists (error_if_exists is true)",
             ));
         }
         let mut versions = self.versions.lock().unwrap();
@@ -605,7 +602,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> DBImpl<S, C> {
                 &mut edit,
             )?;
             if max_sequence < last_seq {
-                max_sequence = last_seq
+                max_sequence = last_seq;
             }
 
             // The previous incarnation may not have written any MANIFEST
@@ -614,7 +611,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> DBImpl<S, C> {
             versions.mark_file_number_used(*log_number);
         }
         if versions.last_sequence() < max_sequence {
-            versions.set_last_sequence(max_sequence)
+            versions.set_last_sequence(max_sequence);
         }
 
         Ok((edit, should_save_manifest))
@@ -660,9 +657,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> DBImpl<S, C> {
         let mut need_compaction = false; // indicates whether the memtable needs to be compacted
         let mut inserted_size = 0;
         while reader.read_record(&mut record_buf) {
-            if let Err(e) = reporter.result() {
-                return Err(e);
-            }
+            reporter.result()?;
             if record_buf.len() < HEADER_SIZE {
                 return Err(TemplateKVError::Corruption(
                     "log record too small".to_owned(),
@@ -672,7 +667,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> DBImpl<S, C> {
                 mem = Some(MemTable::new(
                     self.options.write_buffer_size,
                     self.internal_comparator.clone(),
-                ))
+                ));
             }
             let mem_ref = mem.as_ref().unwrap();
             batch.set_contents(&mut record_buf);
@@ -680,19 +675,18 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> DBImpl<S, C> {
             if let Err(e) = batch.insert_into(mem_ref) {
                 if self.options.paranoid_checks {
                     return Err(e);
-                } else {
-                    info!("ignore errors when replaying log file : {:?}", e);
                 }
+                info!("ignore errors when replaying log file : {:?}", e);
             }
             inserted_size += batch.approximate_size();
             if last_seq > max_sequence {
-                max_sequence = last_seq
+                max_sequence = last_seq;
             }
             if mem_ref.approximate_memory_usage() > self.options.write_buffer_size {
                 need_compaction = true;
                 *save_manifest = true;
                 let mut iter = mem_ref.iter();
-                versions.write_level0_files(
+                versions.write_level_0_files(
                     &self.db_path,
                     &self.table_cache,
                     &mut iter,
@@ -726,7 +720,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> DBImpl<S, C> {
             debug!("Try to flush memtable into level 0 in recovering",);
             *save_manifest = true;
             let mut iter = m.iter();
-            versions.write_level0_files(
+            versions.write_level_0_files(
                 &self.db_path,
                 &self.table_cache,
                 &mut iter,
@@ -747,30 +741,29 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> DBImpl<S, C> {
         versions.lock_live_files();
         // ignore IO error on purpose
         let files = self.env.list(&self.db_path)?;
-        for file in files.iter() {
+        for file in &files {
             if let Some((file_type, number)) = parse_filename(file) {
                 let keep = match file_type {
                     FileType::Log => {
                         number >= versions.log_number() || number == versions.prev_log_number()
                     }
                     FileType::Manifest => number >= versions.manifest_number(),
-                    FileType::Table => versions.pending_outputs.contains(&number),
                     // Any temp files that are currently being written to must
                     // be recorded in pending_outputs
-                    FileType::Temp => versions.pending_outputs.contains(&number),
+                    FileType::Table | FileType::Temp => versions.pending_outputs.contains(&number),
                     _ => true,
                 };
                 if !keep {
                     if file_type == FileType::Table {
-                        self.table_cache.evict(number)
+                        self.table_cache.evict(number);
                     }
                     info!(
                         "Delete type={:?} #{} [filename {:?}]",
                         file_type, number, &file
                     );
                     // ignore the IO error here
-                    if let Err(e) = self.env.remove(&file) {
-                        error!("Delete file failed [filename {:?}]: {:?}", &file, e)
+                    if let Err(e) = self.env.remove(file) {
+                        error!("Delete file failed [filename {:?}]: {:?}", &file, e);
                     }
                 }
             }
@@ -831,7 +824,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> DBImpl<S, C> {
         // down the small write too much
         let mut max_size = 1 << 20;
         if size <= 128 << 10 {
-            max_size = size + (128 << 10)
+            max_size = size + (128 << 10);
         }
         let mut signals = vec![first.signal.clone()];
         let mut grouped = first;
@@ -923,14 +916,14 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> DBImpl<S, C> {
         Ok(versions)
     }
 
-    // Compact immutable memory table to level0 files
+    // Compact immutable memory table to level_0 files
     fn compact_mem_table(&self) -> TemplateResult<()> {
         debug!("Compact memtable");
         let mut versions = self.versions.lock().unwrap();
         let mut edit = VersionEdit::new(self.options.max_levels);
         let mut im_mem = self.im_mem.write().unwrap();
         let mut iter = im_mem.as_ref().unwrap().iter();
-        versions.write_level0_files(
+        versions.write_level_0_files(
             &self.db_path,
             &self.table_cache,
             &mut iter,

@@ -4,7 +4,7 @@ use super::coding::decode_fixed_32;
 pub fn hash(data: &[u8], seed: u32) -> u32 {
     // Similar to murmur hash
     let n = data.len();
-    let m: u32 = 0xc6a4a793;
+    let m: u32 = 0xc6a4_a793;
     let mut h = seed ^ (m.wrapping_mul(n as u32));
 
     // Pick up four bytes at a time

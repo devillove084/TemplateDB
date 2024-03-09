@@ -129,7 +129,7 @@ mod tests {
     fn test_oldest() {
         let mut s = SnapshotList::default();
         assert_eq!(MIN_SNAPSHOT, s.oldest().sequence());
-        for i in vec![1, 1, 2, 3] {
+        for i in [1, 1, 2, 3] {
             s.acquire(i);
         }
     }
@@ -148,7 +148,7 @@ mod tests {
     #[test]
     fn test_append_new_snapshot() {
         let mut s = SnapshotList::default();
-        for i in vec![1, 1, 2, 3] {
+        for i in [1, 1, 2, 3] {
             let s = s.acquire(i);
             assert_eq!(s.sequence(), i);
         }
@@ -159,7 +159,7 @@ mod tests {
     #[test]
     fn test_release() {
         let mut s = SnapshotList::default();
-        for i in vec![1, 1, 2, 3] {
+        for i in [1, 1, 2, 3] {
             s.acquire(i);
         }
         assert!(s.release(Arc::new(Snapshot { sequence_number: 2 })));

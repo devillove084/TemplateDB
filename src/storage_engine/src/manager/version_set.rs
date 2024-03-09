@@ -320,10 +320,10 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> VersionSet<S, C> {
         table_cache: TableCache<S, C>,
     ) -> TemplateResult<KMergeIter<SSTableIters<S, C>>> {
         let version = self.current();
-        let mut level0 = vec![];
+        let mut level_0 = vec![];
         // Merge all level zero files together since they may overlap
         for file in version.files[0].iter() {
-            level0.push(table_cache.new_iter(
+            level_0.push(table_cache.new_iter(
                 self.icmp.clone(),
                 read_opt,
                 file.number,
@@ -331,7 +331,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> VersionSet<S, C> {
             )?);
         }
 
-        let mut leveln = vec![];
+        let mut level_n = vec![];
         // For levels > 0, we can use a concatenating iterator that sequentially
         // walks through the non-overlapping files in the level, opening them
         // lazily
@@ -340,13 +340,13 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> VersionSet<S, C> {
                 let level_file_iter = LevelFileNumIterator::new(self.icmp.clone(), files.clone());
                 let factory =
                     FileIterFactory::new(self.icmp.clone(), read_opt, table_cache.clone());
-                leveln.push(ConcatenateIterator::new(level_file_iter, factory));
+                level_n.push(ConcatenateIterator::new(level_file_iter, factory));
             }
         }
         let iter = KMergeIter::new(SSTableIters {
             cmp: self.icmp.clone(),
-            level0,
-            leveln,
+            level_0,
+            level_n,
         });
         Ok(iter)
     }
@@ -586,10 +586,10 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> VersionSet<S, C> {
         Some(compaction)
     }
 
-    /// Persistent given memtable into a single sst file to level0.
+    /// Persistent given memtable into a single sst file to level_0.
     /// If `into_base` is true, the file could be pushed into level1 or level2 if there's no too
     /// much overlapping.
-    pub fn write_level0_files(
+    pub fn write_level_0_files(
         &mut self,
         db_path: &str,
         table_cache: &TableCache<S, C>,
@@ -1129,22 +1129,22 @@ pub fn total_file_size(files: &[Arc<FileMetaData>]) -> u64 {
 /// The inner implementation is mostly like a merging iterator.
 pub struct SSTableIters<S: Storage + Clone, C: Comparator + 'static> {
     cmp: InternalKeyComparator<C>,
-    // Level0 table iterators. One iterator for one sst file
-    level0: Vec<TableIterator<InternalKeyComparator<C>, S::F>>,
+    // level_0 table iterators. One iterator for one sst file
+    level_0: Vec<TableIterator<InternalKeyComparator<C>, S::F>>,
     // ConcatenateIterators for opening SST in level n>1 lazily. One iterator for one level
-    leveln: Vec<ConcatenateIterator<LevelFileNumIterator<C>, FileIterFactory<S, C>>>,
+    level_n: Vec<ConcatenateIterator<LevelFileNumIterator<C>, FileIterFactory<S, C>>>,
 }
 
 impl<S: Storage + Clone, C: Comparator> SSTableIters<S, C> {
     pub fn new(
         cmp: InternalKeyComparator<C>,
-        level0: Vec<TableIterator<InternalKeyComparator<C>, S::F>>,
-        leveln: Vec<ConcatenateIterator<LevelFileNumIterator<C>, FileIterFactory<S, C>>>,
+        level_0: Vec<TableIterator<InternalKeyComparator<C>, S::F>>,
+        level_n: Vec<ConcatenateIterator<LevelFileNumIterator<C>, FileIterFactory<S, C>>>,
     ) -> Self {
         Self {
             cmp,
-            level0,
-            leveln,
+            level_0,
+            level_n,
         }
     }
 }
@@ -1156,22 +1156,22 @@ impl<S: Storage + Clone, C: Comparator> KMergeCore for SSTableIters<S, C> {
     }
 
     fn iters_len(&self) -> usize {
-        self.level0.len() + self.leveln.len()
+        self.level_0.len() + self.level_n.len()
     }
 
     // Find the iterator with the smallest 'key' and set it as current
     fn find_smallest(&mut self) -> usize {
         let mut smallest: Option<&[u8]> = None;
         let mut index = self.iters_len();
-        for (i, child) in self.level0.iter().enumerate() {
+        for (i, child) in self.level_0.iter().enumerate() {
             if self.smaller(&mut smallest, child) {
                 index = i
             }
         }
 
-        for (i, child) in self.leveln.iter().enumerate() {
+        for (i, child) in self.level_n.iter().enumerate() {
             if self.smaller(&mut smallest, child) {
-                index = i + self.level0.len()
+                index = i + self.level_0.len()
             }
         }
         index
@@ -1181,35 +1181,35 @@ impl<S: Storage + Clone, C: Comparator> KMergeCore for SSTableIters<S, C> {
     fn find_largest(&mut self) -> usize {
         let mut largest: Option<&[u8]> = None;
         let mut index = self.iters_len();
-        for (i, child) in self.level0.iter().enumerate() {
+        for (i, child) in self.level_0.iter().enumerate() {
             if self.larger(&mut largest, child) {
                 index = i
             }
         }
 
-        for (i, child) in self.leveln.iter().enumerate() {
+        for (i, child) in self.level_n.iter().enumerate() {
             if self.larger(&mut largest, child) {
-                index = i + self.level0.len()
+                index = i + self.level_0.len()
             }
         }
         index
     }
 
     fn get_child(&self, i: usize) -> &dyn Iterator {
-        if i < self.level0.len() {
-            self.level0.get(i).unwrap() as &dyn Iterator
+        if i < self.level_0.len() {
+            self.level_0.get(i).unwrap() as &dyn Iterator
         } else {
-            let current = i - self.level0.len();
-            self.leveln.get(current).unwrap() as &dyn Iterator
+            let current = i - self.level_0.len();
+            self.level_n.get(current).unwrap() as &dyn Iterator
         }
     }
 
     fn get_child_mut(&mut self, i: usize) -> &mut dyn Iterator {
-        if i < self.level0.len() {
-            self.level0.get_mut(i).unwrap() as &mut dyn Iterator
+        if i < self.level_0.len() {
+            self.level_0.get_mut(i).unwrap() as &mut dyn Iterator
         } else {
-            let current = i - self.level0.len();
-            self.leveln.get_mut(current).unwrap() as &mut dyn Iterator
+            let current = i - self.level_0.len();
+            self.level_n.get_mut(current).unwrap() as &mut dyn Iterator
         }
     }
 
@@ -1217,10 +1217,10 @@ impl<S: Storage + Clone, C: Comparator> KMergeCore for SSTableIters<S, C> {
     where
         F: FnMut(&mut dyn Iterator),
     {
-        self.level0
+        self.level_0
             .iter_mut()
             .for_each(|i| f(i as &mut dyn Iterator));
-        self.leveln
+        self.level_n
             .iter_mut()
             .for_each(|i| f(i as &mut dyn Iterator));
     }
@@ -1229,15 +1229,15 @@ impl<S: Storage + Clone, C: Comparator> KMergeCore for SSTableIters<S, C> {
     where
         F: FnMut(&mut dyn Iterator, &Self::Cmp),
     {
-        if n < self.level0.len() {
-            for (i, child) in self.level0.iter_mut().enumerate() {
+        if n < self.level_0.len() {
+            for (i, child) in self.level_0.iter_mut().enumerate() {
                 if i != n {
                     f(child as &mut dyn Iterator, &self.cmp)
                 }
             }
         } else {
-            let current = n - self.level0.len();
-            for (i, child) in self.leveln.iter_mut().enumerate() {
+            let current = n - self.level_0.len();
+            for (i, child) in self.level_n.iter_mut().enumerate() {
                 if i != current {
                     f(child as &mut dyn Iterator, &self.cmp)
                 }
@@ -1246,13 +1246,13 @@ impl<S: Storage + Clone, C: Comparator> KMergeCore for SSTableIters<S, C> {
     }
 
     fn take_err(&mut self) -> TemplateResult<()> {
-        for child in self.level0.iter_mut() {
+        for child in self.level_0.iter_mut() {
             let status = child.status();
             if status.is_err() {
                 return status;
             }
         }
-        for child in self.leveln.iter_mut() {
+        for child in self.level_n.iter_mut() {
             let status = child.status();
             if status.is_err() {
                 return status;

@@ -709,7 +709,7 @@ mod tests {
         let c = BytewiseComparator::default();
         let entries = vec![
             ("a", "a".repeat(10000)),
-            ("b", "b".repeat(100000)),
+            ("b", "b".repeat(100_000)),
             ("c", "c".repeat(1000000)),
         ];
         let mut blocks = vec![];

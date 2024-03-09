@@ -52,7 +52,7 @@ impl CompactionInputs {
     }
 
     #[inline]
-    pub fn desc_base_files(&self) -> String {
+    #[must_use] pub fn desc_base_files(&self) -> String {
         self.base
             .iter()
             .map(|f| f.number.to_string())
@@ -61,7 +61,7 @@ impl CompactionInputs {
     }
 
     #[inline]
-    pub fn desc_parent_files(&self) -> String {
+    #[must_use] pub fn desc_parent_files(&self) -> String {
         self.parent
             .iter()
             .map(|f| f.number.to_string())
@@ -171,15 +171,15 @@ impl<O: File, C: Comparator + 'static> Compaction<O, C> {
         // Level-0 files have to be merged together so we generate a merging iterator includes
         // iterators for each level 0 file. For other levels, we will make a concatenating
         // iterator per level.
-        let mut level0 = Vec::with_capacity(self.inputs.base.len() + 1);
-        let mut leveln = Vec::with_capacity(2);
+        let mut level_0 = Vec::with_capacity(self.inputs.base.len() + 1);
+        let mut level_n = Vec::with_capacity(2);
         if self.level == 0 {
-            for file in self.inputs.base.iter() {
+            for file in &self.inputs.base {
                 debug!(
                     "new level {} table iter: number {}, file size {}, [{:?} ... {:?}]",
                     self.level, file.number, file.file_size, file.smallest, file.largest
                 );
-                level0.push(table_cache.new_iter(
+                level_0.push(table_cache.new_iter(
                     icmp.clone(),
                     read_options,
                     file.number,
@@ -195,7 +195,7 @@ impl<O: File, C: Comparator + 'static> Compaction<O, C> {
             }
             let origin = LevelFileNumIterator::new(icmp.clone(), self.inputs.base.clone());
             let factory = FileIterFactory::new(icmp.clone(), read_options, table_cache.clone());
-            leveln.push(ConcatenateIterator::new(origin, factory));
+            level_n.push(ConcatenateIterator::new(origin, factory));
         }
         if !self.inputs.parent.is_empty() {
             for f in &self.inputs.parent {
@@ -210,10 +210,10 @@ impl<O: File, C: Comparator + 'static> Compaction<O, C> {
             }
             let origin = LevelFileNumIterator::new(icmp.clone(), self.inputs.parent.clone());
             let factory = FileIterFactory::new(icmp.clone(), read_options, table_cache);
-            leveln.push(ConcatenateIterator::new(origin, factory));
+            level_n.push(ConcatenateIterator::new(origin, factory));
         }
 
-        let iter = KMergeIter::new(SSTableIters::new(icmp, level0, leveln));
+        let iter = KMergeIter::new(SSTableIters::new(icmp, level_0, level_n));
         Ok(iter)
     }
 
@@ -229,7 +229,7 @@ impl<O: File, C: Comparator + 'static> Compaction<O, C> {
             ) == CmpOrdering::Greater
         {
             if self.seen_key {
-                self.overlapped_bytes += self.grand_parents[self.grand_parent_index].file_size
+                self.overlapped_bytes += self.grand_parents[self.grand_parent_index].file_size;
             }
             self.grand_parent_index += 1;
         }
@@ -272,17 +272,17 @@ impl<O: File, C: Comparator + 'static> Compaction<O, C> {
 
     /// Apply deletion for current inputs and current output files to the edit
     pub fn apply_to_edit(&mut self) {
-        for f in self.inputs.base.iter() {
-            self.edit.delete_file(self.level, f.number)
+        for f in &self.inputs.base {
+            self.edit.delete_file(self.level, f.number);
         }
-        for f in self.inputs.parent.iter() {
-            self.edit.delete_file(self.level + 1, f.number)
+        for f in &self.inputs.parent {
+            self.edit.delete_file(self.level + 1, f.number);
         }
         for output in self.outputs.drain(..) {
             self.edit
                 .file_delta
                 .new_files
-                .push((self.level + 1, output))
+                .push((self.level + 1, output));
         }
     }
 
@@ -346,11 +346,11 @@ pub fn total_range<'a, C: Comparator>(
     if !next_l_files.is_empty() {
         let first = next_l_files.first().unwrap();
         if icmp.compare(first.smallest.data(), smallest.data()) == CmpOrdering::Less {
-            smallest = &first.smallest
+            smallest = &first.smallest;
         }
         let last = next_l_files.last().unwrap();
         if icmp.compare(last.largest.data(), largest.data()) == CmpOrdering::Greater {
-            largest = &last.largest
+            largest = &last.largest;
         }
     }
     (smallest, largest)
@@ -362,6 +362,6 @@ pub struct CompactionStats {
     pub micros: u64,
     /// The data size read by this compaction
     pub bytes_read: u64,
-    /// The data size created in new generated SSTables
+    /// The data size created in new generated `SSTables`
     pub bytes_written: u64,
 }

@@ -253,9 +253,9 @@ impl<C: Comparator + 'static> Version<C> {
         if !self.overlap_in_level(level, Some(smallest_ukey), Some(largest_ukey)) {
             // No overlapping in level 0
             // we might directly push files to next level if there is no overlap in next level
-            let smallest_ikey =
+            let smallest_i_key =
                 InternalKey::new(smallest_ukey, MAX_KEY_SEQUENCE, VALUE_TYPE_FOR_SEEK);
-            let largest_ikey = InternalKey::new(largest_ukey, 0, ValueType::Deletion);
+            let largest_i_key = InternalKey::new(largest_ukey, 0, ValueType::Deletion);
             while level < self.options.max_mem_compact_level {
                 // Stops if overlaps at next level
                 if self.overlap_in_level(level + 1, Some(smallest_ukey), Some(largest_ukey)) {
@@ -265,8 +265,8 @@ impl<C: Comparator + 'static> Version<C> {
                     // Check that file does not overlap too many grandparent bytes
                     let overlaps = self.get_overlapping_inputs(
                         level + 2,
-                        Some(&smallest_ikey),
-                        Some(&largest_ikey),
+                        Some(&smallest_i_key),
+                        Some(&largest_i_key),
                     );
                     if total_file_size(&overlaps) > self.options.max_grandparent_overlap_bytes() {
                         break;
@@ -476,7 +476,7 @@ impl<C: Comparator + 'static> Version<C> {
 
     // Return all files in `level` that overlap [`begin`, `end`]
     // Notice that both `begin` and `end` is `InternalKey` but we just compare the user key
-    // directly. Since files in level0 probably overlaps with each other, the final output
+    // directly. Since files in level_0 probably overlaps with each other, the final output
     // total range could be larger than [begin, end]
     //
     // A `None` begin is considered as -infinite
@@ -572,17 +572,16 @@ fn some_file_overlap_range<C: Comparator>(
             {
                 // No overlap
                 continue;
-            } else {
-                return true;
             }
+            return true;
         }
         return false;
     }
     // binary search since file ranges are disjoint
     let index = {
         if let Some(s_ukey) = smallest_ukey {
-            let smallest_ikey = InternalKey::new(s_ukey, MAX_KEY_SEQUENCE, VALUE_TYPE_FOR_SEEK);
-            find_file(icmp, files, smallest_ikey.data())
+            let smallest_i_key = InternalKey::new(s_ukey, MAX_KEY_SEQUENCE, VALUE_TYPE_FOR_SEEK);
+            find_file(icmp, files, smallest_i_key.data())
         } else {
             0
         }
@@ -776,7 +775,7 @@ mod find_file_tests {
         let mut t = FindFileTest::default();
         t.add("p", "q");
         // Find tests
-        for (expected, input) in vec![(0, "a"), (0, "p"), (0, "p1"), (0, "q"), (1, "q1"), (1, "z")]
+        for (expected, input) in [(0, "a"), (0, "p"), (0, "p1"), (0, "q"), (1, "q1"), (1, "z")]
         {
             assert_eq!(expected, t.find(input), "input {}", input);
         }
@@ -806,7 +805,7 @@ mod find_file_tests {
     #[test]
     fn test_find_files_with_various_files() {
         let mut t = FindFileTest::default();
-        for (start, end) in vec![
+        for (start, end) in [
             ("150", "200"),
             ("200", "250"),
             ("300", "350"),
@@ -815,7 +814,7 @@ mod find_file_tests {
             t.add(start, end);
         }
         // Find tests
-        for (expected, input) in vec![
+        for (expected, input) in [
             (0, "100"),
             (0, "150"),
             (0, "151"),
@@ -833,7 +832,7 @@ mod find_file_tests {
             assert_eq!(expected, t.find(input), "input {}", input);
         }
         // Overlap tests
-        for (expected, (lhs, rhs)) in vec![
+        for (expected, (lhs, rhs)) in [
             (false, (Some("100"), Some("149"))),
             (false, (Some("251"), Some("299"))),
             (false, (Some("451"), Some("500"))),
@@ -854,7 +853,7 @@ mod find_file_tests {
     #[test]
     fn test_multiple_null_boundaries() {
         let mut t = FindFileTest::default();
-        for (start, end) in vec![
+        for (start, end) in [
             ("150", "200"),
             ("200", "250"),
             ("300", "350"),
@@ -862,7 +861,7 @@ mod find_file_tests {
         ] {
             t.add(start, end);
         }
-        for (expected, (lhs, rhs)) in vec![
+        for (expected, (lhs, rhs)) in [
             (false, (None, Some("149"))),
             (false, (Some("451"), None)),
             (true, (None, None)),
@@ -885,7 +884,7 @@ mod find_file_tests {
     fn test_overlap_sequence_check() {
         let mut t = FindFileTest::default();
         t.add_with_seq(("200", 5000), ("200", 300));
-        for (expected, (lhs, rhs)) in vec![
+        for (expected, (lhs, rhs)) in [
             (false, (Some("199"), Some("199"))),
             (false, (Some("201"), Some("300"))),
             (true, (Some("200"), Some("200"))),
@@ -902,7 +901,7 @@ mod find_file_tests {
         t.overlapping = true;
         t.add("150", "600");
         t.add("400", "500");
-        for (expected, (lhs, rhs)) in vec![
+        for (expected, (lhs, rhs)) in [
             (false, (Some("100"), Some("149"))),
             (false, (Some("601"), Some("700"))),
             (true, (Some("100"), Some("150"))),

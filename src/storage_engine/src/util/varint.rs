@@ -176,15 +176,12 @@ mod tests {
         ];
         let mut idx = 0;
         while !test_data.is_empty() {
-            match VarintU64::read(&test_data.as_slice()) {
-                Some((i, n)) => {
-                    assert_eq!(Some((i, n)), expects[idx]);
-                    test_data.drain(0..n);
-                }
-                None => {
-                    assert_eq!(None, expects[idx]);
-                    test_data.drain(..);
-                }
+            if let Some((i, n)) = VarintU64::read(test_data.as_slice()) {
+                assert_eq!(Some((i, n)), expects[idx]);
+                test_data.drain(0..n);
+            } else {
+                assert_eq!(None, expects[idx]);
+                test_data.drain(..);
             }
             idx += 1;
         }
@@ -204,7 +201,7 @@ mod tests {
         for i in 0..n {
             if let Some((res, n)) = VarintU64::read(&buf.as_slice()[start..]) {
                 assert_eq!(numbers[i], res);
-                start += n
+                start += n;
             }
         }
     }
@@ -218,7 +215,7 @@ mod tests {
         }
         let mut s = encoded.as_slice();
         let mut decoded = vec![];
-        while s.len() > 0 {
+        while !s.is_empty() {
             match VarintU64::get_varint_prefixed_slice(&mut s) {
                 Some(res) => decoded.push(res.to_owned()),
                 None => break,
@@ -228,7 +225,7 @@ mod tests {
         for (get, want) in decoded.into_iter().zip(tests.into_iter()) {
             assert_eq!(get.len(), want.len());
             for (getv, wantv) in get.iter().zip(want.iter()) {
-                assert_eq!(*getv, *wantv)
+                assert_eq!(*getv, *wantv);
             }
         }
     }

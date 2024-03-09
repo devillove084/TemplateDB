@@ -25,7 +25,7 @@ impl From<usize> for RecordType {
 /// The format of a record header :
 ///
 /// ```text
-/// 
+///
 /// | ----- 4bytes ----- | -- 2bytes -- | - 1byte - |
 ///      CRC checksum         length     record type
 /// ```
@@ -39,7 +39,7 @@ mod tests {
 
     use super::{BLOCK_SIZE, HEADER_SIZE};
     use crate::{
-        error::{TemplateResult, TemplateKVError},
+        error::{TemplateKVError, TemplateResult},
         storage::File,
         util::{
             coding::encode_fixed_32,
@@ -117,7 +117,9 @@ mod tests {
                             "in-memory file seeking pasts the end".to_owned(),
                         )));
                     }
-                    self.contents.borrow_mut().drain(0..p as usize);
+                    self.contents
+                        .borrow_mut()
+                        .drain(0..usize::try_from(p).expect("truncate error"));
                     Ok(p)
                 }
                 _ => panic!("only support seeking from starting point"),
@@ -136,7 +138,7 @@ mod tests {
             }
             let length = min(self.contents.borrow().len(), buf.len());
             for i in 0..length {
-                buf[i] = self.contents.borrow()[i]
+                buf[i] = self.contents.borrow()[i];
             }
             self.contents.borrow_mut().drain(0..length);
             Ok(length)
@@ -215,7 +217,7 @@ mod tests {
     const EOF: &'static str = "EOF";
 
     impl RecordTest {
-        pub fn new(reporter: ReportCollector) -> Self {
+        pub fn new(reporter: &ReportCollector) -> Self {
             let data = Rc::new(RefCell::new(vec![]));
             let f = StringFile::new(data.clone());
             let writer = Writer::new(f.clone());
@@ -248,26 +250,27 @@ mod tests {
 
         pub fn read(&mut self) -> String {
             if !self.reading {
-                self.reading = true
+                self.reading = true;
             };
             let mut buf = vec![];
-            match self.reader.read_record(&mut buf) {
-                false => String::from(EOF),
-                true => unsafe { String::from_utf8_unchecked(buf) },
+            if self.reader.read_record(&mut buf) {
+                unsafe { String::from_utf8_unchecked(buf) }
+            } else {
+                String::from(EOF)
             }
         }
 
         pub fn increment_byte(&mut self, offset: usize, delta: u8) {
-            self.source.borrow_mut()[offset] += delta
+            self.source.borrow_mut()[offset] += delta;
         }
 
         pub fn set_byte(&mut self, offset: usize, byte: u8) {
-            self.source.borrow_mut()[offset] = byte
+            self.source.borrow_mut()[offset] = byte;
         }
 
         pub fn shrink_size(&mut self, bytes: usize) {
             let written_bytes = self.source.borrow().len();
-            self.source.borrow_mut().truncate(written_bytes - bytes)
+            self.source.borrow_mut().truncate(written_bytes - bytes);
         }
 
         pub fn fix_checksum(&mut self, header_offset: usize, len: usize) {
@@ -280,7 +283,7 @@ mod tests {
         }
 
         pub fn force_error(&mut self) {
-            *self.read_source.force_err.borrow_mut() = true
+            *self.read_source.force_err.borrow_mut() = true;
         }
 
         pub fn dropped_bytes(&self) -> u64 {
@@ -292,18 +295,15 @@ mod tests {
         }
 
         pub fn match_error(&self, msg: &str) -> bool {
-            match self.reporter.message.borrow().find(msg) {
-                Some(_) => true,
-                None => false,
-            }
+            self.reporter.message.borrow().find(msg).is_some()
         }
 
         pub fn write_initial_offset_log(&mut self) {
             for i in 0..INITIAL_OFFSET_RECORD_SIZES.len() {
                 let record = (0..INITIAL_OFFSET_RECORD_SIZES[i])
-                    .map(|_| ('a' as u8 + i as u8) as char)
+                    .map(|_| (b'a' as u8 + u8::try_from(i).expect("truncate error")) as char)
                     .collect::<String>();
-                self.write(record.as_str())
+                self.write(record.as_str());
             }
         }
 
@@ -313,7 +313,7 @@ mod tests {
                 Some(Box::new(self.reporter.clone())),
                 true,
                 initial_offset,
-            )
+            );
         }
 
         // ensure that a reader never read a record from a offset beyond the whole file
@@ -360,7 +360,7 @@ mod tests {
                     "last record offset should match"
                 );
                 assert_eq!(
-                    'a' as u8 + expected_record_index as u8,
+                    b'a' as u8 + u8::try_from(expected_record_index).expect("truncate error"),
                     record[0],
                     "record content should match"
                 );
@@ -370,7 +370,7 @@ mod tests {
     }
 
     fn new_record_test() -> RecordTest {
-        RecordTest::new(ReportCollector::new())
+        RecordTest::new(&ReportCollector::new())
     }
     #[test]
     fn test_read_eof() {
@@ -401,9 +401,9 @@ mod tests {
         }
         for i in 0..100_000 {
             let s = log.read();
-            assert_eq!(num_to_string(i), s)
+            assert_eq!(num_to_string(i), s);
         }
-        assert_eq!(EOF, log.read())
+        assert_eq!(EOF, log.read());
     }
 
     #[test]
@@ -491,10 +491,10 @@ mod tests {
         for i in 0..n {
             skewed_strings.push(random_skewed_string(i));
         }
-        for s in skewed_strings.iter() {
+        for s in &skewed_strings {
             log.write(s.as_str());
         }
-        for s in skewed_strings.iter() {
+        for s in &skewed_strings {
             assert_eq!(s.as_str(), log.read());
         }
         assert_eq!(EOF, log.read());
@@ -668,7 +668,7 @@ mod tests {
 
         // wipe the middle block
         for i in BLOCK_SIZE..2 * BLOCK_SIZE {
-            log.set_byte(i, 'x' as u8);
+            log.set_byte(i, b'x' as u8);
         }
         assert_eq!("correct", log.read());
         assert_eq!(EOF, log.read());

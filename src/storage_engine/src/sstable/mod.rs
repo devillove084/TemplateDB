@@ -206,7 +206,7 @@ use crate::{
     }, // Error, Result,
 };
 
-const TABLE_MAGIC_NUMBER: u64 = 0xdb4775248b80fb57;
+const TABLE_MAGIC_NUMBER: u64 = 0xdb47_7524_8b80_fb57;
 
 // 1byte compression type + 4bytes cyc
 const BLOCK_TRAILER_SIZE: usize = 5;

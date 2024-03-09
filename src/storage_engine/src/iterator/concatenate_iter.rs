@@ -88,13 +88,12 @@ impl<I: Iterator, F: DerivedIterFactory> ConcatenateIterator<I, F> {
             if !self.origin.valid() {
                 self.set_derived(None);
                 break;
-            } else {
-                self.origin.next();
-                self.init_derived_iter();
-                if let Some(i) = &mut self.derived {
-                    // init to the first
-                    i.seek_to_first();
-                }
+            }
+            self.origin.next();
+            self.init_derived_iter();
+            if let Some(i) = &mut self.derived {
+                // init to the first
+                i.seek_to_first();
             }
         }
     }
@@ -106,13 +105,12 @@ impl<I: Iterator, F: DerivedIterFactory> ConcatenateIterator<I, F> {
             if !self.origin.valid() {
                 self.set_derived(None);
                 break;
-            } else {
-                self.origin.prev();
-                self.init_derived_iter();
-                if let Some(i) = &mut self.derived {
-                    // init to the last
-                    i.seek_to_last();
-                }
+            }
+            self.origin.prev();
+            self.init_derived_iter();
+            if let Some(i) = &mut self.derived {
+                // init to the last
+                i.seek_to_last();
             }
         }
     }

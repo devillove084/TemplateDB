@@ -45,22 +45,19 @@ impl<S: Storage + Clone, C: Comparator + 'static> TableCache<S, C> {
         file_number: u64,
         file_size: u64,
     ) -> TemplateResult<Arc<Table<S::F>>> {
-        match self.cache.get(&file_number) {
-            Some(v) => Ok(v),
-            None => {
-                let filename = generate_filename(&self.db_path, FileType::Table, file_number);
-                let table_file = self.storage.open(&filename)?;
-                let table = Table::open(
-                    table_file,
-                    file_number,
-                    file_size,
-                    self.options.clone(),
-                    cmp,
-                )?;
-                let value = Arc::new(table);
-                let _ = self.cache.insert(file_number, value.clone(), 1);
-                Ok(value)
-            }
+        if let Some(v) = self.cache.get(&file_number) { Ok(v) } else {
+            let filename = generate_filename(&self.db_path, FileType::Table, file_number);
+            let table_file = self.storage.open(filename)?;
+            let table = Table::open(
+                table_file,
+                file_number,
+                file_size,
+                self.options.clone(),
+                cmp,
+            )?;
+            let value = Arc::new(table);
+            let _ = self.cache.insert(file_number, value.clone(), 1);
+            Ok(value)
         }
     }
 

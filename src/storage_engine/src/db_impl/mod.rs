@@ -458,22 +458,22 @@ mod tests {
     // Test getting kv from immutable memtable and SSTable
     fn test_get_from_immutable_layer() {
         for t in cases(|mut opt| {
-            opt.write_buffer_size = 100000; // Small write buffer
+            opt.write_buffer_size = 100_000; // Small write buffer
             opt
         }) {
             t.assert_put_get("foo", "v1");
             // block `flush()`
             t.store.delay_data_sync.store(true, Ordering::Release);
-            t.put("k1", &"x".repeat(100000)).unwrap(); // fill memtable
+            t.put("k1", &"x".repeat(100_000)).unwrap(); // fill memtable
             assert_eq!("v1", t.get("foo", None).unwrap()); // "v1" on immutable table
-            t.put("k2", &"y".repeat(100000)).unwrap(); // trigger compaction
+            t.put("k2", &"y".repeat(100_000)).unwrap(); // trigger compaction
                                                        // Waiting for compaction finish
             thread::sleep(Duration::from_secs(2));
             t.assert_file_num_at_level(2, 1);
             // Try to retrieve key "foo" from level 0 files
-            t.assert_get("k1", Some(&"x".repeat(100000)));
+            t.assert_get("k1", Some(&"x".repeat(100_000)));
             assert_eq!("v1", t.get("foo", None).unwrap()); // "v1" on SST files
-            t.assert_get("k2", Some(&"y".repeat(100000)));
+            t.assert_get("k2", Some(&"y".repeat(100_000)));
         }
     }
 
@@ -491,7 +491,7 @@ mod tests {
     // Test look up key with snapshot
     fn test_get_with_snapshot() {
         for t in default_cases() {
-            for key in vec![String::from("foo"), "x".repeat(20)] {
+            for key in [String::from("foo"), "x".repeat(20)] {
                 t.assert_put_get(&key, "v1");
                 let s = t.db.snapshot();
                 t.put(&key, "v2").unwrap();
@@ -550,7 +550,7 @@ mod tests {
 
     // Test that "get" always retrieve entries from the right sst file
     #[test]
-    fn test_get_level0_ordering() {
+    fn test_get_level_0_ordering() {
         for t in default_cases() {
             t.put("bar", "b").unwrap();
             t.put("foo", "v1").unwrap();
@@ -1122,7 +1122,7 @@ mod tests {
             t.put(&key(3), &rand_string(10000)).unwrap();
             t.put(&key(4), &big1).unwrap();
             t.put(&key(5), &rand_string(10000)).unwrap();
-            t.put(&key(6), &rand_string(300000)).unwrap();
+            t.put(&key(6), &rand_string(300_000)).unwrap();
             t.put(&key(7), &rand_string(10000)).unwrap();
             if t.opt.reuse_logs {
                 t.inner.force_compact_mem_table().unwrap();
@@ -1132,13 +1132,13 @@ mod tests {
                 t.assert_approximate_size("", &key(0), 0, 0);
                 t.assert_approximate_size("", &key(1), 10000, 11000);
                 t.assert_approximate_size("", &key(2), 20000, 21000);
-                t.assert_approximate_size("", &key(3), 120000, 121000);
-                t.assert_approximate_size("", &key(4), 130000, 131000);
-                t.assert_approximate_size("", &key(5), 230000, 231000);
-                t.assert_approximate_size("", &key(6), 240000, 241000);
-                t.assert_approximate_size("", &key(7), 540000, 541000);
-                t.assert_approximate_size("", &key(8), 550000, 560000);
-                t.assert_approximate_size(&key(3), &key(5), 110000, 111000);
+                t.assert_approximate_size("", &key(3), 120_000, 121_000);
+                t.assert_approximate_size("", &key(4), 130_000, 131_000);
+                t.assert_approximate_size("", &key(5), 230_000, 231_000);
+                t.assert_approximate_size("", &key(6), 240_000, 241_000);
+                t.assert_approximate_size("", &key(7), 540_000, 541_000);
+                t.assert_approximate_size("", &key(8), 550_000, 560_000);
+                t.assert_approximate_size(&key(3), &key(5), 110_000, 111_000);
                 t.compact_range_at(0, None, None).unwrap();
             }
         }
@@ -1264,7 +1264,7 @@ mod tests {
     }
 
     #[test]
-    fn test_overlap_in_level0() {
+    fn test_overlap_in_level_0() {
         for t in default_cases() {
             // Fill levels 1 and 2 to disable the pushing or new memtables to levels > 0
             t.put("100", "v100").unwrap();
@@ -1644,24 +1644,23 @@ mod tests {
                                     break;
                                 }
                             }
-                        } else {
-                            match state
-                                .db
-                                .get(ReadOptions::default(), key.to_string().as_bytes())
-                            {
-                                Ok(v) => {
-                                    if let Some(value) = v {
-                                        let s = String::from_utf8(value).unwrap();
-                                        let ss = s.split('.').collect::<Vec<_>>();
-                                        assert_eq!(3, ss.len());
-                                        assert_eq!(ss[0], key.to_string());
-                                    }
+                        }
+                        match state
+                            .db
+                            .get(ReadOptions::default(), key.to_string().as_bytes())
+                        {
+                            Ok(v) => {
+                                if let Some(value) = v {
+                                    let s = String::from_utf8(value).unwrap();
+                                    let ss = s.split('.').collect::<Vec<_>>();
+                                    assert_eq!(3, ss.len());
+                                    assert_eq!(ss[0], key.to_string());
                                 }
-                                Err(e) => {
-                                    let mut guard = state.rerrs.lock().unwrap();
-                                    guard.push(e);
-                                    break;
-                                }
+                            }
+                            Err(e) => {
+                                let mut guard = state.rerrs.lock().unwrap();
+                                guard.push(e);
+                                break;
                             }
                         }
                         counter += 1;

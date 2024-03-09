@@ -248,13 +248,13 @@ impl<F: File> Reader<F> {
                         }
                     }
                     continue;
-                } else {
-                    // If buffer is non-empty, it means we have a truncated header at the
-                    // end of the file, which may be caused by writer
-                    // crashing in the middle of writing the header.
-                    // Instead of considering this an error, just report EOF.
-                    return Err(ReaderError::EOF);
                 }
+                // If buffer is non-empty, it means we have a truncated header at the
+                // end of the file, which may be caused by writer
+                // crashing in the middle of writing the header.
+                // Instead of considering this an error, just report EOF.
+                return Err(ReaderError::EOF);
+
             }
             // parse the header
             let header = &self.buf[0..HEADER_SIZE];

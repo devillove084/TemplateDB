@@ -311,9 +311,8 @@ where
                             return null_mut();
                         }
                         return x;
-                    } else {
-                        height -= 1;
                     }
+                    height -= 1;
                 } else {
                     x = next;
                 }
@@ -332,13 +331,12 @@ where
                 let next = (&*before).get_next(height);
                 if next.is_null() {
                     return (before, null_mut());
-                } else {
-                    match self.comparator.compare(key, &(*next).key) {
-                        CmpOrdering::Equal => return (next, next),
-                        CmpOrdering::Less => return (before, next),
-                        CmpOrdering::Greater => {
-                            before = next;
-                        }
+                }
+                match self.comparator.compare(key, &(*next).key) {
+                    CmpOrdering::Equal => return (next, next),
+                    CmpOrdering::Less => return (before, next),
+                    CmpOrdering::Greater => {
+                        before = next;
                     }
                 }
             }
@@ -555,9 +553,9 @@ mod tests {
     }
 
     fn test_concurrent_basic(n: usize, cap: usize, key_len: usize) {
-        let cmp = BytewiseComparator::default();
+        let comparator = BytewiseComparator::default();
         let arena = OffsetArena::with_capacity(cap);
-        let skl = InlineSkipList::new(cmp, arena);
+        let skl = InlineSkipList::new(comparator, arena);
         let keys: Vec<_> = (0..n)
             .map(|i| format!("{1:00$}", key_len, i).to_owned())
             .collect();

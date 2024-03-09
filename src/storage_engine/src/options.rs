@@ -261,7 +261,7 @@ impl<C: Comparator> Default for Options<C> {
             l0_stop_writes_threshold: 12,
             l1_max_bytes: 64 * 1024 * 1024, // 64MB
             max_mem_compact_level: 2,
-            read_bytes_period: 1048576,
+            read_bytes_period: 1_048_576,
             write_buffer_size: 4 * 1024 * 1024, // 4MB
             max_open_files: 500,
             block_cache: None,

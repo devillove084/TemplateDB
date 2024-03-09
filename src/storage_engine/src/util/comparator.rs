@@ -136,7 +136,7 @@ mod tests {
         ];
         for (input, expect) in corner_tests.drain(..) {
             let res = c.successor(input.as_slice());
-            assert_eq!(res, expect)
+            assert_eq!(res, expect);
         }
     }
 }

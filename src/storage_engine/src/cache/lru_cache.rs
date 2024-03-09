@@ -240,7 +240,7 @@ where
 impl<K, V: Clone> Drop for LRUCache<K, V> {
     fn drop(&mut self) {
         let mut l = self.inner.lock().unwrap();
-        (*l).table.values_mut().for_each(|e| unsafe {
+        l.table.values_mut().for_each(|e| unsafe {
             ptr::drop_in_place(e.key.as_mut_ptr());
             ptr::drop_in_place(e.value.as_mut_ptr());
         });

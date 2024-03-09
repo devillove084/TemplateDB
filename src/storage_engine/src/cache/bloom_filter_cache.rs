@@ -206,7 +206,7 @@ mod tests {
 
             let mut rate: f32 = 0.0;
             for i in 0..n {
-                if h.assert_num(i + 1000000000, true, true) {
+                if h.assert_num(i + 1_000_000_000, true, true) {
                     rate += 1.0;
                 }
             }

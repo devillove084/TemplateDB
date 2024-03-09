@@ -97,13 +97,12 @@ impl MemStorage {
                 if n.is_file() {
                     // File can be truncated
                     return Ok(());
-                } else {
-                    // Exist dir
-                    return Err(TemplateKVError::IO(IOError::new(
-                        ErrorKind::AlreadyExists,
-                        format!("{:?}: File exists", p),
-                    )));
                 }
+                // Exist dir
+                return Err(TemplateKVError::IO(IOError::new(
+                    ErrorKind::AlreadyExists,
+                    format!("{:?}: File exists", p),
+                )));
             }
             Ok(())
         } else {
@@ -753,7 +752,7 @@ mod tests {
         ];
         for (i, (input, expected)) in tests.into_iter().enumerate() {
             let res = store.create(input);
-            assert_eq!(res.is_ok(), expected, "{}", i);
+            assert_eq!(res.is_ok(), expected, "{i}");
             if expected {
                 store.assert_file_exists(input);
             }
@@ -818,7 +817,7 @@ mod tests {
             ("hello world", false),
         ];
         for (input, expected) in tests {
-            assert_eq!(store.remove(input).is_ok(), expected)
+            assert_eq!(store.remove(input).is_ok(), expected);
         }
     }
 

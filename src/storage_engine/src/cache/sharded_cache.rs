@@ -26,7 +26,7 @@ where
     V: Sync + Send + Clone,
 {
     /// Create a new `ShardedCache` with given shards
-    pub fn new(shards: Vec<C>) -> Self {
+    #[must_use] pub fn new(shards: Vec<C>) -> Self {
         Self {
             shards: Arc::new(shards),
             _k: PhantomData,
@@ -38,7 +38,7 @@ where
         let mut s = DefaultHasher::new();
         let len = self.shards.len();
         k.hash(&mut s);
-        s.finish() as usize % len
+        usize::try_from(s.finish()).expect("truncate error") % len
     }
 }
 
@@ -60,7 +60,7 @@ where
 
     fn erase(&self, key: &K) {
         let idx = self.find_shard(key);
-        self.shards[idx].erase(key)
+        self.shards[idx].erase(key);
     }
 
     fn total_charge(&self) -> usize {

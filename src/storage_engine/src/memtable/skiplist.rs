@@ -223,10 +223,9 @@ impl<C: Comparator, A: Arena> Skiplist<C, A> {
                     // next is nullptr or next.key >= key
                     if level == 1 {
                         return node;
-                    } else {
-                        // move to next level
-                        level -= 1;
                     }
+                    // move to next level
+                    level -= 1;
                 } else {
                     // next.key < key
                     // keep search in the same level

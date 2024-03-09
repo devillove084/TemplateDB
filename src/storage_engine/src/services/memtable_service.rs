@@ -66,18 +66,18 @@ impl<C: Comparator + 'static> MemtableService for MemtableServiceHandler<C> {
         let seq = req.seq;
         let key: String = req.key.clone();
         info!("Now req is {:?} and {:?}", tenant, &key);
-        let res = self
+        let result = self
             .memtable
             .get(&LookupKey::new(key.as_bytes(), seq))
             .expect("memtable get failed");
-        if res.is_ok() {
+        if result.is_ok() {
             let resp_value =
-                String::from_utf8(res.unwrap()).expect("memtable get result to string failed");
+                String::from_utf8(result.unwrap()).expect("memtable get result to string failed");
             return Ok(tonic::Response::new(ListKvResponse { value: resp_value }));
-        } else {
-            error!("memtable get failed");
-            return Err(Status::aborted("memtable process error"));
         }
+        error!("memtable get failed");
+        return Err(Status::aborted("memtable process error"));
+
     }
 
     async fn update_kv(
@@ -111,7 +111,7 @@ impl<C: Comparator + 'static> MemtableService for MemtableServiceHandler<C> {
         }
 
         Ok(tonic::Response::new(UpdateKvResponse {
-            tenant: tenant,
+            tenant,
             ack: true,
             seq,
             value_type,
