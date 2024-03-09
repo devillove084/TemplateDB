@@ -190,7 +190,7 @@ impl<C: Command + Clone> SharedInstance<C> {
         RwLockWriteGuard::map(self.inner.write().await, |i| &mut i.instance)
     }
 
-    pub(crate) async fn get_raw_read(
+    pub(crate) fn get_raw_read(
         option_instance: RwLockReadGuard<'_, Option<Instance<C>>>,
     ) -> RwLockReadGuard<'_, Instance<C>> {
         RwLockReadGuard::<Option<Instance<C>>>::map(option_instance, |f| f.as_ref().unwrap())

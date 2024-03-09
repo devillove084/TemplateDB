@@ -1,14 +1,34 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+#![deny(clippy::all)]
+#![allow(clippy::diverging_sub_expression)]
+#![allow(clippy::single_range_in_vec_init)]
+#![allow(clippy::useless_vec)]
+#![allow(clippy::only_used_in_recursion)]
+#![feature(coroutines)]
+#![feature(iterator_try_collect)]
+#![feature(assert_matches)]
+#![feature(error_generic_member_access)]
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+#[macro_use]
+extern crate lazy_static;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub mod binder;
+pub mod catalog;
+pub mod catalog_v2;
+pub mod cli;
+pub mod common;
+pub mod db;
+pub mod execution;
+pub mod executor;
+pub mod function;
+pub mod main_entry;
+pub mod optimizer;
+pub mod parser;
+pub mod planner;
+pub mod planner_v2;
+pub mod storage;
+pub mod storage_v2;
+pub mod types;
+pub mod types_v2;
+pub mod util;
+
+pub use self::db::{Database, DatabaseError};

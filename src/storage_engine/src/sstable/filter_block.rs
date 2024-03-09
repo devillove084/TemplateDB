@@ -205,8 +205,8 @@ mod tests {
         let block = b.finish();
         assert_eq!(&[0, 0, 0, 0, FILTER_BASE_LG as u8], block);
         let r = new_test_reader(Vec::from(block));
-        assert_eq!(r.key_may_match(0, "foo".as_bytes()), true);
-        assert_eq!(r.key_may_match(10000, "foo".as_bytes()), true);
+        assert!(r.key_may_match(0, "foo".as_bytes()));
+        assert!(r.key_may_match(10000, "foo".as_bytes()));
     }
 
     #[test]
@@ -222,13 +222,13 @@ mod tests {
         b.add_key("hello".as_bytes());
         let block = b.finish();
         let r = new_test_reader(Vec::from(block));
-        assert_eq!(r.key_may_match(100, "foo".as_bytes()), true);
-        assert_eq!(r.key_may_match(100, "bar".as_bytes()), true);
-        assert_eq!(r.key_may_match(100, "box".as_bytes()), true);
-        assert_eq!(r.key_may_match(100, "hello".as_bytes()), true);
-        assert_eq!(r.key_may_match(100, "foo".as_bytes()), true);
-        assert_eq!(r.key_may_match(100, "missing".as_bytes()), false);
-        assert_eq!(r.key_may_match(100, "other".as_bytes()), false);
+        assert!(r.key_may_match(100, "foo".as_bytes()));
+        assert!(r.key_may_match(100, "bar".as_bytes()));
+        assert!(r.key_may_match(100, "box".as_bytes()));
+        assert!(r.key_may_match(100, "hello".as_bytes()));
+        assert!(r.key_may_match(100, "foo".as_bytes()));
+        assert!(!r.key_may_match(100, "missing".as_bytes()));
+        assert!(!r.key_may_match(100, "other".as_bytes()));
     }
 
     #[test]
@@ -254,24 +254,24 @@ mod tests {
         let r = new_test_reader(Vec::from(block));
 
         // check first filter
-        assert_eq!(r.key_may_match(0, "foo".as_bytes()), true);
-        assert_eq!(r.key_may_match(2000, "bar".as_bytes()), true);
-        assert_eq!(r.key_may_match(0, "box".as_bytes()), false);
-        assert_eq!(r.key_may_match(0, "hello".as_bytes()), false);
+        assert!(r.key_may_match(0, "foo".as_bytes()));
+        assert!(r.key_may_match(2000, "bar".as_bytes()));
+        assert!(!r.key_may_match(0, "box".as_bytes()));
+        assert!(!r.key_may_match(0, "hello".as_bytes()));
         // check second filter
-        assert_eq!(r.key_may_match(3100, "box".as_bytes()), true);
-        assert_eq!(r.key_may_match(3100, "foo".as_bytes()), false);
-        assert_eq!(r.key_may_match(3100, "bar".as_bytes()), false);
-        assert_eq!(r.key_may_match(3100, "hello".as_bytes()), false);
+        assert!(r.key_may_match(3100, "box".as_bytes()));
+        assert!(!r.key_may_match(3100, "foo".as_bytes()));
+        assert!(!r.key_may_match(3100, "bar".as_bytes()));
+        assert!(!r.key_may_match(3100, "hello".as_bytes()));
         // check third filter (empty)
-        assert_eq!(r.key_may_match(4100, "box".as_bytes()), false);
-        assert_eq!(r.key_may_match(4100, "foo".as_bytes()), false);
-        assert_eq!(r.key_may_match(4100, "bar".as_bytes()), false);
-        assert_eq!(r.key_may_match(4100, "hello".as_bytes()), false);
+        assert!(!r.key_may_match(4100, "box".as_bytes()));
+        assert!(!r.key_may_match(4100, "foo".as_bytes()));
+        assert!(!r.key_may_match(4100, "bar".as_bytes()));
+        assert!(!r.key_may_match(4100, "hello".as_bytes()));
         // check last filter
-        assert_eq!(r.key_may_match(9000, "box".as_bytes()), true);
-        assert_eq!(r.key_may_match(9000, "foo".as_bytes()), false);
-        assert_eq!(r.key_may_match(9000, "bar".as_bytes()), false);
-        assert_eq!(r.key_may_match(9000, "hello".as_bytes()), true);
+        assert!(r.key_may_match(9000, "box".as_bytes()));
+        assert!(!r.key_may_match(9000, "foo".as_bytes()));
+        assert!(!r.key_may_match(9000, "bar".as_bytes()));
+        assert!(r.key_may_match(9000, "hello".as_bytes()));
     }
 }

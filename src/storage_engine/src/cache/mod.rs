@@ -82,7 +82,7 @@ mod tests {
     use super::*;
 
     fn new_test_lru_shards(n: usize) -> Vec<LRUCache<String, String>> {
-        (0..n).into_iter().fold(vec![], |mut acc, _| {
+        (0..n).fold(vec![], |mut acc, _| {
             acc.push(LRUCache::new(1 << 20));
             acc
         })

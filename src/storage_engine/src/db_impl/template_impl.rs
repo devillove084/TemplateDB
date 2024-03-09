@@ -192,7 +192,8 @@ impl<S: Storage + Clone, C: Comparator + 'static> TemplateDB<S, C> {
     }
 
     /// Returns true if the given snapshot is removed
-    #[must_use] pub fn release_snapshot(&self, s: Arc<Snapshot>) -> bool {
+    #[must_use]
+    pub fn release_snapshot(&self, s: Arc<Snapshot>) -> bool {
         let mut vset = self.inner.versions.lock().unwrap();
         vset.snapshots.release(s)
     }
@@ -889,7 +890,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> DBImpl<S, C> {
             } else {
                 let new_log_num = versions.get_next_file_number();
                 let log_file = self.env.create(
-                    &generate_filename(&self.db_path, FileType::Log, new_log_num).as_str(),
+                    generate_filename(&self.db_path, FileType::Log, new_log_num).as_str(),
                 )?;
                 versions.set_next_file_number(new_log_num + 1);
                 versions.set_log_number(new_log_num);
@@ -976,7 +977,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> DBImpl<S, C> {
         {
             let versions = self.versions.lock().unwrap();
             let current = versions.current();
-            for l in 1..self.options.max_levels as usize {
+            for l in 1..self.options.max_levels {
                 if current.overlap_in_level(l, begin, end) {
                     max_level_with_files = l;
                 }
@@ -997,7 +998,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> DBImpl<S, C> {
         begin: Option<&[u8]>,
         end: Option<&[u8]>,
     ) -> TemplateResult<()> {
-        assert!(level + 1 < self.options.max_levels as usize);
+        assert!(level + 1 < self.options.max_levels);
         let (sender, finished) = crossbeam_channel::bounded(1);
         {
             let mut m_queue = self.manual_compaction_queue.lock().unwrap();

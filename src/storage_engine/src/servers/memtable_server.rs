@@ -82,18 +82,19 @@ pub struct Insert {
     seq: u64,
 }
 
-impl Into<UpdateKvRequest> for Insert {
-    fn into(self) -> UpdateKvRequest {
-        let tenant = self.tenant;
-        let key = self.key;
-        let value = self.value;
-        let value_type = match self.value_type {
+impl From<Insert> for UpdateKvRequest {
+    fn from(val: Insert) -> Self {
+        let tenant = val.tenant;
+        let key = val.key;
+        let value = val.value;
+        let value_type = match val.value_type {
             ValueType::Deletion => 1,
             ValueType::Value => 0,
             ValueType::Unknown => 2,
         };
-        let seq = self.seq;
-        UpdateKvRequest {
+        let seq = val.seq;
+
+        Self {
             tenant,
             seq,
             value_type,
@@ -113,12 +114,13 @@ pub struct Get {
     key: String,
 }
 
-impl Into<ListKvRequest> for Get {
-    fn into(self) -> ListKvRequest {
-        let tenant = self.tenant;
-        let key = self.key;
-        let seq = self.seq;
-        ListKvRequest { tenant, seq, key }
+impl From<Get> for ListKvRequest {
+    fn from(val: Get) -> Self {
+        let tenant = val.tenant;
+        let key = val.key;
+        let seq = val.seq;
+
+        Self { tenant, seq, key }
     }
 }
 
@@ -130,13 +132,11 @@ impl<C: Comparator + 'static> Handler<Insert> for MemTableServer<C> {
     type Result = Result<tonic::Response<UpdateKvResponse>, Status>;
 
     fn handle(&mut self, msg: Insert, _ctx: &mut Context<Self>) -> Self::Result {
-        let result = Handle::current().block_on(async move {
-            return self
-                .memtable_handler
+        Handle::current().block_on(async move {
+            self.memtable_handler
                 .update_kv_handler(tonic::Request::new(msg.into()))
-                .await;
-        });
-        return result;
+                .await
+        })
     }
 }
 
@@ -144,12 +144,10 @@ impl<C: Comparator + 'static> Handler<Get> for MemTableServer<C> {
     type Result = Result<tonic::Response<ListKvResponse>, Status>;
 
     fn handle(&mut self, msg: Get, _ctx: &mut Context<Self>) -> Self::Result {
-        let result = Handle::current().block_on(async move {
-            return self
-                .memtable_handler
+        Handle::current().block_on(async move {
+            self.memtable_handler
                 .list_kv_handler(tonic::Request::new(msg.into()))
-                .await;
-        });
-        return result;
+                .await
+        })
     }
 }

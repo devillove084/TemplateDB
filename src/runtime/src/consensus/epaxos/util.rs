@@ -1,4 +1,4 @@
-use std::{ops::DerefMut, sync::Arc};
+use std::sync::Arc;
 
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::{
@@ -28,7 +28,7 @@ async fn read_from_stream(stream: &mut TcpStream, buf: &mut [u8]) {
         let read_size = stream
             .read(&mut buf[has_read..])
             .await
-            .map_err(|e| panic!("link should read {} bytes message, {}", expected_len, e))
+            .map_err(|e| panic!("link should read {expected_len} bytes message, {e}"))
             .unwrap();
         has_read += read_size;
     }
@@ -45,7 +45,7 @@ pub(crate) async fn recv_message<M: DeserializeOwned>(conn: &mut TcpStream) -> M
 
     read_from_stream(conn, &mut buf).await;
     bincode::deserialize(&buf)
-        .map_err(|e| panic!("Deserialize message failed, {}", e))
+        .map_err(|e| panic!("Deserialize message failed, {e}"))
         .unwrap()
 }
 
@@ -55,7 +55,7 @@ where
 {
     // TODO: Report message content while meeting error
     let content = bincode::serialize(message)
-        .map_err(|e| panic!("Failed to serialize the message, {}", e))
+        .map_err(|e| panic!("Failed to serialize the message, {e}"))
         .unwrap();
     let len = (content.len() as u64).to_be_bytes();
 
@@ -69,7 +69,7 @@ where
     M: Serialize,
 {
     let mut conn = conn.lock().await;
-    let conn = conn.deref_mut();
+    let conn = &mut *conn;
 
     send_message(conn, message).await;
 }

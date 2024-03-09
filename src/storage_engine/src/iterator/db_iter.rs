@@ -5,7 +5,7 @@ use rand::Rng;
 use super::{kmerge_iter::KMergeCore, Direction};
 use crate::{
     db_impl::template_impl::DBImpl,
-    error::{TemplateResult, TemplateKVError},
+    error::{TemplateKVError, TemplateResult},
     iterator::Iterator,
     memtable::{
         key_format::{extract_user_key, InternalKey, ParsedInternalKey},

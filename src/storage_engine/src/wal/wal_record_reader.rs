@@ -237,7 +237,7 @@ impl<F: File> Reader<F> {
                         Ok(read) => {
                             self.end_of_buffer_offset += read as u64; // update the end offset here
                             self.buf_length = read;
-                            if read < BLOCK_SIZE as usize {
+                            if read < BLOCK_SIZE {
                                 self.eof = true;
                             }
                         }
@@ -254,13 +254,11 @@ impl<F: File> Reader<F> {
                 // crashing in the middle of writing the header.
                 // Instead of considering this an error, just report EOF.
                 return Err(ReaderError::EOF);
-
             }
             // parse the header
             let header = &self.buf[0..HEADER_SIZE];
             let record_type = *header.last().unwrap();
-            let data_length =
-                ((header[4] as usize & 0xff) | ((header[5] as usize & 0xff) << 8)) as usize;
+            let data_length = (header[4] as usize & 0xff) | ((header[5] as usize & 0xff) << 8);
             let record_length = HEADER_SIZE + data_length;
             // a record must be included in one block
             if record_length > self.buf_length {

@@ -219,7 +219,7 @@ impl<C: Comparator> Options<C> {
             }
             self.block_cache = Some(Arc::new(ShardedCache::new(shards)))
         }
-        if let Some(fp) = std::mem::replace(&mut self.filter_policy, None) {
+        if let Some(fp) = self.filter_policy.take() {
             self.filter_policy = Some(Arc::new(InternalFilterPolicy::new(fp)));
         } else {
             let bf = BloomFilter::new(10);
@@ -228,7 +228,7 @@ impl<C: Comparator> Options<C> {
     }
 
     fn apply_logger<S: Storage>(&mut self, storage: &S, db_path: &str) {
-        let user_logger = std::mem::replace(&mut self.logger, None);
+        let user_logger = self.logger.take();
         let logger = Logger::new(user_logger, self.logger_level, storage, db_path);
         let static_logger: &'static dyn Log = Box::leak(Box::new(logger));
         let _ = log::set_logger(static_logger); // global logger could be set
@@ -352,5 +352,11 @@ impl MemtableOptions {
             wal_type: WalType::CommonSingleWal,
             perfer_column: true,
         }
+    }
+}
+
+impl Default for MemtableOptions {
+    fn default() -> Self {
+        Self::new()
     }
 }

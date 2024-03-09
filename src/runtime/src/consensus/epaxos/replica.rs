@@ -35,7 +35,7 @@ where
     E: CommandExecutor<C> + Debug + Clone + Sync + Send + 'static,
     S: InstanceSpace<C> + Send + Sync + 'static,
 {
-    pub(crate) async fn new(id: usize, peer_cnt: usize, cmd_exe: E) -> Self {
+    pub(crate) fn new(id: usize, peer_cnt: usize, cmd_exe: E) -> Self {
         let instance_space = Arc::new(S::new(peer_cnt));
         let mut cur_max_instances = Vec::with_capacity(peer_cnt);
         let mut commited_upto = Vec::with_capacity(peer_cnt);
@@ -125,7 +125,7 @@ where
                     if conflict_instance.is_none() {
                         continue;
                     }
-                    let conflict_instance = SharedInstance::get_raw_read(conflict_instance).await;
+                    let conflict_instance = SharedInstance::get_raw_read(conflict_instance);
                     // update deps
                     deps[r_id] = match deps[r_id] {
                         Some(dep_instance_id) => {
@@ -162,7 +162,7 @@ where
                     if conflict_instance.is_none() {
                         continue;
                     }
-                    let conflict_instance = SharedInstance::get_raw_read(conflict_instance).await;
+                    let conflict_instance = SharedInstance::get_raw_read(conflict_instance);
                     if deps[r_id].is_some() && deps[r_id].unwrap() < conflict_instance.local_id() {
                         changed = true;
 
@@ -202,9 +202,8 @@ where
                 Some(ins) => {
                     let ins = ins.get_instance_read().await;
                     if ins.is_some()
-                        && SharedInstance::get_raw_read(ins).await.local_id()
+                        && SharedInstance::get_raw_read(ins).local_id()
                             >= SharedInstance::get_raw_read(new_inst.get_instance_read().await)
-                                .await
                                 .local_id()
                     {
                         None
@@ -214,8 +213,8 @@ where
                 }
             };
 
-            if new_inst.is_some() {
-                self.conflicts[*self.id].insert(c.key().clone(), new_inst.unwrap());
+            if let Some(ninst) = new_inst {
+                self.conflicts[*self.id].insert(c.key().clone(), ninst);
             }
         }
     }

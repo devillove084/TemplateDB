@@ -43,7 +43,7 @@
 /// ## Common Table block trailer:
 ///
 /// ```text
-/// 
+///
 ///     +---------------------------+-------------------+
 ///     | compression type (1-byte) | checksum (4-byte) |
 ///     +---------------------------+-------------------+
@@ -55,7 +55,7 @@
 /// ## Table footer:
 ///
 /// ```text
-/// 
+///
 ///       +------------------- 40-bytes -------------------+
 ///      /                                                  \
 ///     +------------------------+--------------------+------+-----------------+
@@ -121,7 +121,7 @@
 /// # Block restarts trailer
 ///
 /// ```text
-/// 
+///
 ///       +-- 4-bytes --+
 ///      /               \
 ///     +-----------------+-----------------+-----------------+------------------------------+
@@ -139,7 +139,7 @@
 /// Filter block data structure:
 ///
 /// ```text
-/// 
+///
 ///       + offset 1      + offset 2      + offset n      + trailer offset
 ///      /               /               /               /
 ///     +---------------+---------------+---------------+---------+
@@ -150,7 +150,7 @@
 /// Filter block trailer:
 ///
 /// ```text
-/// 
+///
 ///       +- 4-bytes -+
 ///      /             \
 ///     +---------------+---------------+---------------+-------------------------------+------------------+
@@ -167,7 +167,7 @@
 /// handle' pointed to
 ///
 /// ```text
-/// 
+///
 ///     +---------------+--------------+
 ///     |      key      |    value     |
 ///     +---------------+--------------+
@@ -185,7 +185,7 @@
 /// meta data:
 ///
 /// ```text
-/// 
+///
 ///     +-------------+---------------------+
 ///     |     key     |        value        |
 ///     +-------------+---------------------+
@@ -199,7 +199,7 @@ mod filter_block;
 pub mod table;
 
 use crate::{
-    error::{TemplateResult, TemplateKVError},
+    error::{TemplateKVError, TemplateResult},
     util::{
         coding::{decode_fixed_64, put_fixed_64},
         varint::{VarintU64, MAX_VARINT_LEN_U64},
@@ -377,7 +377,7 @@ mod tests {
     use crate::{
         db_impl::template_impl::{TemplateDB, TemplateDBIterator},
         db_trait::DB,
-        error::{TemplateResult, TemplateKVError},
+        error::{TemplateKVError, TemplateResult},
         iterator::{memtable_iter::MemTableIterator, Iterator},
         memtable::{
             batch::WriteBatch,
@@ -639,11 +639,11 @@ mod tests {
 
         fn status(&mut self) -> TemplateResult<()> {
             let err = self.err.take();
-            if err.is_none() {
+            if let Some(e) = err {
+                Err(e)
+            } else {
                 self.err.set(err);
                 self.inner.status()
-            } else {
-                Err(err.unwrap())
             }
         }
     }
@@ -886,9 +886,9 @@ mod tests {
         // been added so far.  Returns the keys in sorted order and stores the
         // key/value pairs in `data`
         fn finish(&mut self, options: Arc<Options<TestComparator>>) -> Vec<Vec<u8>> {
-            let cmp = options.comparator.clone();
+            let cmp = options.comparator;
             // Sort the data
-            self.data.sort_by(|(a, _), (b, _)| cmp.compare(&a, &b));
+            self.data.sort_by(|(a, _), (b, _)| cmp.compare(a, b));
             let mut res = vec![];
             for (key, _) in self.data.iter() {
                 res.push(key.clone())

@@ -10,7 +10,7 @@ use std::{
 use fs2::FileExt;
 
 use crate::{
-    error::{TemplateResult, TemplateKVError},
+    error::{TemplateKVError, TemplateResult},
     storage::{File, Storage},
 };
 

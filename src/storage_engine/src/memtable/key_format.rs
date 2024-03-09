@@ -163,7 +163,7 @@ impl Debug for InternalKey {
 /// The format of a `LookupKey`:
 ///
 /// ```text
-/// 
+///
 ///   +---------------------------------+
 ///   | varint32 of internal key length |
 ///   +---------------------------------+ --------------- user key start
@@ -412,10 +412,10 @@ mod tests {
             1u64 << 32,
             (1u64 << 32) + 1,
         ];
-        for i in 0..test_keys.len() {
-            for j in 0..test_seqs.len() {
-                assert_encoded_decoded(test_keys[i], test_seqs[j], ValueType::Value);
-                assert_encoded_decoded(test_keys[i], test_seqs[j], ValueType::Deletion);
+        for key in &test_keys {
+            for seq in &test_seqs {
+                assert_encoded_decoded(key, *seq, ValueType::Value);
+                assert_encoded_decoded(key, *seq, ValueType::Deletion);
             }
         }
     }

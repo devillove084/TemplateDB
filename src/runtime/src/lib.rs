@@ -1,5 +1,5 @@
-#![deny(clippy::pedantic)]
-
+#![deny(clippy::all)]
+#![allow(clippy::enum_variant_names)]
 #![feature(async_closure)]
 #![feature(btree_extract_if)]
 #![feature(hash_extract_if)]

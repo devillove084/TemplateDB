@@ -1,0 +1,97 @@
+# subquery as source
+
+# subquery in FROM must have an alias. same behavior as Postgres
+skipif template_query_v2
+statement error
+select * from (select * from t1 where a > 1) where b > 7;
+
+skipif template_query_v2
+query III
+select * from (select * from t1 where c < 2) t_1;
+----
+2 8 1
+
+skipif template_query_v2
+query III
+select * from (select * from (select * from t1 where c < 2) t_1 where t_1.a > 1) t_2 where t_2.b > 7;
+----
+2 8 1
+
+
+skipif template_query_v2
+query III
+select t.* from (select * from t1 where a > 1) t where t.b > 7;
+----
+2 8 1
+
+skipif template_query_v2
+query II
+select t.b from (select a, b from t1 where a > 1) t where t.b > 7;
+----
+8
+
+skipif template_query_v2
+query III
+select t_2.* from (select t_1.* from (select * from t1 where c < 2) t_1 where t_1.a > 1) t_2 where t_2.b > 7;
+----
+2 8 1
+
+# scalar subquery
+
+skipif template_query_v2
+query II
+select a, t2.v1 as max_b from t1 cross join (select max(b) as v1 from t1) t2;
+----
+0 8
+1 8
+2 8
+2 8
+
+skipif template_query_v2
+query II
+select a, (select max(b) from t1) max_b from t1;
+----
+0 8
+1 8
+2 8
+2 8
+
+skipif template_query_v2
+query II
+select a, (select max(b) from t1) from t1;
+----
+0 8
+1 8
+2 8
+2 8
+
+skipif template_query_v2
+query II
+select a, (select max(b) from t1) + 2 as max_b from t1;
+----
+0 10
+1 10
+2 10
+2 10
+
+skipif template_query_v2
+query II
+select a, (select max(b) from t1) + (select min(b) from t1) as mix_b from t1;
+----
+0 12
+1 12
+2 12
+2 12
+
+skipif template_query_v2
+query I
+select t1.a, t1.b from t1 where a >= (select max(a) from t1);
+----
+2 7
+2 8
+
+skipif template_query_v2
+query I
+select t1.a, t1.b from t1 where a >= (select max(a) from t1) and b = (select max(b) from t1);
+----
+2 8

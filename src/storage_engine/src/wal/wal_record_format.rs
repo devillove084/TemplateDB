@@ -214,7 +214,7 @@ mod tests {
         3 * BLOCK_SIZE,
     ];
 
-    const EOF: &'static str = "EOF";
+    const EOF: &str = "EOF";
 
     impl RecordTest {
         pub fn new(reporter: &ReportCollector) -> Self {
@@ -301,7 +301,7 @@ mod tests {
         pub fn write_initial_offset_log(&mut self) {
             for i in 0..INITIAL_OFFSET_RECORD_SIZES.len() {
                 let record = (0..INITIAL_OFFSET_RECORD_SIZES[i])
-                    .map(|_| (b'a' as u8 + u8::try_from(i).expect("truncate error")) as char)
+                    .map(|_| (b'a' + u8::try_from(i).expect("truncate error")) as char)
                     .collect::<String>();
                 self.write(record.as_str());
             }
@@ -360,7 +360,7 @@ mod tests {
                     "last record offset should match"
                 );
                 assert_eq!(
-                    b'a' as u8 + u8::try_from(expected_record_index).expect("truncate error"),
+                    b'a' + u8::try_from(expected_record_index).expect("truncate error"),
                     record[0],
                     "record content should match"
                 );
@@ -668,7 +668,7 @@ mod tests {
 
         // wipe the middle block
         for i in BLOCK_SIZE..2 * BLOCK_SIZE {
-            log.set_byte(i, b'x' as u8);
+            log.set_byte(i, b'x');
         }
         assert_eq!("correct", log.read());
         assert_eq!(EOF, log.read());

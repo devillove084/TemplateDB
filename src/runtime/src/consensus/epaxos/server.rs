@@ -45,7 +45,7 @@ where
     pub(crate) async fn new(conf: &Configure, server: Arc<InnerServer<C, E, S>>) -> Self {
         let listener = TcpListener::bind(conf.peer.get(conf.index).unwrap())
             .await
-            .map_err(|e| panic!("bind server address error, {}", e))
+            .map_err(|e| panic!("bind server address error, {e}"))
             .unwrap();
         Self { server, listener }
     }
@@ -88,7 +88,7 @@ where
         Self {
             conf,
             conns: RwLock::new(vec![]),
-            replica: Arc::new(Mutex::new(Replica::new(id, peer_cnt, cmd_exe).await)),
+            replica: Arc::new(Mutex::new(Replica::new(id, peer_cnt, cmd_exe))),
         }
     }
 
@@ -111,7 +111,7 @@ where
         match message {
             Message::PreAccept(preaccept) => self.handle_preaccept(preaccept).await,
             Message::PreAcceptReply(preacceptreply) => {
-                self.handle_preaccept_reply(preacceptreply).await
+                self.handle_preaccept_reply(preacceptreply).await;
             }
             Message::PreAcceptOk(preacceptok) => self.handle_preaccept_ok(preacceptok).await,
             Message::Accept(accept) => self.handle_accept(accept).await,
@@ -165,18 +165,15 @@ where
             all_connect = self.conns.read().await;
         }
 
-        if **command_leader >= all_connect.len() {
-            panic!(
-                "all connection number is {}, but the leader id is {}",
-                all_connect.len(),
-                **command_leader
-            );
-        }
+        assert!(
+            **command_leader < all_connect.len(),
+            "all connection number is {}, but the leader id is {}",
+            all_connect.len(),
+            **command_leader
+        );
 
         let conn = all_connect.get(**command_leader).unwrap();
-        if conn.is_none() {
-            panic!("should not reply to self");
-        }
+        assert!(!conn.is_none(), "should not reply to self");
 
         send_message_arc(conn.as_ref().unwrap(), &message).await;
     }
@@ -187,7 +184,7 @@ where
             for (id, p) in self.conf.peer.iter().enumerate() {
                 let stream = TcpStream::connect(p)
                     .await
-                    .map_err(|e| panic!("connect to {} failed, {}", p, e))
+                    .map_err(|e| panic!("connect to {p} failed, {e}"))
                     .unwrap();
                 conn_write.push(if id == **current_replica {
                     None
@@ -253,8 +250,8 @@ where
                 },
                 seq,
                 ballot: self.new_ballot().await,
-                cmds: new_instance_read_inner.cmds.to_vec(),
-                deps: new_instance_read_inner.deps.to_vec(),
+                cmds: new_instance_read_inner.cmds.clone(),
+                deps: new_instance_read_inner.deps.clone(),
             }),
         )
         .await;
@@ -300,8 +297,8 @@ where
                         seq: instance_read_inner.seq,
                         ballot: instance_read_inner.ballot,
                         ok: false,
-                        deps: instance_read_inner.deps.to_vec(),
-                        committed_deps: replica.commited_upto.to_vec(),
+                        deps: instance_read_inner.deps.clone(),
+                        committed_deps: replica.commited_upto.clone(),
                     }),
                 )
                 .await;
@@ -315,7 +312,7 @@ where
 
         // TODO: We have better not copy dep vec.
         let (seq, deps, changed) = replica
-            .update_seq_deps(preaccept.seq, preaccept.deps.to_vec(), &preaccept.cmds)
+            .update_seq_deps(preaccept.seq, preaccept.deps.clone(), &preaccept.cmds)
             .await;
 
         let status = if changed {
@@ -349,8 +346,8 @@ where
                 seq,
                 ballot: preaccept.ballot,
                 // TODO: cmds and deps should not copy
-                cmds: preaccept.cmds.to_vec(),
-                deps: deps.to_vec(),
+                cmds: preaccept.cmds.clone(),
+                deps: deps.clone(),
                 status,
                 lb: self.new_leaderbook().await,
             }),
@@ -391,7 +388,7 @@ where
                     ok: true,
                     deps,
                     // TODO: should not copy
-                    committed_deps: replica.commited_upto.to_vec(),
+                    committed_deps: replica.commited_upto.clone(),
                 }),
             )
             .await;
@@ -420,10 +417,11 @@ where
             )
             .await;
 
-        if !instance_exist(&instance).await {
-            // TODO: Error process
-            panic!("this instance should already in the space");
-        }
+        // TODO: Error process
+        assert!(
+            (instance_exist(&instance).await),
+            "this instance should already in the space"
+        );
 
         // we have checked the existence
         let orig = instance.unwrap();
@@ -467,8 +465,8 @@ where
                     command_leader_id: replica.id.into(),
                     instance_id: preacceptreply.instance_id,
                     seq: instance_w_inner.seq,
-                    cmds: instance_w_inner.cmds.to_vec(),
-                    deps: instance_w_inner.deps.to_vec(),
+                    cmds: instance_w_inner.cmds.clone(),
+                    deps: instance_w_inner.deps.clone(),
                 }),
             )
             .await;
@@ -485,7 +483,7 @@ where
                     ballot: instance_w_inner.ballot,
                     seq: instance_w_inner.seq,
                     cmd_cnt: instance_w_inner.cmds.len(),
-                    deps: instance_w_inner.deps.to_vec(),
+                    deps: instance_w_inner.deps.clone(),
                 }),
             )
             .await;
@@ -504,9 +502,10 @@ where
             )
             .await;
 
-        if !instance_exist(&instance).await {
-            panic!("This instance should already in the space");
-        }
+        assert!(
+            (instance_exist(&instance).await),
+            "This instance should already in the space"
+        );
 
         let instance = instance.unwrap();
         let mut instance_write = instance.get_instance_write().await;
@@ -537,8 +536,8 @@ where
                     command_leader_id: replica.id.into(),
                     instance_id: preaccept_ok.instance_id,
                     seq: instance_write_inner.seq,
-                    cmds: instance_write_inner.cmds.to_vec(),
-                    deps: instance_write_inner.deps.to_vec(),
+                    cmds: instance_write_inner.cmds.clone(),
+                    deps: instance_write_inner.deps.clone(),
                 }),
             )
             .await;
@@ -555,7 +554,7 @@ where
                     ballot: instance_write_inner.ballot,
                     seq: instance_write_inner.seq,
                     cmd_cnt: instance_write_inner.cmds.len(),
-                    deps: instance_write_inner.deps.to_vec(),
+                    deps: instance_write_inner.deps.clone(),
                 }),
             )
             .await;
@@ -666,10 +665,12 @@ where
             )
             .await;
 
-        if !instance_exist(&instance).await {
-            // TODO: Error processing
-            panic!("The instance {:?} should exist", accept_reply.instance_id);
-        }
+        // TODO: Error processing
+        assert!(
+            (instance_exist(&instance).await),
+            "The instance {:?} should exist",
+            accept_reply.instance_id
+        );
 
         let instance = instance.unwrap();
         let mut instance_write = instance.get_instance_write().await;
@@ -695,8 +696,8 @@ where
                     command_leader_id: replica.id.into(),
                     instance_id: accept_reply.instance_id,
                     seq: instance_write_inner.seq,
-                    cmds: instance_write_inner.cmds.to_vec(),
-                    deps: instance_write_inner.deps.to_vec(),
+                    cmds: instance_write_inner.cmds.clone(),
+                    deps: instance_write_inner.deps.clone(),
                 }),
             )
             .await;
@@ -741,7 +742,7 @@ where
                     id: commit.instance_id,
                     seq: commit.seq,
                     ballot: self.new_ballot().await,
-                    cmds: commit.cmds.to_vec(),
+                    cmds: commit.cmds.clone(),
                     deps: commit.deps,
                     status: InstanceStatus::Committed,
                     lb: self.new_leaderbook().await,
@@ -812,6 +813,6 @@ where
     }
 
     pub async fn run(&self) {
-        self.inner.run().await
+        self.inner.run().await;
     }
 }

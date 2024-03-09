@@ -20,7 +20,7 @@ pub enum Fatal {
 /// Extract Fatal from a Result.
 ///
 /// Fatal will shutdown the raft and needs to be dealt separately,
-/// such as StorageError.
+/// such as `StorageError`.
 pub trait ExtractFatal<NID>
 where
     Self: Sized,
@@ -45,7 +45,7 @@ where
     }
 }
 
-/// An error related to a is_leader request.
+/// An error related to a `is_leader` request.
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum CheckIsLeaderError<NID, N>
 where

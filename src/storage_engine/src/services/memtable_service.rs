@@ -77,7 +77,6 @@ impl<C: Comparator + 'static> MemtableService for MemtableServiceHandler<C> {
         }
         error!("memtable get failed");
         return Err(Status::aborted("memtable process error"));
-
     }
 
     async fn update_kv(
@@ -101,14 +100,10 @@ impl<C: Comparator + 'static> MemtableService for MemtableServiceHandler<C> {
             crate::memtable_service::ValueType::Unknown => 2,
         };
 
-        if value.is_some() {
-            self.memtable.add(
-                seq,
-                ValueType::Value,
-                key.as_bytes(),
-                value.unwrap().as_bytes(),
-            );
-        }
+        if let Some(v) = value {
+            self.memtable
+                .add(seq, ValueType::Value, key.as_bytes(), v.as_bytes());
+        };
 
         Ok(tonic::Response::new(UpdateKvResponse {
             tenant,

@@ -288,13 +288,13 @@ mod tests {
 
     impl Iterator for TestSimpleArrayIter {
         fn valid(&self) -> bool {
-            self.current < self.inner.len() && self.inner.len() > 0
+            self.current < self.inner.len() && !self.inner.is_empty()
         }
         fn seek_to_first(&mut self) {
             self.current = 0;
         }
         fn seek_to_last(&mut self) {
-            if self.inner.len() > 0 {
+            if !self.inner.is_empty() {
                 self.current = self.inner.len() - 1
             }
         }

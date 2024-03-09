@@ -82,7 +82,7 @@ impl<A: Arena> Drop for InlineSkipListInner<A> {
     fn drop(&mut self) {
         let mut node = self.head.as_ptr();
         loop {
-            let next = unsafe { (&*node).get_next(0) };
+            let next = unsafe { (*node).get_next(0) };
             if !next.is_null() {
                 unsafe {
                     ptr::drop_in_place(node);
@@ -198,8 +198,8 @@ where
         let key: Bytes = key.into();
         self.inner.size.fetch_add(key.len(), Ordering::SeqCst);
         let mut list_height = self.get_height();
-        let mut prev = vec![null_mut(); MAX_HEIGHT + 1];
-        let mut next = vec![null_mut(); MAX_HEIGHT + 1];
+        let mut prev = [null_mut(); MAX_HEIGHT + 1];
+        let mut next = [null_mut(); MAX_HEIGHT + 1];
         prev[list_height] = self.inner.head.as_ptr();
         for i in (0..list_height).rev() {
             // Use higher level to speed up for current level.
@@ -284,7 +284,7 @@ where
         let mut node = self.inner.head.as_ptr();
         let mut count = 0;
         loop {
-            let next = unsafe { (&*node).get_next(0) };
+            let next = unsafe { (*node).get_next(0) };
             if !next.is_null() {
                 count += 1;
                 node = next;
@@ -328,7 +328,7 @@ where
     ) -> (*mut Node, *mut Node) {
         loop {
             unsafe {
-                let next = (&*before).get_next(height);
+                let next = (*before).get_next(height);
                 if next.is_null() {
                     return (before, null_mut());
                 }

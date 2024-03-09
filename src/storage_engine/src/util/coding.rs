@@ -1,4 +1,4 @@
-use std::{mem::transmute, ptr::copy_nonoverlapping};
+use std::ptr::copy_nonoverlapping;
 
 /// Encodes `value` in little-endian and puts it in the first 4-bytes of `dst`.
 ///
@@ -12,7 +12,7 @@ pub fn encode_fixed_32(dst: &mut [u8], value: u32) {
         dst.len()
     );
     unsafe {
-        let bytes = transmute::<u32, [u8; 4]>(value.to_le());
+        let bytes = value.to_le().to_ne_bytes();
         copy_nonoverlapping(bytes.as_ptr(), dst.as_mut_ptr(), 4);
     }
 }
@@ -29,7 +29,7 @@ pub fn encode_fixed_64(dst: &mut [u8], value: u64) {
         dst.len()
     );
     unsafe {
-        let bytes = transmute::<u64, [u8; 8]>(value.to_le());
+        let bytes = value.to_le().to_ne_bytes();
         copy_nonoverlapping(bytes.as_ptr(), dst.as_mut_ptr(), 8);
     }
 }

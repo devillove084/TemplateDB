@@ -4,8 +4,8 @@ use super::id::{ProcessId, ShardId};
 /// with `n` processes.
 pub fn process_ids(shard_id: ShardId, n: usize) -> impl Iterator<Item = ProcessId> {
     // compute process identifiers, making sure ids are non-zero
-    let shift = n * shard_id as usize;
-    (1..=n).map(move |id| (id + shift) as ProcessId)
+    let shift = n * usize::try_from(shard_id).expect("truncate error");
+    (1..=n).map(move |id| ProcessId::try_from(id + shift).expect("truncate error"))
 }
 
 pub fn all_process_ids(shard_count: usize, n: usize) -> impl Iterator<Item = (ProcessId, ShardId)> {

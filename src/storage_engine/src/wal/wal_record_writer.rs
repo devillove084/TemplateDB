@@ -14,7 +14,7 @@ pub struct Writer<F: File> {
     // crc32c values for all supported record types.  These are
     // pre-computed to reduce the overhead of computing the crc of the
     // record type stored in the header.
-    crc_cache: [u32; (RecordType::Last as usize + 1) as usize],
+    crc_cache: [u32; RecordType::Last as usize + 1_usize],
 }
 
 impl<F: File> Writer<F> {
@@ -23,7 +23,7 @@ impl<F: File> Writer<F> {
         let mut cache = [0; RecordType::Last as usize + 1];
         for h in 1..=n {
             let v: [u8; 1] = [RecordType::from(h) as u8];
-            cache[h as usize] = crc32::hash(&v);
+            cache[h] = crc32::hash(&v);
         }
         Self {
             dest,

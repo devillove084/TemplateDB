@@ -7,7 +7,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::error::{TemplateResult, TemplateKVError};
+use crate::error::{TemplateKVError, TemplateResult};
 
 /// `Storage` is a namespace for files.
 ///

@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    error::{TemplateResult, TemplateKVError},
+    error::{TemplateKVError, TemplateResult},
     iterator::Iterator,
     util::{
         coding::{decode_fixed_32, put_fixed_32},
@@ -24,7 +24,7 @@ const U32_LEN: usize = std::mem::size_of::<u32>();
 /// Block Key/value entry:
 ///
 /// ```text
-/// 
+///
 ///     +-------+---------+-----------+---------+--------------------+--------------+----------------+
 ///     | shared (varint) | not shared (varint) | value len (varint) | key (varlen) | value (varlen) |
 ///     +-----------------+---------------------+--------------------+--------------+----------------+

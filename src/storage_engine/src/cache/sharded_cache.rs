@@ -26,7 +26,8 @@ where
     V: Sync + Send + Clone,
 {
     /// Create a new `ShardedCache` with given shards
-    #[must_use] pub fn new(shards: Vec<C>) -> Self {
+    #[must_use]
+    pub fn new(shards: Vec<C>) -> Self {
         Self {
             shards: Arc::new(shards),
             _k: PhantomData,

@@ -59,6 +59,7 @@ where
 }
 
 impl Dot {
+    #[must_use]
     pub fn target_shard(&self, n: usize) -> ShardId {
         ((self.source() - 1) as usize / n) as ShardId
     }

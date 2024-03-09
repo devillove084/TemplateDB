@@ -4,7 +4,7 @@ use snap::raw::max_compress_len;
 
 use crate::{
     cache::{Cache, FilterPolicy},
-    error::{TemplateResult, TemplateKVError},
+    error::{TemplateKVError, TemplateResult},
     iterator::{
         concatenate_iter::{ConcatenateIterator, DerivedIterFactory},
         Iterator,

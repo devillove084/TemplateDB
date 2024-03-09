@@ -1,16 +1,3 @@
-// Copyright 2019 Fullstop000 <fullstop1005@gmail.com>.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 use std::{
     cell::RefCell,
     mem, ptr,
@@ -70,8 +57,8 @@ impl Arena for OffsetArena {
     }
 }
 
-unsafe impl Send for OffsetArena {}
-unsafe impl Sync for OffsetArena {}
+unsafe impl Send for OffsetArenaInner {}
+unsafe impl Sync for OffsetArenaInner {}
 
 impl OffsetArena {
     // The real cap will be aligned with 8
@@ -262,12 +249,10 @@ mod tests {
                     continue;
                 }
                 i
+            } else if i == 1 {
+                1
             } else {
-                if i == 1 {
-                    1
-                } else {
-                    r.gen_range(1, i)
-                }
+                r.gen_range(1, i)
             };
             let ptr = unsafe { a.allocate::<u8>(size, 8) };
             unsafe {

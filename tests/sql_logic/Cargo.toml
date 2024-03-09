@@ -1,0 +1,15 @@
+[package]
+name = "sql_logic"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+query_engine = { path = "../../src/query_engine" }
+sqllogictest = "0.6"
+glob = "0.3.1"
+async-trait = "0.1.77"
+libtest-mimic = "0.7.0"
+
+[[test]]
+name = "sql_logic"
+harness = false

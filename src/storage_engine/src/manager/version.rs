@@ -12,7 +12,7 @@ use std::{
 use super::{version_edit::FileMetaData, version_set::total_file_size};
 use crate::{
     cache::table_cache::TableCache,
-    error::{TemplateResult, TemplateKVError},
+    error::{TemplateKVError, TemplateResult},
     iterator::Iterator,
     memtable::{
         key_format::{InternalKey, InternalKeyComparator, LookupKey, ParsedInternalKey},
@@ -93,7 +93,7 @@ impl<C: Comparator> fmt::Debug for Version<C> {
 
 impl<C: Comparator + 'static> Version<C> {
     pub fn new(options: Arc<Options<C>>, icmp: InternalKeyComparator<C>) -> Self {
-        let max_levels = options.max_levels as usize;
+        let max_levels = options.max_levels;
         let mut files = Vec::with_capacity(max_levels);
         for _ in 0..max_levels {
             files.push(Vec::new());
@@ -149,7 +149,7 @@ impl<C: Comparator + 'static> Version<C> {
                     // `smallest` but a bigger `seq` number than it, which is smaller
                     // in a comparison by `icmp`.
                     if ucmp.compare(ukey, target.smallest.user_key()) != CmpOrdering::Less
-                        && level + 1 < self.options.max_levels as usize
+                        && level + 1 < self.options.max_levels
                     {
                         files_to_seek.push((target, level));
                     }
@@ -261,7 +261,7 @@ impl<C: Comparator + 'static> Version<C> {
                 if self.overlap_in_level(level + 1, Some(smallest_ukey), Some(largest_ukey)) {
                     break;
                 }
-                if level + 2 < self.options.max_levels as usize {
+                if level + 2 < self.options.max_levels {
                     // Check that file does not overlap too many grandparent bytes
                     let overlaps = self.get_overlapping_inputs(
                         level + 2,
@@ -284,7 +284,7 @@ impl<C: Comparator + 'static> Version<C> {
         // pre-computed best level for next compaction
         let mut best_level = 0;
         let mut best_score = 0.0;
-        for level in 0..self.options.max_levels as usize {
+        for level in 0..self.options.max_levels {
             let score = {
                 if level == 0 {
                     // We treat level-0 specially by bounding the number of files
@@ -775,8 +775,7 @@ mod find_file_tests {
         let mut t = FindFileTest::default();
         t.add("p", "q");
         // Find tests
-        for (expected, input) in [(0, "a"), (0, "p"), (0, "p1"), (0, "q"), (1, "q1"), (1, "z")]
-        {
+        for (expected, input) in [(0, "a"), (0, "p"), (0, "p1"), (0, "q"), (1, "q1"), (1, "z")] {
             assert_eq!(expected, t.find(input), "input {}", input);
         }
         // Overlap tests

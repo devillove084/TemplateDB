@@ -11,7 +11,7 @@ use std::{
 };
 
 use crate::{
-    error::{TemplateResult, TemplateKVError},
+    error::{TemplateKVError, TemplateResult},
     storage::{File, Storage},
     util::collection::HashMap,
 };
@@ -582,7 +582,7 @@ impl File for InmemFile {
                 buf.len()
             };
             buf.copy_from_slice(&inner.as_slice()[offset as usize..offset as usize + exact]);
-            Ok(exact as usize)
+            Ok(exact)
         }
     }
 }

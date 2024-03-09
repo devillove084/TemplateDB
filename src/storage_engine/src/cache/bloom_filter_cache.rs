@@ -8,6 +8,7 @@ pub struct BloomFilter {
 }
 
 impl BloomFilter {
+    #[must_use]
     pub fn new(bits_per_key: usize) -> Self {
         // 0.69 =~ ln(2) and we intentionally round down to reduce probing cost a little bit
         let mut k = bits_per_key as f32 * 0.69;
@@ -49,7 +50,7 @@ impl FilterPolicy for BloomFilter {
         let mut h = Self::bloom_hash(key);
         let delta = (h >> 17) | (h << 15); // rotate right 17 bits
         for _ in 0..k {
-            let bit_pos = h % (bits as u32);
+            let bit_pos = h % u32::try_from(bits).expect("truncate error");
             if (filter[(bit_pos / 8) as usize] & (1 << (bit_pos % 8))) == 0 {
                 return false;
             }
@@ -121,7 +122,7 @@ mod tests {
         }
 
         fn assert_or_return(&self, key: &[u8], want: bool, assert: bool) -> bool {
-            let got = (&self).policy.may_contain(self.filter.as_slice(), key);
+            let got = self.policy.may_contain(self.filter.as_slice(), key);
             if assert {
                 assert_eq!(got, want);
             };
@@ -135,7 +136,7 @@ mod tests {
         }
 
         fn build(&mut self) {
-            self.filter = (&self).policy.create_filter(self.keys.as_slice());
+            self.filter = self.policy.create_filter(self.keys.as_slice());
         }
 
         fn reset(&mut self) {
@@ -146,17 +147,11 @@ mod tests {
 
     fn next_n(n: u32) -> u32 {
         match n {
-            _ if n < 10 => {
-                return n + 1;
-            }
-            _ if n < 100 => {
-                return n + 10;
-            }
-            _ if n < 1000 => {
-                return n + 100;
-            }
-            _ => return n + 1000,
-        };
+            _ if n < 10 => n + 1,
+            _ if n < 100 => n + 10,
+            _ if n < 1000 => n + 100,
+            _ => n + 1000,
+        }
     }
 
     #[test]
@@ -193,9 +188,8 @@ mod tests {
             h.build();
             let got = h.filter_len();
             let want = (n * 10 / 8) + 40;
-            assert_eq!(
+            assert!(
                 got as u32 <= want,
-                true,
                 "filter len test failed, '{}' > '{}'",
                 got,
                 want

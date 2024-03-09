@@ -6,7 +6,7 @@ use super::region::Region;
 pub struct BuildEnv {
     /// mapping from region A to a mapping from region B to the latency between
     /// A and B
-    /// Region A -> (RegionB -> latency)
+    /// Region A -> (`RegionB` -> latency)
     latencies: HashMap<Region, HashMap<Region, u64>>,
 
     /// mapping from each region to the regions sorted by distance,

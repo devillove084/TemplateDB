@@ -10,11 +10,13 @@ pub struct Configure {
 }
 
 impl Configure {
+    #[must_use]
     pub fn new(peer_cnt: usize, peer: Vec<String>, index: usize, epoch: usize) -> Self {
         // TODO: Maybe we can start node on random numbers.
-        if (peer_cnt % 2) == 0 {
-            panic!("The peer count should be odd, but we got {}", peer_cnt);
-        }
+        assert!(
+            (peer_cnt % 2) != 0,
+            "The peer count should be odd, but we got {peer_cnt}"
+        );
 
         Self {
             peer_cnt,
@@ -42,6 +44,7 @@ pub struct YamlConfigureSrc {
 }
 
 impl YamlConfigureSrc {
+    #[must_use]
     pub fn new(yaml: &str) -> Self {
         Self {
             yaml: yaml.to_owned(),
@@ -54,11 +57,9 @@ impl ConfigureSrc for YamlConfigureSrc {
         let yaml = YamlLoader::load_from_str(&self.yaml);
         match yaml {
             Ok(y) => {
-                if y.len() != 1 {
-                    panic!("We should only pass in a yaml file");
-                }
+                assert!(y.len() == 1, "We should only pass in a yaml file");
 
-                let yaml = y.get(0).unwrap();
+                let yaml = y.first().unwrap();
 
                 let peer_cnt = yaml["peer_cnt"].as_i64().unwrap() as usize;
                 let peer = yaml["peer"]
@@ -79,7 +80,7 @@ impl ConfigureSrc for YamlConfigureSrc {
                 }
             }
             Err(e) => {
-                panic!("Scan yaml file error on {}", e);
+                panic!("Scan yaml file error on {e}");
             }
         }
     }

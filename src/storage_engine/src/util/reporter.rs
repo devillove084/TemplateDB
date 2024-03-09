@@ -1,7 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    error::{TemplateResult, TemplateKVError},
+    error::{TemplateKVError, TemplateResult},
     wal::wal_record_reader::Reporter,
 };
 
@@ -38,5 +38,11 @@ impl Reporter for LogReporter {
     fn corruption(&mut self, _bytes: u64, reason: &str) {
         self.inner.borrow_mut().ok = false;
         self.inner.borrow_mut().reason = reason.to_owned();
+    }
+}
+
+impl Default for LogReporter {
+    fn default() -> Self {
+        Self::new()
     }
 }

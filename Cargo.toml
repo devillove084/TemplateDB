@@ -4,6 +4,8 @@ members = [
     "src/runtime",
     "src/util/pro-macro",
     "src/query_engine",
+    # "tests/sql_logic",
+    "tests/sql_planner",
 ]
 
 resolver = "2"

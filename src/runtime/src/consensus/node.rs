@@ -86,7 +86,7 @@ impl<T> Node for T where T: NodeEssential {}
 /// Minimal node information.
 ///
 /// The most common usage is to store the connecting address of a node.
-/// So that an application does not need an additional store to support its RaftNetwork
+/// So that an application does not need an additional store to support its `RaftNetwork`
 /// implementation.
 ///
 /// An application is also free not to use this storage and implements its own node-id to address
@@ -98,7 +98,7 @@ pub struct BasicNode {
 }
 
 impl BasicNode {
-    pub fn new(addr: impl ToString) -> Self {
+    pub fn new(addr: &impl ToString) -> Self {
         Self {
             addr: addr.to_string(),
         }

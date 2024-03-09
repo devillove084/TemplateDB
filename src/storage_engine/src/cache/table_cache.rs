@@ -3,7 +3,6 @@ use std::sync::Arc;
 use super::lru_cache::LRUCache;
 use crate::{
     cache::Cache,
-    // db::filename::{generate_filename, FileType},
     options::{Options, ReadOptions},
     sstable::{
         block::BlockIterator,
@@ -45,7 +44,9 @@ impl<S: Storage + Clone, C: Comparator + 'static> TableCache<S, C> {
         file_number: u64,
         file_size: u64,
     ) -> TemplateResult<Arc<Table<S::F>>> {
-        if let Some(v) = self.cache.get(&file_number) { Ok(v) } else {
+        if let Some(v) = self.cache.get(&file_number) {
+            Ok(v)
+        } else {
             let filename = generate_filename(&self.db_path, FileType::Table, file_number);
             let table_file = self.storage.open(filename)?;
             let table = Table::open(

@@ -1,6 +1,6 @@
 use super::{memtable::MemTable, value_format::ValueType};
 use crate::{
-    error::{TemplateResult, TemplateKVError},
+    error::{TemplateKVError, TemplateResult},
     util::{
         coding::{decode_fixed_32, decode_fixed_64, encode_fixed_32, encode_fixed_64},
         comparator::Comparator,
@@ -14,7 +14,7 @@ pub const HEADER_SIZE: usize = 12;
 ///
 ///
 /// ```text
-/// 
+///
 /// The contents structure:
 ///
 ///  +---------------------+

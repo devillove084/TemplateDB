@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
 use crate::{
-    error::{TemplateResult, TemplateKVError},
+    error::{TemplateKVError, TemplateResult},
     iterator::Iterator,
 };
 
@@ -168,13 +168,13 @@ impl<I: Iterator, F: DerivedIterFactory> Iterator for ConcatenateIterator<I, F> 
 
     fn next(&mut self) {
         self.valid_or_panic();
-        let _ = self.derived.as_mut().map_or((), |di| di.next());
+        let () = self.derived.as_mut().map_or((), |di| di.next());
         self.skip_forward();
     }
 
     fn prev(&mut self) {
         self.valid_or_panic();
-        let _ = self.derived.as_mut().map_or((), |di| di.prev());
+        let () = self.derived.as_mut().map_or((), |di| di.prev());
         self.skip_backward();
     }
 

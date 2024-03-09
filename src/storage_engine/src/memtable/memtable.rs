@@ -9,7 +9,7 @@ use super::{
     KeyComparator,
 };
 use crate::{
-    error::{TemplateResult, TemplateKVError},
+    error::{TemplateKVError, TemplateResult},
     iterator::{memtable_iter::MemTableIterator, Iterator},
     options::INTERNAL_KEY_TAIL,
     util::{

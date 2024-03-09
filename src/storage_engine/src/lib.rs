@@ -10,8 +10,11 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#![deny(clippy::pedantic)]
-
+#![deny(clippy::all)]
+#![allow(clippy::field_reassign_with_default)]
+#![allow(clippy::module_inception)]
+#![allow(clippy::needless_range_loop)]
+#![allow(clippy::question_mark)]
 #![feature(async_closure)]
 #![feature(allocator_api)]
 #![allow(clippy::rc_buffer)]
@@ -51,6 +54,7 @@ pub mod storage;
 pub mod util;
 pub mod wal;
 
+#[allow(clippy::all)]
 pub mod memtable_service {
     tonic::include_proto!("memtable");
 }

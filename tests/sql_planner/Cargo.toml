@@ -1,0 +1,16 @@
+[package]
+name = "sql_planner"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+query_engine = { path = "../../src/query_engine" }
+sqlplannertest = { git = "https://github.com/risinglightdb/sqlplannertest-rs" }
+glob = "0.3.1"
+async-trait = "0.1.77"
+anyhow = "1.0.80"
+tokio = { version = "1.36.0", features = ["full"] }
+
+[[test]]
+name = "sql_planner"
+harness = false

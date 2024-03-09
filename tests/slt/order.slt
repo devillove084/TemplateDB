@@ -1,0 +1,20 @@
+skipif template_query_v2
+query I
+select id from employee order by id desc offset 2 limit 1;
+----
+2
+
+skipif template_query_v2
+query II
+select id, state from employee order by state, id desc
+----
+4 (empty)
+1 CA
+3 CO
+2 CO
+
+skipif template_query_v2
+query I
+select id from employee order by first_name desc offset 2 limit 1;
+----
+2

@@ -35,7 +35,7 @@ use crate::{
         base_range, total_range, Compaction, CompactionInputs, CompactionReason, CompactionStats,
     },
     db_impl::template_impl::build_table,
-    error::{TemplateResult, TemplateKVError},
+    error::{TemplateKVError, TemplateResult},
     iterator::{
         concatenate_iter::{ConcatenateIterator, DerivedIterFactory},
         kmerge_iter::{KMergeCore, KMergeIter},
@@ -210,7 +210,7 @@ unsafe impl<S: Storage + Clone, C: Comparator> Send for VersionSet<S, C> {}
 
 impl<S: Storage + Clone + 'static, C: Comparator + 'static> VersionSet<S, C> {
     pub fn new(db_path: String, options: Arc<Options<C>>, storage: S) -> Self {
-        let max_level = options.max_levels as usize;
+        let max_level = options.max_levels;
         let mut compaction_pointer = Vec::with_capacity(max_level);
         for _ in 0..max_level {
             compaction_pointer.push(InternalKey::default());
@@ -240,7 +240,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> VersionSet<S, C> {
     /// Returns the number of files in a certain level using latest version
     #[inline]
     pub fn level_files_count(&self, level: usize) -> usize {
-        assert!(level < self.options.max_levels as usize);
+        assert!(level < self.options.max_levels);
         let level_files = &self.versions.last().unwrap().files;
         level_files.get(level).map_or(0, |files| files.len())
     }
@@ -380,7 +380,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> VersionSet<S, C> {
             edit.encode_to(&mut record);
 
             let this = self.current();
-            let mut builder = VersionBuilder::new(self.options.max_levels as usize, &this);
+            let mut builder = VersionBuilder::new(self.options.max_levels, &this);
             builder.accumulate(edit.file_delta, self);
             let mut v = builder.apply_to_new(&self.icmp);
             v.finalize();
@@ -517,10 +517,10 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> VersionSet<S, C> {
             if size_compaction {
                 let level = current.compaction_level;
                 assert!(
-                    level + 1 < self.options.max_levels as usize,
+                    level + 1 < self.options.max_levels,
                     "[compaction] target compaction level {} should be less Lmax {} - 1",
                     level,
-                    self.options.max_levels as usize
+                    self.options.max_levels
                 );
                 let mut compaction =
                     Compaction::new(self.options.clone(), level, CompactionReason::MaxSize);
@@ -545,7 +545,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> VersionSet<S, C> {
                 compaction
             } else if seek_compaction {
                 let level = current.file_to_compact_level.load(Ordering::Acquire);
-                if level < self.options.max_levels as usize - 1 {
+                if level < self.options.max_levels - 1 {
                     let mut compaction =
                         Compaction::new(self.options.clone(), level, CompactionReason::SeekLimit);
                     compaction.inputs.add_base(file_to_compact);
@@ -701,7 +701,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> VersionSet<S, C> {
     pub fn recover(&mut self) -> TemplateResult<bool> {
         let env = self.storage.clone();
         // Read "CURRENT" file, which contains a pointer to the current manifest file
-        let mut current = env.open(&generate_filename(&self.db_path, FileType::Current, 0))?;
+        let mut current = env.open(generate_filename(&self.db_path, FileType::Current, 0))?;
         let mut buf = vec![];
         current.read_all(&mut buf)?;
         let (current_manifest, file_name) = match String::from_utf8(buf) {
@@ -725,7 +725,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> VersionSet<S, C> {
         };
         let file_length = current_manifest.len()?;
         let base = Version::new(self.options.clone(), self.icmp.clone());
-        let mut builder = VersionBuilder::new(self.options.max_levels as usize, &base);
+        let mut builder = VersionBuilder::new(self.options.max_levels, &base);
         let reporter = LogReporter::new();
         let mut reader = Reader::new(current_manifest, Some(Box::new(reporter.clone())), true, 0);
         let mut buf = vec![];
@@ -739,9 +739,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> VersionSet<S, C> {
         let mut last_sequence = 0;
         let mut has_last_sequence = false;
         while reader.read_record(&mut buf) {
-            if let Err(e) = reporter.result() {
-                return Err(e);
-            }
+            reporter.result()?;
             let mut edit = VersionEdit::new(self.options.max_levels);
             edit.decoded_from(&buf)?;
             debug!("Decoded manifest record: {:?}", &edit);
@@ -853,7 +851,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> VersionSet<S, C> {
         // Save metadata
         edit.set_comparator_name(String::from(self.icmp.user_comparator.name()));
         // Save compaction pointers
-        for level in 0..self.options.max_levels as usize {
+        for level in 0..self.options.max_levels {
             if !self.compaction_pointer[level].is_empty() {
                 edit.file_delta
                     .compaction_pointers
@@ -862,7 +860,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> VersionSet<S, C> {
         }
 
         // Save files
-        for level in 0..self.options.max_levels as usize {
+        for level in 0..self.options.max_levels {
             for file in self.current().files[level].iter() {
                 edit.add_file(
                     level,
@@ -960,7 +958,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> VersionSet<S, C> {
             total_range(&current_files, &next_files, c.level, &self.icmp);
         // Compute the set of grandparent files that overlap this compaction
         // (parent == level+1; grandparent == level+2)
-        if c.level + 2 < self.options.max_levels as usize {
+        if c.level + 2 < self.options.max_levels {
             c.grand_parents = current.get_overlapping_inputs(
                 c.level + 2,
                 Some(final_smallest),
@@ -1501,7 +1499,7 @@ mod add_boundary_tests {
             let mut files = self
                 .files
                 .iter()
-                .map(|files| files.into_iter().map(|f| f.number).collect::<Vec<_>>())
+                .map(|files| files.iter().map(|f| f.number).collect::<Vec<_>>())
                 .collect::<Vec<_>>();
             for f in files.iter_mut() {
                 f.sort();

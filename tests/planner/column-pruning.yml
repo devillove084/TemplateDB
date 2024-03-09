@@ -1,0 +1,51 @@
+- sql: |
+    select a from t1
+  desc: |
+    PushProjectIntoTableScan: column pruning into table scan
+
+- sql: |
+    select sum(b)+1 from t1 where a > 1
+  desc: |
+    PushProjectThroughChild: column pruning across aggregate
+
+- sql: |
+    select sum(b) from t1 where a > 1
+  desc: |
+    RemoveNoopOperators: column pruning remove unused projection
+
+- sql: |
+    select t1.a, t2.b from t1 left join t2 on t1.a = t2.a where t2.b > 1
+  desc: |
+    PushProjectThroughChild: column pruning across join
+
+- sql: |
+    select employee.id, employee.first_name, department.department_name, state.state_name, state.state_code from employee 
+    left join department on employee.department_id=department.id
+    right join state on state.state_code=employee.state;  
+  desc: |
+    PushProjectThroughChild: column pruning across multiple join
+
+- sql: |
+    select a, t2.v1 as max_b from t1 cross join (select max(b) as v1 from t1) t2
+  desc: |
+    PushProjectThroughChild: column pruning across subquery
+
+- sql: |
+    select t1.a, sub0.v0, sub1.v0 from t1 cross join (select max(b) as v0 from t1) sub0 cross join (select min(b) as v0 from t1) sub1;
+  desc: |
+    PushProjectThroughChild: column pruning across multiple subquery
+
+- sql: |
+    select a, (select max(b) from t1) from t1;
+  desc: |
+    PushProjectThroughChild: column pruning across scalar subquery
+
+- sql: |
+    select a, (select max(b) from t1) + (select min(b) from t1) as mix_b from t1;
+  desc: |
+    PushProjectThroughChild: column pruning across multiple scalar subquery
+
+- sql: |
+    select t1.a, t1.b from t1 where a >= (select max(a) from t1);
+  desc: |
+    PushProjectThroughChild: column pruning across scalar subquery in where expr

@@ -137,7 +137,7 @@ impl<C: Comparator, A: Arena> Skiplist<C, A> {
         if !node.is_null() {
             unsafe {
                 assert_ne!(
-                    self.comparator.compare((&(*node)).key(), &key),
+                    self.comparator.compare((*node).key(), &key),
                     CmpOrdering::Equal,
                     "[skiplist] duplicate insertion [key={:?}] is not allowed",
                     &key

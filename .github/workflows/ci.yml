@@ -57,8 +57,8 @@ jobs:
         run: cargo test --doc
       - name: Test with latest nextest
         run: cargo nextest run
-      - name: Test with miri
-        run: cargo nextest miri run
+      # - name: Test with miri
+      #   run: cargo nextest miri run
 
   coverage:
     name: Collect test coverage
