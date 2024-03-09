@@ -65,8 +65,6 @@ jobs:
         run: cargo build --all-targets --all-features
       - name: Doctests
         run: cargo test --doc
-      - name: Test with locally built nextest
-        run: cargo local-nt run --profile ci
       - name: Test with latest nextest
         run: cargo nextest run --profile ci
       - name: Test with miri
