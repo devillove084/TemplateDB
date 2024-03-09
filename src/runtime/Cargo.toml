@@ -34,8 +34,6 @@ tempfile = "3.3.0"
 anyerror = "0.1.7"
 tracing = "0.1.36"
 storage_engine = { path = "../storage_engine"}
-workspace-hack.workspace = true
-
 [dev-dependencies]
 clap = { version = "3.2.16", features = ["derive"] }
 

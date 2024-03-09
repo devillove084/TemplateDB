@@ -1176,7 +1176,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.52",
- "workspace-hack 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1269,9 +1268,6 @@ dependencies = [
 [[package]]
 name = "query_engine"
 version = "0.1.0"
-dependencies = [
- "workspace-hack 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "quick-error"
@@ -1441,7 +1437,6 @@ dependencies = [
  "tonic",
  "tonic-build",
  "tracing",
- "workspace-hack 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "yaml-rust",
 ]
 
@@ -1599,7 +1594,6 @@ dependencies = [
  "tokio",
  "tonic",
  "tonic-build",
- "workspace-hack 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2163,38 +2157,6 @@ name = "windows_x86_64_msvc"
 version = "0.52.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32b752e52a2da0ddfbdbcc6fceadfeede4c939ed16d13e648833a61dfb611ed8"
-
-[[package]]
-name = "workspace-hack"
-version = "0.1.0"
-dependencies = [
- "bitflags 2.4.2",
- "bytes 1.5.0",
- "either",
- "indexmap 1.9.3",
- "itertools",
- "libc",
- "log",
- "memchr",
- "petgraph",
- "proc-macro2",
- "prost",
- "quote",
- "regex",
- "regex-automata",
- "regex-syntax",
- "serde",
- "syn 1.0.109",
- "syn 2.0.52",
- "tokio",
- "tokio-stream",
-]
-
-[[package]]
-name = "workspace-hack"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "beffa227304dbaea3ad6a06ac674f9bc83a3dec3b7f63eeb442de37e7cb6bb01"
 
 [[package]]
 name = "yaml-rust"

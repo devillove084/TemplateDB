@@ -3,7 +3,6 @@ members = [
     "src/storage_engine", 
     "src/runtime",
     "src/util/pro-macro",
-    "workspace-hack",
     "src/query_engine",
 ]
 
