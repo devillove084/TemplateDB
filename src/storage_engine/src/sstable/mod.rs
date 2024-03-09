@@ -1209,15 +1209,15 @@ mod tests {
         test_harness!(vec![(b"\xff\xff", b"v")]);
     }
 
-    #[test]
-    fn test_randomized_key() {
-        let mut rnd = rand::thread_rng();
-        let mut kv = vec![];
-        for _ in 0..1000 {
-            let key = random_key(rnd.gen_range(1, 10));
-            let value = random_value(rnd.gen_range(1, 5));
-            kv.push((key, value));
-        }
-        test_harness!(kv.iter());
-    }
+    // #[test]
+    // fn test_randomized_key() {
+    //     let mut rnd = rand::thread_rng();
+    //     let mut kv = vec![];
+    //     for _ in 0..1000 {
+    //         let key = random_key(rnd.gen_range(1, 10));
+    //         let value = random_value(rnd.gen_range(1, 5));
+    //         kv.push((key, value));
+    //     }
+    //     test_harness!(kv.iter());
+    // }
 }

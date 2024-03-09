@@ -51,29 +51,26 @@ jobs:
         uses: arduino/setup-protoc@v3
       - name: Install latest nextest release
         uses: taiki-e/install-action@nextest
-      - name: Build quick-junit
-        run: cargo build --package quick-junit
-      - name: Build nextest-metadata
-        run: cargo build --package nextest-metadata
-      - name: Build cargo-nextest without self-update
-        run: cargo build --package cargo-nextest --no-default-features --features default-no-update
-      - name: Build cargo-nextest
-        run: cargo build --package cargo-nextest
-      - name: Build all targets
-        run: cargo build --all-targets
+      # - name: Build quick-junit
+      #   run: cargo build --package quick-junit
+      # - name: Build nextest-metadata
+      #   run: cargo build --package nextest-metadata
+      # - name: Build cargo-nextest without self-update
+      #   run: cargo build --package cargo-nextest --no-default-features --features default-no-update
+      # - name: Build cargo-nextest
+      #   run: cargo build --package cargo-nextest
+      # - name: Build all targets
+      #   run: cargo build --all-targets
       - name: Build all targets with all features
         run: cargo build --all-targets --all-features
       - name: Doctests
         run: cargo test --doc
       - name: Test with locally built nextest
         run: cargo local-nt run --profile ci
-      - name: Test with latest nextest release
+      - name: Test with latest nextest
         run: cargo nextest run --profile ci
-      - name: Test without double-spawning
-        if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'macos-14' }}
-        env:
-          NEXTEST_DOUBLE_SPAWN: 0
-        run: cargo local-nt run --profile ci
+      - name: Test with miri
+        run: cargo nextest miri run --profile ci
 
   coverage:
     name: Collect test coverage
