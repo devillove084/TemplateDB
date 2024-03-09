@@ -22,7 +22,7 @@ impl BloomFilter {
         }
     }
     fn bloom_hash(data: &[u8]) -> u32 {
-        hash(data, 0xc6a4a793)
+        hash(data, 0xc6a4_a793)
     }
 }
 
