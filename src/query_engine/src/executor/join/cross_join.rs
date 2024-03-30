@@ -3,7 +3,7 @@ use arrow::datatypes::{Schema, SchemaRef};
 
 use crate::catalog::ColumnCatalog;
 use crate::executor::*;
-use crate::types::{build_scalar_value_array, ScalarValue};
+use crate::types::ScalarValue;
 
 pub struct CrossJoinExecutor {
     pub left_child: BoxedExecutor,
@@ -46,7 +46,14 @@ impl CrossJoinExecutor {
                     .iter()
                     .map(|col_arr| {
                         let scalar = ScalarValue::try_from_array(col_arr, row_idx);
-                        build_scalar_value_array(&scalar, right_data.num_rows())
+                        // build_scalar_value_array(&scalar, right_data.num_rows())
+                        match scalar {
+                            Ok(scalar_val) => scalar_val.to_array_of_size(right_data.num_rows()),
+                            Err(e) => {
+                                // TODO(devillove084): should append nulls?
+                                panic!("None scalar val {}", e);
+                            }
+                        }
                     })
                     .collect::<Vec<_>>();
                 // concat left and right data

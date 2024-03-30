@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use super::{ComparisonFunc, ComparisonFunction};
 use crate::function::FunctionError;
-use crate::types_v2::LogicalType;
+use crate::types::LogicalType;
 use arrow::array::ArrayRef;
 use arrow_ord::cmp::*;
 use sqlparser::ast::BinaryOperator;

@@ -3,8 +3,8 @@ use derive_new::new;
 use super::{PhysicalOperator, PhysicalOperatorBase};
 use crate::execution::PhysicalPlanGenerator;
 use crate::function::{FunctionData, TableFunction};
-use crate::planner_v2::LogicalGet;
-use crate::types_v2::LogicalType;
+use crate::planner::LogicalGet;
+use crate::types::LogicalType;
 
 #[derive(new, Clone)]
 pub struct PhysicalTableScan {

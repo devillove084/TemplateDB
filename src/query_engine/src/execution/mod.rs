@@ -15,10 +15,10 @@ pub use physical_plan_generator::*;
 pub use util::*;
 pub use volcano_executor::*;
 
-use crate::catalog_v2::CatalogError;
+use crate::catalog::CatalogError;
 use crate::function::FunctionError;
 use crate::main_entry::ClientContext;
-use crate::types_v2::TypeError;
+use crate::types::TypeError;
 
 static LOGGING_TARGET: &str = "query_engine::execution";
 

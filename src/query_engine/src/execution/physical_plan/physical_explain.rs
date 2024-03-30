@@ -5,7 +5,7 @@ use arrow::record_batch::RecordBatch;
 
 use super::{PhysicalColumnDataScan, PhysicalOperator};
 use crate::execution::{PhysicalPlanGenerator, SchemaUtil};
-use crate::planner_v2::LogicalExplain;
+use crate::planner::LogicalExplain;
 use crate::util::tree_render::TreeRender;
 
 impl PhysicalPlanGenerator {

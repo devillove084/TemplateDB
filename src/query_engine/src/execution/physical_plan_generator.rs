@@ -6,7 +6,7 @@ use log::debug;
 use super::{ColumnBindingResolver, PhysicalOperator, PhysicalOperatorBase};
 use crate::execution::LOGGING_TARGET;
 use crate::main_entry::ClientContext;
-use crate::planner_v2::{LogicalOperator, LogicalOperatorBase, LogicalOperatorVisitor};
+use crate::planner::{LogicalOperator, LogicalOperatorBase, LogicalOperatorVisitor};
 use crate::util::tree_render::TreeRender;
 
 #[derive(new)]

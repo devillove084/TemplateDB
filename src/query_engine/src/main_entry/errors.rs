@@ -1,10 +1,10 @@
 use arrow::error::ArrowError;
 use sqlparser::parser::ParserError;
 
-use crate::catalog_v2::CatalogError;
+use crate::catalog::CatalogError;
 use crate::execution::ExecutorError;
 use crate::function::FunctionError;
-use crate::planner_v2::PlannerError;
+use crate::planner::PlannerError;
 
 #[derive(thiserror::Error, Debug)]
 pub enum DatabaseError {

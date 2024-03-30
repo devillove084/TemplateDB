@@ -5,11 +5,11 @@ use derive_new::new;
 use futures::stream::BoxStream;
 
 use super::{TableFunction, TableFunctionBindInput, TableFunctionInput};
-use crate::catalog_v2::TableCatalogEntry;
+use crate::catalog::TableCatalogEntry;
 use crate::function::{FunctionData, FunctionError, FunctionResult};
 use crate::main_entry::ClientContext;
-use crate::storage_v2::LocalStorage;
-use crate::types_v2::LogicalType;
+use crate::storage::LocalStorage;
+use crate::types::LogicalType;
 
 /// The table scan function represents a sequential scan over one of base tables.
 pub struct SeqTableScan;

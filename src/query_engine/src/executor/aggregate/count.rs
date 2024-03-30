@@ -46,7 +46,7 @@ impl Accumulator for DistinctCountAccumulator {
             return Ok(());
         }
         (0..array.len()).for_each(|i| {
-            let v = ScalarValue::try_from_array(array, i);
+            let v = ScalarValue::try_from_array(array, i).expect("Try from array error");
             self.distinct_values.insert(v);
         });
         Ok(())

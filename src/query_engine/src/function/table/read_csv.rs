@@ -11,8 +11,8 @@ use sqlparser::ast::FunctionArg;
 use super::{TableFunction, TableFunctionBindInput, TableFunctionInput};
 use crate::function::{BuiltinFunctions, FunctionData, FunctionError, FunctionResult};
 use crate::main_entry::ClientContext;
-use crate::planner_v2::SqlparserResolver;
-use crate::types_v2::LogicalType;
+use crate::planner::SqlparserResolver;
+use crate::types::LogicalType;
 
 pub struct ReadCSV;
 

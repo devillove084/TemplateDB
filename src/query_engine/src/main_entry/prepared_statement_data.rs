@@ -2,7 +2,7 @@ use derive_new::new;
 use sqlparser::ast::Statement;
 
 use crate::execution::PhysicalOperator;
-use crate::types_v2::LogicalType;
+use crate::types::LogicalType;
 
 #[derive(new)]
 #[allow(dead_code)]

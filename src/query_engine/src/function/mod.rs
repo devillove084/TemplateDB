@@ -15,7 +15,7 @@ pub use errors::*;
 pub use scalar::*;
 pub use table::*;
 
-use crate::catalog_v2::{Catalog, DEFAULT_SCHEMA};
+use crate::catalog::{Catalog, DEFAULT_SCHEMA};
 use crate::common::{CreateInfoBase, CreateScalarFunctionInfo, CreateTableFunctionInfo};
 use crate::main_entry::ClientContext;
 

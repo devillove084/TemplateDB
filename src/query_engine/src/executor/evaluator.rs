@@ -4,7 +4,6 @@ use arrow::datatypes::Field;
 
 use super::*;
 use crate::binder::BoundExpr;
-use crate::types::build_scalar_value_array;
 
 /// Evaluate the bound expr on the given record batch.
 /// The core computation logic directly used arrow compute kernels in arrow::compute::kernels.
@@ -17,7 +16,7 @@ impl BoundExpr {
                 let right = expr.right.eval_column(batch)?;
                 binary_op(&left, &right, &expr.op)
             }
-            BoundExpr::Constant(val) => Ok(build_scalar_value_array(val, batch.num_rows())),
+            BoundExpr::Constant(val) => Ok(val.to_array_of_size(batch.num_rows())),
             BoundExpr::ColumnRef(_) => panic!("column ref should be resolved"),
             BoundExpr::TypeCast(tc) => Ok(cast(&tc.expr.eval_column(batch)?, &tc.cast_type)?),
             BoundExpr::AggFunc(_) => todo!(),
@@ -37,7 +36,7 @@ impl BoundExpr {
                 Field::new(new_name.as_str(), data_type, true)
             }
             BoundExpr::Constant(val) => {
-                Field::new(format!("{}", val).as_str(), val.data_type(), true)
+                Field::new(format!("{}", val).as_str(), val.get_datatype(), true)
             }
             BoundExpr::TypeCast(tc) => {
                 let inner_field = tc.expr.eval_field(batch);

@@ -4,8 +4,8 @@ use log::{LevelFilter, Log};
 
 use crate::{
     cache::{
-        bloom_filter_cache::BloomFilter, lru_cache::LRUCache, sharded_cache::ShardedCache, Cache,
-        FilterPolicy,
+        bloom_filter_cache::BloomFilter, lru_cache::LRUCache, sharded_cache::ShardedCache,
+        CacheSync, FilterPolicy,
     },
     logger::Logger,
     manager::snapshot::Snapshot,
@@ -118,7 +118,7 @@ pub struct Options<C: Comparator> {
     // a block is the unit of reading from disk).
     /// If non-null, use the specified cache for blocks.
     /// If null, we will automatically create and use an 8MB internal cache.
-    pub block_cache: Option<Arc<dyn Cache<Vec<u8>, Arc<Block>>>>,
+    pub block_cache: Option<Arc<dyn CacheSync<Vec<u8>, Arc<Block>>>>,
 
     /// Number of sstables that remains out of table cache
     pub non_table_cache_files: usize,

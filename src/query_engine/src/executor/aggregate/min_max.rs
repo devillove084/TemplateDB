@@ -47,7 +47,7 @@ macro_rules! min_max_batch {
 fn min_batch(values: &ArrayRef) -> Result<ScalarValue, ExecutorError> {
     Ok(match values.data_type() {
         DataType::Utf8 => {
-            typed_min_max_batch_string!(values, StringArray, String, min_string)
+            typed_min_max_batch_string!(values, StringArray, Utf8, min_string)
         }
         _ => min_max_batch!(values, min),
     })
@@ -57,7 +57,7 @@ fn min_batch(values: &ArrayRef) -> Result<ScalarValue, ExecutorError> {
 fn max_batch(values: &ArrayRef) -> Result<ScalarValue, ExecutorError> {
     Ok(match values.data_type() {
         DataType::Utf8 => {
-            typed_min_max_batch_string!(values, StringArray, String, max_string)
+            typed_min_max_batch_string!(values, StringArray, Utf8, max_string)
         }
         _ => min_max_batch!(values, max),
     })
@@ -100,10 +100,10 @@ macro_rules! min_max {
             (ScalarValue::Int32(lhs), ScalarValue::Int32(rhs)) => {
                 typed_min_max!(lhs, rhs, Int32, $OP)
             }
-            (ScalarValue::String(lhs), ScalarValue::String(rhs)) => {
-                typed_min_max_string!(lhs, rhs, String, $OP)
+            (ScalarValue::Utf8(lhs), ScalarValue::Utf8(rhs)) => {
+                typed_min_max_string!(lhs, rhs, Utf8, $OP)
             }
-            _ => unimplemented!("unsupported min_max scalar type: {}", $VALUE.data_type()),
+            _ => unimplemented!("unsupported min_max scalar type: {}", $VALUE.get_datatype()),
         }
     }};
 }
@@ -115,7 +115,7 @@ pub struct MinAccumulator {
 impl MinAccumulator {
     pub fn new(data_type: DataType) -> Self {
         Self {
-            min: ScalarValue::from(&data_type),
+            min: ScalarValue::new_none_value(&data_type).expect("new none data type error"),
         }
     }
 }
@@ -139,7 +139,7 @@ pub struct MaxAccumulator {
 impl MaxAccumulator {
     pub fn new(data_type: DataType) -> Self {
         Self {
-            max: ScalarValue::from(&data_type),
+            max: ScalarValue::new_none_value(&data_type).expect("new none datatype error"),
         }
     }
 }

@@ -7,16 +7,16 @@ use derive_new::new;
 use futures_async_stream::try_stream;
 
 use super::CreateTable;
-use crate::catalog_v2::DataTable;
+use crate::catalog::DataTable;
 use crate::execution::{
     BoxedExecutor, ExecutionContext, ExecutorError, ExpressionExecutor, PhysicalInsert,
 };
-use crate::planner_v2::{
+use crate::planner::{
     BoundConstantExpression, BoundExpression, BoundExpressionBase, BoundReferenceExpression,
     INVALID_INDEX,
 };
-use crate::storage_v2::LocalStorage;
-use crate::types_v2::ScalarValue;
+use crate::storage::LocalStorage;
+use crate::types::ScalarValue;
 
 #[derive(new)]
 pub struct Insert {

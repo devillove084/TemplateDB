@@ -10,7 +10,7 @@ use super::create_accumulators;
 use super::hash_utils::create_hashes;
 use crate::binder::{BoundAggFunc, BoundExpr};
 use crate::executor::*;
-use crate::types::{append_scalar_value_for_builder, build_scalar_value_builder, ScalarValue};
+use crate::types::{build_scalar_value_builder, ScalarValue};
 
 pub struct HashAggExecutor {
     pub agg_funcs: Vec<BoundExpr>,
@@ -132,14 +132,31 @@ impl HashAggExecutor {
         for hash in group_hashs {
             let group_values = group_hash_2_keys.get(&hash).unwrap();
             for (idx, group_key) in group_values.iter().enumerate() {
-                append_scalar_value_for_builder(group_key, &mut builders[idx])?;
+                if group_key.is_ok() {
+                    match ScalarValue::append_for_builder(
+                        group_key.as_ref().unwrap(),
+                        &mut builders[idx],
+                    ) {
+                        Ok(()) => (),
+                        Err(e) => panic!("{}", e),
+                    }
+                }
             }
 
             for (idx, acc) in group_hash_2_accs.get(&hash).unwrap().iter().enumerate() {
-                append_scalar_value_for_builder(
-                    &acc.evaluate()?,
-                    &mut builders[idx + group_values.len()],
-                )?;
+                // append_scalar_value_for_builder(
+                //     &acc.evaluate()?,
+                //     &mut builders[idx + group_values.len()],
+                // )?;
+                if acc.evaluate().is_ok() {
+                    match ScalarValue::append_for_builder(
+                        &acc.evaluate().unwrap(),
+                        &mut builders[idx + group_values.len()],
+                    ) {
+                        Ok(()) => (),
+                        Err(e) => panic!("{}", e),
+                    }
+                }
             }
         }
 

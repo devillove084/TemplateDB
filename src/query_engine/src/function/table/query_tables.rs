@@ -5,11 +5,11 @@ use derive_new::new;
 use futures::stream::BoxStream;
 
 use super::{TableFunction, TableFunctionBindInput, TableFunctionInput};
-use crate::catalog_v2::{Catalog, CatalogEntry, DEFAULT_SCHEMA};
+use crate::catalog::{Catalog, CatalogEntry, DEFAULT_SCHEMA};
 use crate::execution::SchemaUtil;
 use crate::function::{BuiltinFunctions, FunctionData, FunctionError, FunctionResult};
 use crate::main_entry::ClientContext;
-use crate::types_v2::{LogicalType, ScalarValue};
+use crate::types::{LogicalType, ScalarValue};
 
 pub struct QueryTablesFunc;
 

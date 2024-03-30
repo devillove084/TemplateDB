@@ -1,4 +1,4 @@
-use crate::types_v2::LogicalType;
+use crate::types::LogicalType;
 
 pub struct CastRules;
 

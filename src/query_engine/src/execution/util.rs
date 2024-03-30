@@ -4,8 +4,8 @@ use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
 use arrow::record_batch::RecordBatch;
 
 use super::ExecutorError;
-use crate::planner_v2::BoundExpression;
-use crate::types_v2::{LogicalType, ScalarValue};
+use crate::planner::BoundExpression;
+use crate::types::{LogicalType, ScalarValue};
 
 pub struct SchemaUtil;
 

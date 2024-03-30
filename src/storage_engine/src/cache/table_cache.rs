@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use super::lru_cache::LRUCache;
 use crate::{
-    cache::Cache,
+    cache::CacheSync,
     options::{Options, ReadOptions},
     sstable::{
         block::BlockIterator,
@@ -22,7 +22,7 @@ pub struct TableCache<S: Storage + Clone, C: Comparator> {
     db_path: String,
     options: Arc<Options<C>>,
     // the key is the file number
-    cache: Arc<dyn Cache<u64, Arc<Table<S::F>>>>,
+    cache: Arc<dyn CacheSync<u64, Arc<Table<S::F>>>>,
 }
 
 impl<S: Storage + Clone, C: Comparator + 'static> TableCache<S, C> {

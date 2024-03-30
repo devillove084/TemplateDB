@@ -2,7 +2,7 @@ use arrow::array::ArrayRef;
 use derive_new::new;
 
 use crate::function::FunctionError;
-use crate::types_v2::LogicalType;
+use crate::types::LogicalType;
 
 pub type CastFunc =
     fn(array: &ArrayRef, to_type: &LogicalType, try_cast: bool) -> Result<ArrayRef, FunctionError>;

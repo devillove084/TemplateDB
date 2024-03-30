@@ -7,10 +7,10 @@ use arrow::record_batch::RecordBatch;
 use derive_new::new;
 use futures_async_stream::try_stream;
 
-use crate::catalog_v2::{Catalog, DataTable, DataTableInfo};
+use crate::catalog::{Catalog, DataTable, DataTableInfo};
 use crate::execution::{ExecutionContext, ExecutorError, PhysicalCreateTable};
-use crate::planner_v2::BoundCreateTableInfo;
-use crate::storage_v2::LocalStorage;
+use crate::planner::BoundCreateTableInfo;
+use crate::storage::LocalStorage;
 
 #[derive(new)]
 pub struct CreateTable {

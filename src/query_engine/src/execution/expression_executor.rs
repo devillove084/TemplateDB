@@ -3,8 +3,8 @@ use arrow::datatypes::DataType;
 use arrow::record_batch::RecordBatch;
 
 use super::{ExecutorError, RecordBatchUtil};
-use crate::planner_v2::BoundExpression;
-use crate::types_v2::ScalarValue;
+use crate::planner::BoundExpression;
+use crate::types::ScalarValue;
 
 /// ExpressionExecutor is responsible for executing a set of expressions and storing the result in a
 /// data chunk

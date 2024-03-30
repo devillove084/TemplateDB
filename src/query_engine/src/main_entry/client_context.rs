@@ -11,10 +11,11 @@ use super::{
 };
 use crate::execution::{PhysicalPlanGenerator, VolcanoExecutor};
 use crate::parser::Sqlparser;
-use crate::planner_v2::Planner;
+use crate::planner::Planner;
 use crate::util::pretty_batches_with;
 
 /// The ClientContext holds information relevant to the current client session during execution
+#[derive(Default)]
 pub struct ClientContext {
     /// The database that this client is connected to
     pub(crate) db: Arc<DatabaseInstance>,

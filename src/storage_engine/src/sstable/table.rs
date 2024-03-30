@@ -3,7 +3,7 @@ use std::{cmp::Ordering, sync::Arc};
 use snap::raw::max_compress_len;
 
 use crate::{
-    cache::{Cache, FilterPolicy},
+    cache::{CacheSync, FilterPolicy},
     error::{TemplateKVError, TemplateResult},
     iterator::{
         concatenate_iter::{ConcatenateIterator, DerivedIterFactory},
@@ -32,7 +32,7 @@ pub struct Table<F: File> {
     filter_reader: Option<FilterBlockReader>,
     meta_block_handle: Option<BlockHandle>,
     index_block: Block,
-    block_cache: Option<Arc<dyn Cache<Vec<u8>, Arc<Block>>>>,
+    block_cache: Option<Arc<dyn CacheSync<Vec<u8>, Arc<Block>>>>,
 }
 
 impl<F: File> Table<F> {

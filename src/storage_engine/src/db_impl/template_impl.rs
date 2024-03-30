@@ -163,17 +163,17 @@ impl<S: Storage + Clone, C: Comparator + 'static> TemplateDB<S, C> {
 
         let current = versions.current();
         db.delete_obsolete_files(versions)?;
-        let wick_db = TemplateDB {
+        let template_db = TemplateDB {
             inner: Arc::new(db),
             shutdown_batch_processing_thread: crossbeam_channel::bounded(1),
             shutdown_compaction_thread: crossbeam_channel::bounded(1),
         };
-        wick_db.process_compaction();
-        wick_db.process_batch();
+        template_db.process_compaction();
+        template_db.process_batch();
         // Schedule a compaction to current version for potential unfinished work
         debug!("Try to schedule a compaction on opening db");
-        wick_db.inner.maybe_schedule_compaction(current);
-        Ok(wick_db)
+        template_db.inner.maybe_schedule_compaction(current);
+        Ok(template_db)
     }
 
     /// Schedule a compaction for the key range `[begin, end]`.

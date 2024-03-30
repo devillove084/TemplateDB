@@ -57,7 +57,7 @@ mod rule_test_util {
     use crate::catalog::RootCatalog;
     use crate::optimizer::PlanRef;
     use crate::parser::parse;
-    use crate::planner::Planner;
+    use crate::planner_test::Planner;
 
     pub struct RuleTest {
         pub name: &'static str,
