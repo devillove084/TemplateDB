@@ -7,6 +7,8 @@ edition = "2021"
 
 [dependencies]
 actix = { git = "https://github.com/devillove084/actix.git" }
+arrow = { version = "50.0.0", features = ["prettyprint"] }
+arrow-ord = "50.0.0"
 async-trait = "0.1.56"
 futures = "0.3.29"
 crc32fast = "1.2.1"
@@ -32,6 +34,7 @@ tonic = "0.8.0"
 bytes = "1.5.0"
 prost = "0.11.0"
 blink-alloc = "0.3.1"
+moka = { version = "0.12.5", features = ["future"] }
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
 tikv-jemallocator = "0.5"

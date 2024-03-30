@@ -2,9 +2,9 @@ use std::io;
 
 use arrow::error::ArrowError;
 
-use crate::catalog_v2::CatalogError;
-use crate::planner_v2::BindError;
-use crate::types_v2::TypeError;
+use crate::catalog::CatalogError;
+use crate::planner::BindError;
+use crate::types::TypeError;
 
 pub type FunctionResult<T> = Result<T, FunctionError>;
 

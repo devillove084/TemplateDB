@@ -21,7 +21,7 @@ pub use physical_limit::*;
 pub use physical_projection::*;
 pub use physical_table_scan::*;
 
-use crate::planner_v2::BoundExpression;
+use crate::planner::BoundExpression;
 
 #[derive(new, Default, Clone)]
 pub struct PhysicalOperatorBase {

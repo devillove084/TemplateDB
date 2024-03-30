@@ -1,9 +1,9 @@
 use std::sync::{Arc, RwLock};
 
 use super::{ClientContext, DatabaseError};
-use crate::catalog_v2::{Catalog, CatalogError, DEFAULT_SCHEMA};
+use crate::catalog::{Catalog, CatalogError, DEFAULT_SCHEMA};
 use crate::function::BuiltinFunctions;
-use crate::storage_v2::LocalStorage;
+use crate::storage::LocalStorage;
 
 #[derive(Default)]
 pub struct DatabaseInstance {

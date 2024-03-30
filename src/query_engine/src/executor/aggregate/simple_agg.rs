@@ -5,7 +5,6 @@ use itertools::Itertools;
 use super::create_accumulators;
 use crate::binder::{BoundAggFunc, BoundExpr};
 use crate::executor::*;
-use crate::types::build_scalar_value_array;
 
 pub struct SimpleAggExecutor {
     pub agg_funcs: Vec<BoundExpr>,
@@ -57,7 +56,7 @@ impl SimpleAggExecutor {
         let mut columns: Vec<ArrayRef> = Vec::new();
         for acc in accs.iter() {
             let res = acc.evaluate()?;
-            columns.push(build_scalar_value_array(&res, 1));
+            columns.push(res.to_array_of_size(1));
         }
 
         let schema = SchemaRef::new(Schema::new(agg_fileds.unwrap()));

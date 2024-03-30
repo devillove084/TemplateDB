@@ -9,7 +9,7 @@ use arrow::util::display::array_value_to_string;
 use arrow::util::pretty::print_batches;
 
 use crate::optimizer::PlanNode;
-use crate::types_v2::LogicalType;
+use crate::types::LogicalType;
 
 pub fn pretty_batches_with(batches: &[RecordBatch], names: &[String], types: &[LogicalType]) {
     let fields = names

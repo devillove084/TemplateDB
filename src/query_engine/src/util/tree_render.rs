@@ -2,10 +2,10 @@ use std::fmt::Write;
 
 use derive_new::new;
 
-use crate::catalog_v2::ColumnDefinition;
+use crate::catalog::ColumnDefinition;
 use crate::execution::PhysicalOperator;
 use crate::function::FunctionData;
-use crate::planner_v2::{BoundExpression, LogicalOperator};
+use crate::planner::{BoundExpression, LogicalOperator};
 
 #[derive(new)]
 pub struct TreeRender;

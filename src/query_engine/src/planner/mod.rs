@@ -1,184 +1,73 @@
-mod select;
-mod util;
+mod binder;
+mod constants;
+mod errors;
+mod expression_binder;
+mod expression_iterator;
+mod function_binder;
+mod logical_operator_visitor;
+mod operator;
 
-use crate::binder::BoundStatement;
-use crate::optimizer::PlanRef;
+use std::sync::Arc;
 
-#[derive(Default)]
-pub struct Planner {}
+pub use binder::*;
+pub use constants::*;
+pub use errors::*;
+pub use expression_binder::*;
+pub use expression_iterator::*;
+pub use function_binder::*;
+use log::debug;
+pub use logical_operator_visitor::*;
+pub use operator::*;
+use sqlparser::ast::Statement;
 
-impl Planner {
-    pub fn plan(&mut self, stmt: BoundStatement) -> Result<PlanRef, LogicalPlanError> {
-        match stmt {
-            BoundStatement::Select(stmt) => self.plan_select(stmt),
-        }
-    }
+use crate::main_entry::ClientContext;
+use crate::types::LogicalType;
+use crate::util::tree_render::TreeRender;
+
+static LOGGING_TARGET: &str = "query_engine::planner";
+
+pub struct Planner {
+    binder: Binder,
+    #[allow(dead_code)]
+    client_context: Arc<ClientContext>,
+    pub(crate) plan: Option<LogicalOperator>,
+    pub(crate) types: Option<Vec<LogicalType>>,
+    pub(crate) names: Option<Vec<String>>,
 }
 
-#[derive(thiserror::Error, Debug, PartialEq, Eq)]
-pub enum LogicalPlanError {}
-
-#[cfg(test)]
-mod planner_test {
-
-    use arrow::datatypes::DataType::{self};
-    use sqlparser::ast::BinaryOperator;
-
-    use super::*;
-    use crate::binder::test_util::*;
-    use crate::binder::{BoundBinaryOp, BoundExpr, BoundSelect, BoundTableRef, Join, JoinType};
-    use crate::optimizer::PlanNodeType;
-
-    fn build_test_select_distinct_stmt() -> BoundStatement {
-        let c1 = build_bound_column_ref("t", "c1");
-        let t = build_table_ref("t", vec!["c1", "c2"]);
-
-        BoundStatement::Select(BoundSelect {
-            select_list: vec![c1],
-            from_table: Some(t),
-            where_clause: None,
-            group_by: vec![],
-            limit: None,
-            offset: None,
-            order_by: vec![],
-            select_distinct: true,
-        })
+impl Planner {
+    pub fn new(client_context: Arc<ClientContext>) -> Self {
+        Self {
+            binder: Binder::new(client_context.clone()),
+            client_context,
+            plan: None,
+            types: None,
+            names: None,
+        }
     }
 
-    fn build_test_select_stmt() -> BoundStatement {
-        let c1 = build_bound_column_ref("t", "c1");
-        let t = build_table_ref("t", vec!["c1", "c2"]);
-
-        let where_clause = BoundExpr::BinaryOp(BoundBinaryOp {
-            op: BinaryOperator::Eq,
-            left: build_bound_column_ref_box("t", "c2"),
-            right: build_int32_expr_box(2),
-            return_type: Some(DataType::Boolean),
-        });
-
-        BoundStatement::Select(BoundSelect {
-            select_list: vec![c1],
-            from_table: Some(t),
-            where_clause: Some(where_clause),
-            group_by: vec![],
-            limit: Some(BoundExpr::Constant(10.into())),
-            offset: None,
-            order_by: vec![],
-            select_distinct: false,
-        })
-    }
-
-    fn build_test_select_stmt_with_multiple_joins() -> BoundStatement {
-        let t1_ref = build_table_ref_box("t1", vec!["c1", "c2"]);
-        let t2_ref = build_table_ref_box("t2", vec!["c1", "c2"]);
-        let t3_ref = build_table_ref_box("t3", vec!["c1", "c2"]);
-        // matched sql:
-        // select t1.c1, t2.c1, t3.c1 from t1
-        // inner join t2 on t1.c1=t2.c1
-        // left join t3 on t2.c1=t3.c1
-        let table_ref = BoundTableRef::Join(Join {
-            left: Box::new(BoundTableRef::Join(Join {
-                left: t1_ref,
-                right: t2_ref,
-                join_type: JoinType::Inner,
-                join_condition: build_join_condition_eq("t1", "c1", "t2", "c1"),
-            })),
-            right: t3_ref,
-            join_type: JoinType::Left,
-            join_condition: build_join_condition_eq("t2", "c1", "t3", "c1"),
-        });
-
-        BoundStatement::Select(BoundSelect {
-            select_list: vec![
-                build_bound_column_ref("t1", "c1"),
-                build_bound_column_ref("t2", "c1"),
-            ],
-            from_table: Some(table_ref),
-            where_clause: None,
-            group_by: vec![],
-            limit: None,
-            offset: None,
-            order_by: vec![],
-            select_distinct: false,
-        })
-    }
-
-    #[test]
-    fn test_plan_select_works() {
-        let stmt = build_test_select_stmt();
-        let mut p = Planner::default();
-        let node = p.plan(stmt);
-        assert!(node.is_ok());
-        let plan_ref = node.unwrap();
-        assert_eq!(plan_ref.node_type(), PlanNodeType::LogicalLimit);
-        assert_eq!(plan_ref.output_columns().len(), 1);
-        dbg!(plan_ref);
-    }
-
-    #[test]
-    fn test_plan_select_with_joins_works() {
-        // matched sql:
-        // select t1.c1, t2.c1, t3.c1 from t1
-        // inner join t2 on t1.c1=t2.c1
-        // left join t3 on t2.c1=t3.c1
-        let stmt = build_test_select_stmt_with_multiple_joins();
-        let mut p = Planner::default();
-        let node = p.plan(stmt);
-        assert!(node.is_ok());
-        let plan_ref = node.unwrap();
-        assert_eq!(plan_ref.node_type(), PlanNodeType::LogicalProject);
-        let plan_node = &plan_ref.children()[0];
-        let join_plan = plan_node.as_logical_join().unwrap();
-
-        // check join right part: left join t3 on t2.c1=t3.c1
-        let right = join_plan.right();
-        assert_eq!(
-            right.as_logical_table_scan().unwrap().table_id(),
-            "t3".to_string()
-        );
-        assert_eq!(join_plan.join_type(), JoinType::Left);
-        assert_eq!(
-            join_plan.join_condition(),
-            build_join_condition_eq("t2", "c1", "t3", "c1")
+    pub fn create_plan(&mut self, statement: &Statement) -> Result<(), PlannerError> {
+        debug!(
+            target: LOGGING_TARGET,
+            "Planner raw statement: {:?}", statement
         );
 
-        // check join left part: inner join t2 on t1.c1=t2.c1
-        let left = join_plan.left();
-        let left_as_join = left.as_logical_join().unwrap();
-        assert_eq!(left_as_join.join_type(), JoinType::Inner);
-        assert_eq!(
-            left_as_join
-                .left()
-                .as_logical_table_scan()
-                .unwrap()
-                .table_id(),
-            "t1".to_string()
-        );
-        assert_eq!(
-            left_as_join
-                .right()
-                .as_logical_table_scan()
-                .unwrap()
-                .table_id(),
-            "t2".to_string()
-        );
-        assert_eq!(
-            left_as_join.join_condition(),
-            build_join_condition_eq("t1", "c1", "t2", "c1")
-        );
+        let bound_statement = self.binder.bind(statement)?;
 
-        dbg!(plan_ref);
-    }
-
-    #[test]
-    fn test_plan_select_distinct_works() {
-        let stmt = build_test_select_distinct_stmt();
-        let mut p = Planner::default();
-        let node = p.plan(stmt);
-        assert!(node.is_ok());
-        let plan_ref = node.unwrap();
-        assert_eq!(plan_ref.node_type(), PlanNodeType::LogicalProject);
-        assert_eq!(plan_ref.children()[0].node_type(), PlanNodeType::LogicalAgg);
-        dbg!(plan_ref);
+        debug!(
+            target: LOGGING_TARGET,
+            r#"Planner bound_statement:
+names: {:?}
+types: {:?}
+plan:
+{}"#,
+            bound_statement.names,
+            bound_statement.types,
+            TreeRender::logical_plan_tree(&bound_statement.plan),
+        );
+        self.plan = Some(bound_statement.plan);
+        self.names = Some(bound_statement.names);
+        self.types = Some(bound_statement.types);
+        Ok(())
     }
 }

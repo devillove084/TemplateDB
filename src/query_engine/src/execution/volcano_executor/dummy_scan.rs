@@ -7,7 +7,7 @@ use derive_new::new;
 use futures_async_stream::try_stream;
 
 use crate::execution::{ExecutionContext, ExecutorError, PhysicalDummyScan};
-use crate::types_v2::ScalarValue;
+use crate::types::ScalarValue;
 
 #[derive(new)]
 pub struct DummyScan {

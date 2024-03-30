@@ -5,12 +5,12 @@ use std::{
     sync::Arc,
 };
 
-use super::Cache;
+use super::CacheSync;
 
 /// A sharded cache container by key hash
 pub struct ShardedCache<K, V, C>
 where
-    C: Cache<K, V>,
+    C: CacheSync<K, V>,
     K: Sync + Send,
     V: Sync + Send + Clone,
 {
@@ -21,7 +21,7 @@ where
 
 impl<K, V, C> ShardedCache<K, V, C>
 where
-    C: Cache<K, V>,
+    C: CacheSync<K, V>,
     K: Sync + Send + Hash + Eq,
     V: Sync + Send + Clone,
 {
@@ -43,9 +43,9 @@ where
     }
 }
 
-impl<K, V, C> Cache<K, V> for ShardedCache<K, V, C>
+impl<K, V, C> CacheSync<K, V> for ShardedCache<K, V, C>
 where
-    C: Cache<K, V>,
+    C: CacheSync<K, V>,
     K: Sync + Send + Hash + Eq,
     V: Sync + Send + Clone,
 {

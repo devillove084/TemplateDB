@@ -9,7 +9,7 @@ use std::{
     },
 };
 
-use crate::{cache::Cache, util::collection::HashMap};
+use crate::{cache::CacheSync, util::collection::HashMap};
 
 #[derive(Copy, Clone)]
 struct Key<K> {
@@ -125,7 +125,7 @@ impl<K: Hash + Eq, V: Clone> LRUCache<K, V> {
     }
 }
 
-impl<K, V> Cache<K, V> for LRUCache<K, V>
+impl<K, V> CacheSync<K, V> for LRUCache<K, V>
 where
     K: Send + Sync + Hash + Eq + Debug,
     V: Send + Sync + Clone,

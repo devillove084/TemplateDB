@@ -42,7 +42,7 @@ impl BoundExpr {
 
     pub fn return_type(&self) -> Option<DataType> {
         match self {
-            BoundExpr::Constant(value) => Some(value.data_type()),
+            BoundExpr::Constant(value) => Some(value.get_datatype()),
             BoundExpr::InputRef(input) => Some(input.return_type.clone()),
             BoundExpr::ColumnRef(column_ref) => {
                 Some(column_ref.column_catalog.desc.data_type.clone())
@@ -78,11 +78,11 @@ impl BoundExpr {
     }
 
     /// Generate a new column catalog for this expression.
-    /// Such as `t.v` in subquery: select t.v from (select a as v from t1) t.
+    /// Such as `t.v` in sub-query: select t.v from (select a as v from t1) t.
     /// Constant and BinaryOp returns empty table_id.
     pub fn output_column_catalog(&self) -> ColumnCatalog {
         let (table_id, column_id, data_type) = match self {
-            BoundExpr::Constant(e) => (String::new(), e.to_string(), e.data_type()),
+            BoundExpr::Constant(e) => (String::new(), e.to_string(), e.get_datatype()),
             BoundExpr::ColumnRef(e) => (
                 e.column_catalog.table_id.clone(),
                 e.column_catalog.column_id.clone(),

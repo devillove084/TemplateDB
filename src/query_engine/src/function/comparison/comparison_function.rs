@@ -2,7 +2,7 @@ use arrow::array::ArrayRef;
 use derive_new::new;
 
 use crate::function::FunctionError;
-use crate::types_v2::LogicalType;
+use crate::types::LogicalType;
 
 pub type ComparisonFunc = fn(left: &ArrayRef, right: &ArrayRef) -> Result<ArrayRef, FunctionError>;
 

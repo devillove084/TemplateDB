@@ -1,20 +1,27 @@
 mod csv;
+mod local_storage;
 mod memory;
+pub mod templatedb;
 use std::io;
 use std::sync::Arc;
 
 use arrow::error::ArrowError;
 use arrow::record_batch::RecordBatch;
 pub use csv::*;
+pub use local_storage::*;
 pub use memory::*;
 
 use crate::catalog::RootCatalog;
+
+use self::templatedb::TemplateDBIndependent;
 
 #[derive(Clone)]
 pub enum StorageImpl {
     CsvStorage(Arc<CsvStorage>),
     #[allow(dead_code)]
     InMemoryStorage(Arc<InMemoryStorage>),
+    #[allow(dead_code)]
+    TemplateDB(Arc<TemplateDBIndependent>),
 }
 
 pub trait Storage: Sync + Send + 'static {

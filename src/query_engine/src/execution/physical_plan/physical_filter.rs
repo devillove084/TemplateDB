@@ -1,6 +1,6 @@
 use super::{PhysicalOperator, PhysicalOperatorBase};
 use crate::execution::PhysicalPlanGenerator;
-use crate::planner_v2::{BoundConjunctionExpression, LogicalFilter};
+use crate::planner::{BoundConjunctionExpression, LogicalFilter};
 
 #[derive(Clone)]
 pub struct PhysicalFilter {

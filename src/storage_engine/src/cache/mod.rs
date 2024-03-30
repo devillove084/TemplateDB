@@ -1,5 +1,6 @@
 pub mod bloom_filter_cache;
 pub mod lru_cache;
+pub mod new_lru_cache;
 pub mod sharded_cache;
 pub mod table_cache;
 
@@ -16,7 +17,7 @@ pub mod table_cache;
 /// Clients may use their own implementations if
 /// they want something more sophisticated (like scan-resistance, a
 /// custom eviction policy, variable cache sizing, etc.)
-pub trait Cache<K, V>: Sync + Send
+pub trait CacheSync<K, V>: Sync + Send
 where
     K: Sync + Send,
     V: Sync + Send + Clone,
@@ -34,6 +35,27 @@ where
     /// Return an estimate of the combined charges of all elements stored in the
     /// cache.
     fn total_charge(&self) -> usize;
+}
+
+#[async_trait::async_trait]
+pub trait CacheAsync<K, V>: Sync + Send
+where
+    K: Sync + Send,
+    V: Sync + Send + Clone,
+{
+    /// Insert a mapping from key->value into the cache and assign it
+    /// the specified charge against the total cache capacity.
+    async fn insert(&self, key: K, value: V) -> Option<V>;
+
+    /// If the cache has no mapping for `key`, returns `None`.
+    async fn get(&self, key: &K) -> Option<V>;
+
+    /// If the cache contains entry for key, erase it.
+    async fn erase(&self, key: &K) -> Option<V>;
+
+    /// Return an estimate of the combined charges of all elements stored in the
+    /// cache.
+    async fn total_charge(&self) -> usize;
 }
 
 /// `FilterPolicy` is an algorithm for probabilistically encoding a set of keys.
@@ -78,8 +100,8 @@ mod tests {
     use tests::sharded_cache::ShardedCache;
 
     // use lru::*;
-    use self::lru_cache::LRUCache;
     use super::*;
+    use crate::cache::lru_cache::LRUCache;
 
     fn new_test_lru_shards(n: usize) -> Vec<LRUCache<String, String>> {
         (0..n).fold(vec![], |mut acc, _| {

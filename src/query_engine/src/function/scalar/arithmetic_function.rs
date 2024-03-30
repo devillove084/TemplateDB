@@ -6,7 +6,7 @@ use arrow::datatypes::{DataType, IntervalUnit};
 
 use super::ScalarFunction;
 use crate::function::{BuiltinFunctions, FunctionError};
-use crate::types_v2::LogicalType;
+use crate::types::LogicalType;
 
 /// Invoke a compute kernel on array(s)
 macro_rules! compute_op {

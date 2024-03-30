@@ -1,6 +1,6 @@
 use derive_new::new;
 
-use crate::catalog_v2::ColumnDefinition;
+use crate::catalog::ColumnDefinition;
 use crate::function::{ScalarFunction, TableFunction};
 
 #[derive(new, Debug, Clone)]

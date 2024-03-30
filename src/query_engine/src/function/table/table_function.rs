@@ -6,10 +6,10 @@ use derive_new::new;
 use futures::stream::BoxStream;
 use sqlparser::ast::FunctionArg;
 
-use crate::catalog_v2::TableCatalogEntry;
+use crate::catalog::TableCatalogEntry;
 use crate::function::{FunctionData, FunctionResult};
 use crate::main_entry::ClientContext;
-use crate::types_v2::LogicalType;
+use crate::types::LogicalType;
 
 #[derive(new, Default)]
 pub struct TableFunctionBindInput {

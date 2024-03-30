@@ -2,8 +2,8 @@ use derive_new::new;
 
 use super::{PhysicalOperator, PhysicalOperatorBase};
 use crate::execution::PhysicalPlanGenerator;
-use crate::planner_v2::{BoundExpression, LogicalExpressionGet};
-use crate::types_v2::LogicalType;
+use crate::planner::{BoundExpression, LogicalExpressionGet};
+use crate::types::LogicalType;
 
 /// The PhysicalExpressionScan scans a set of expressions
 #[derive(new, Clone)]

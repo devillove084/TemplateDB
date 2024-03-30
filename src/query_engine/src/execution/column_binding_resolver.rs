@@ -1,4 +1,4 @@
-use crate::planner_v2::{
+use crate::planner::{
     BoundColumnRefExpression, BoundExpression, BoundExpressionBase, BoundReferenceExpression,
     ColumnBinding, LogicalOperator, LogicalOperatorVisitor,
 };

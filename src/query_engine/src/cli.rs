@@ -1,4 +1,3 @@
-use std::env;
 use std::fs::File;
 use std::sync::Arc;
 
@@ -10,11 +9,9 @@ use crate::main_entry::ClientContext;
 use crate::util::pretty_batches;
 use crate::Database;
 
-pub async fn interactive(db: Database, client_context: Arc<ClientContext>) -> Result<()> {
+pub async fn interactive(_db: Database, client_context: Arc<ClientContext>) -> Result<()> {
     let mut rl = DefaultEditor::new()?;
     load_history(&mut rl);
-
-    let mut enable_v2 = env::var("ENABLE_V2").unwrap_or_else(|_| "0".to_string()) == "1";
 
     loop {
         let read_sql = read_sql(&mut rl);
@@ -24,19 +21,9 @@ pub async fn interactive(db: Database, client_context: Arc<ClientContext>) -> Re
                     let _ = rl.add_history_entry(sql.as_str());
                     let start_time = std::time::Instant::now();
 
-                    if sql.starts_with("enable_v2") {
-                        enable_v2 = true;
-                        println!("---- enable query_engine v2 ! ----");
-                        continue;
-                    }
-
-                    if enable_v2 {
-                        match client_context.query(sql).await {
-                            Ok(_) => {}
-                            Err(err) => println!("Run Error: {}", err),
-                        }
-                    } else {
-                        run_sql(&db, sql).await?;
+                    match client_context.query(sql).await {
+                        Ok(_) => {}
+                        Err(err) => println!("Run Error: {}", err),
                     }
 
                     let end_time = std::time::Instant::now();
@@ -116,6 +103,7 @@ fn read_sql(rl: &mut DefaultEditor) -> Result<String, ReadlineError> {
     }
 }
 
+#[allow(dead_code)]
 async fn run_sql(db: &Database, sql: String) -> Result<()> {
     if let Some(cmds) = sql.trim().strip_prefix('\\') {
         match run_internal(db, cmds).await {
@@ -148,18 +136,21 @@ async fn run_internal(db: &Database, cmds: &str) -> Result<()> {
     }
 }
 
+#[allow(dead_code)]
 fn load_csv(db: &Database, table_name: &str, filepath: &str) -> Result<()> {
     println!("load csv {} {}", table_name, filepath);
     db.create_csv_table(table_name.to_string(), filepath.to_string())?;
     Ok(())
 }
 
+#[allow(dead_code)]
 fn show_tables(db: &Database) -> Result<()> {
     let data = db.show_tables()?;
     pretty_batches(&vec![data]);
     Ok(())
 }
 
+#[allow(dead_code)]
 async fn explain(db: &Database, sql: &str) -> Result<()> {
     let explain_str = db.explain(sql).await?;
     println!("\nexplain result for: {}\n\n{}", sql, explain_str);

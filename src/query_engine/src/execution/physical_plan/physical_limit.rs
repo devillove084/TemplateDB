@@ -2,7 +2,7 @@ use derive_new::new;
 
 use super::{PhysicalOperator, PhysicalOperatorBase};
 use crate::execution::PhysicalPlanGenerator;
-use crate::planner_v2::LogicalLimit;
+use crate::planner::LogicalLimit;
 
 #[derive(new, Clone)]
 pub struct PhysicalLimit {

@@ -1,7 +1,7 @@
 use arrow::record_batch::RecordBatch;
 use derive_new::new;
 
-use crate::types_v2::LogicalType;
+use crate::types::LogicalType;
 
 #[derive(new, Debug)]
 pub struct BaseQueryResult {

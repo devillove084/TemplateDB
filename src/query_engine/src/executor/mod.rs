@@ -97,6 +97,11 @@ impl PlanVisitor<BoxedExecutor> for ExecutorBuilder {
                 storage: storage.clone(),
             }
             .execute(),
+            StorageImpl::TemplateDB(storage) => TableScanExecutor {
+                plan: plan.clone(),
+                storage: storage.clone(),
+            }
+            .execute(),
         })
     }
 
@@ -214,7 +219,7 @@ mod executor_test {
     use crate::executor::{try_collect, ExecutorBuilder};
     use crate::optimizer::{InputRefRewriter, PhysicalRewriter, PlanRewriter};
     use crate::parser::parse;
-    use crate::planner::Planner;
+    use crate::planner_test::Planner;
     use crate::storage::{InMemoryStorage, Storage, StorageError, StorageImpl};
     use crate::util::pretty_batches;
 

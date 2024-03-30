@@ -1,8 +1,8 @@
 use super::{PhysicalOperator, PhysicalOperatorBase};
-use crate::catalog_v2::TableCatalogEntry;
+use crate::catalog::TableCatalogEntry;
 use crate::execution::PhysicalPlanGenerator;
-use crate::planner_v2::{BoundCreateTableInfo, LogicalInsert};
-use crate::types_v2::LogicalType;
+use crate::planner::{BoundCreateTableInfo, LogicalInsert};
+use crate::types::LogicalType;
 
 #[derive(Clone)]
 pub struct PhysicalInsert {

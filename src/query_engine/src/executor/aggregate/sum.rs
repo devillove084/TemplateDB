@@ -41,7 +41,7 @@ pub struct SumAccumulator {
 impl SumAccumulator {
     pub fn new(data_type: DataType) -> Self {
         Self {
-            result: ScalarValue::from(&data_type),
+            result: ScalarValue::new_none_value(&data_type).expect("unimplemented"),
             data_type,
         }
     }
@@ -116,14 +116,15 @@ impl Accumulator for DistinctSumAccumulator {
             return Ok(());
         }
         (0..array.len()).for_each(|i| {
-            let v = ScalarValue::try_from_array(array, i);
+            let v = ScalarValue::try_from_array(array, i).expect("Try from error");
             self.distinct_values.insert(v);
         });
         Ok(())
     }
 
     fn evaluate(&self) -> Result<ScalarValue, ExecutorError> {
-        let mut sum = ScalarValue::from(&self.data_type);
+        let mut sum =
+            ScalarValue::new_none_value(&self.data_type).expect("DataType convert failed");
         for v in self.distinct_values.iter() {
             sum = sum_result(&sum, v);
         }

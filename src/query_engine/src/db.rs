@@ -1,9 +1,14 @@
 use std::fmt::Write;
+use std::path::Path;
 use std::sync::Arc;
 
 use arrow::error::ArrowError;
 use arrow::record_batch::RecordBatch;
 use sqlparser::parser::ParserError;
+use storage_engine::db_impl::template_impl::TemplateDB;
+use storage_engine::options::Options;
+use storage_engine::storage::mem::MemStorage;
+use storage_engine::util::comparator::BytewiseComparator;
 
 use crate::binder::{BindError, Binder};
 use crate::executor::{try_collect, ExecutorBuilder, ExecutorError};
@@ -15,7 +20,8 @@ use crate::optimizer::{
     RemoveNoopOperators, SimplifyCasts,
 };
 use crate::parser::parse;
-use crate::planner::{LogicalPlanError, Planner};
+use crate::planner_test::{LogicalPlanError, Planner};
+use crate::storage::templatedb::TemplateDBIndependent;
 use crate::storage::{CsvStorage, Storage, StorageError, StorageImpl};
 use crate::util::pretty_plan_tree_string;
 
@@ -28,6 +34,17 @@ impl Database {
         let storage = Arc::new(CsvStorage::new());
         Database {
             storage: StorageImpl::CsvStorage(storage),
+        }
+    }
+
+    pub fn new_on_templatedb(db_path: impl AsRef<Path>) -> Self {
+        let options = Options::<BytewiseComparator>::default();
+        let mem_storage = MemStorage::default();
+        let storage = Arc::new(
+            TemplateDB::open_db(options, db_path, mem_storage).expect("create template db failed"),
+        );
+        Database {
+            storage: StorageImpl::TemplateDB(TemplateDBIndependent::new(storage).into()),
         }
     }
 
@@ -50,6 +67,7 @@ impl Database {
         let data = match &self.storage {
             StorageImpl::CsvStorage(s) => s.show_tables()?,
             StorageImpl::InMemoryStorage(s) => s.show_tables()?,
+            StorageImpl::TemplateDB(s) => s.show_tables()?,
         };
         Ok(data)
     }
@@ -105,7 +123,7 @@ impl Database {
     }
 
     pub async fn run(&self, sql: &str) -> Result<Vec<RecordBatch>, DatabaseError> {
-        let storage = if let StorageImpl::CsvStorage(ref storage) = self.storage {
+        let storage = if let StorageImpl::TemplateDB(ref storage) = self.storage {
             storage
         } else {
             return Err(DatabaseError::InternalError(
@@ -139,7 +157,7 @@ impl Database {
         );
 
         // 5. build executor
-        let mut builder = ExecutorBuilder::new(StorageImpl::CsvStorage(storage.clone()));
+        let mut builder = ExecutorBuilder::new(StorageImpl::TemplateDB(storage.clone()));
         let mut rewriter = InputRefRewriter::default();
         let physical_plan = rewriter.rewrite(physical_plan);
         let executor = builder.build(physical_plan);
