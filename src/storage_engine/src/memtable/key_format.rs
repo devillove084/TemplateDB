@@ -30,7 +30,7 @@ pub struct ParsedInternalKey<'a> {
 impl<'a> ParsedInternalKey<'a> {
     /// Try to extract a `ParsedInternalKey` from given bytes.
     /// Returns `None` if data length is less than 8 or getting an unknown value type.
-    pub fn decode_from(internal_key: &'a [u8]) -> Option<ParsedInternalKey<'_>> {
+    pub fn decode_from(internal_key: &'a [u8]) -> Option<ParsedInternalKey<'a>> {
         let size = internal_key.len();
         if size < INTERNAL_KEY_TAIL {
             return None;
@@ -48,7 +48,7 @@ impl<'a> ParsedInternalKey<'a> {
         })
     }
 
-    pub fn new(key: &'a [u8], seq: u64, v_type: ValueType) -> ParsedInternalKey<'_> {
+    pub fn new(key: &'a [u8], seq: u64, v_type: ValueType) -> ParsedInternalKey<'a> {
         ParsedInternalKey {
             user_key: key,
             seq,
@@ -207,11 +207,6 @@ impl LookupKey {
     }
 }
 
-/// `InternalKeyComparator` is used for comparing the `InternalKey`
-/// the compare result is ordered by:
-///    increasing user key (according to user-supplied comparator)
-///    decreasing sequence number
-///    decreasing type (though sequence# should be enough to disambiguate)
 #[derive(Clone, Default)]
 pub struct InternalKeyComparator<C: Comparator> {
     /// The comparator defined in `Options`

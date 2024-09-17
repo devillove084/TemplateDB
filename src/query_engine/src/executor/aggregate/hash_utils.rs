@@ -157,7 +157,7 @@ macro_rules! hash_array_float {
 ///
 /// The number of rows to hash is determined by `hashes_buffer.len()`.
 /// `hashes_buffer` should be pre-sized appropriately
-#[cfg(not(feature = "force_hash_collisions"))]
+// #[cfg(not(feature = "force_hash_collisions"))]
 pub fn create_hashes<'a>(
     arrays: &[ArrayRef],
     random_state: &RandomState,

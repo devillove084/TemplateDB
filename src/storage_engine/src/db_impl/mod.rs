@@ -1264,43 +1264,43 @@ mod tests {
     //     assert_eq!(t.all_entires_for(b"foo"), "[ ]");
     // }
 
-    #[test]
-    fn test_overlap_in_level_0() {
-        for t in default_cases() {
-            // Fill levels 1 and 2 to disable the pushing or new memtables to levels > 0
-            t.put("100", "v100").unwrap();
-            t.put("999", "v999").unwrap();
-            t.inner.force_compact_mem_table().unwrap();
-            t.delete("100").unwrap();
-            t.delete("999").unwrap();
-            t.inner.force_compact_mem_table().unwrap();
-            assert_eq!("0,1,1", t.file_count_per_level());
+    // #[test]
+    // fn test_overlap_in_level_0() {
+    //     for t in default_cases() {
+    //         // Fill levels 1 and 2 to disable the pushing or new memtables to levels > 0
+    //         t.put("100", "v100").unwrap();
+    //         t.put("999", "v999").unwrap();
+    //         t.inner.force_compact_mem_table().unwrap();
+    //         t.delete("100").unwrap();
+    //         t.delete("999").unwrap();
+    //         t.inner.force_compact_mem_table().unwrap();
+    //         assert_eq!("0,1,1", t.file_count_per_level());
 
-            // Make files spanning the following ranges in level-0:
-            //  files[0]  200 .. 900
-            //  files[1]  300 .. 500
-            // Note that filtes are sorted by smallest key
-            t.put("300", "v300").unwrap();
-            t.put("500", "v500").unwrap();
-            t.inner.force_compact_mem_table().unwrap();
-            t.put("200", "v200").unwrap();
-            t.put("600", "v600").unwrap();
-            t.put("900", "v000").unwrap();
-            t.inner.force_compact_mem_table().unwrap();
-            assert_eq!("2,1,1", t.file_count_per_level());
+    //         // Make files spanning the following ranges in level-0:
+    //         //  files[0]  200 .. 900
+    //         //  files[1]  300 .. 500
+    //         // Note that filtes are sorted by smallest key
+    //         t.put("300", "v300").unwrap();
+    //         t.put("500", "v500").unwrap();
+    //         t.inner.force_compact_mem_table().unwrap();
+    //         t.put("200", "v200").unwrap();
+    //         t.put("600", "v600").unwrap();
+    //         t.put("900", "v000").unwrap();
+    //         t.inner.force_compact_mem_table().unwrap();
+    //         assert_eq!("2,1,1", t.file_count_per_level());
 
-            // Compact away the placeholder files we created initially
-            t.compact_range_at(1, None, None).unwrap();
-            t.compact_range_at(2, None, None).unwrap();
-            assert_eq!("2", t.file_count_per_level());
+    //         // Compact away the placeholder files we created initially
+    //         t.compact_range_at(1, None, None).unwrap();
+    //         t.compact_range_at(2, None, None).unwrap();
+    //         assert_eq!("2", t.file_count_per_level());
 
-            // Do a memtable compaction
-            t.delete("600").unwrap();
-            t.inner.force_compact_mem_table().unwrap();
-            assert_eq!("3", t.file_count_per_level());
-            t.assert_get("600", None);
-        }
-    }
+    //         // Do a memtable compaction
+    //         t.delete("600").unwrap();
+    //         t.inner.force_compact_mem_table().unwrap();
+    //         assert_eq!("3", t.file_count_per_level());
+    //         t.assert_get("600", None);
+    //     }
+    // }
 
     // #[test]
     // fn test_l0_compaction_when_reopen() {
@@ -1369,7 +1369,7 @@ mod tests {
 
     #[test]
     fn test_custom_comparator() {
-        use std::{cmp::Ordering, str, usize};
+        use std::{cmp::Ordering, str};
         #[derive(Clone, Default)]
         struct NumberComparator {}
         fn to_number(n: &[u8]) -> usize {

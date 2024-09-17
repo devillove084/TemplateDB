@@ -1,4 +1,6 @@
 #![deny(clippy::all)]
+#![allow(clippy::doc_lazy_continuation)]
+#![allow(clippy::too_long_first_doc_paragraph)]
 #![allow(clippy::diverging_sub_expression)]
 #![allow(clippy::single_range_in_vec_init)]
 #![allow(clippy::useless_vec)]

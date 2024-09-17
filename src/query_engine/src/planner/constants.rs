@@ -1,1 +1,1 @@
-pub static INVALID_INDEX: usize = std::usize::MAX;
+pub static INVALID_INDEX: usize = usize::MAX;

@@ -21,13 +21,13 @@ pub fn extend(crc: u32, data: &[u8]) -> u32 {
 /// contains embedded CRCs.  Therefore we recommend that CRCs stored
 /// somewhere (e.g., in files) should be masked before being stored.
 pub fn mask(crc: u32) -> u32 {
-    ((crc >> 15) | (crc << 17)).wrapping_add(MASK_DELTA)
+    (crc.rotate_right(15) | (crc << 17)).wrapping_add(MASK_DELTA)
 }
 
 /// Return the crc whose masked representation is `masked`.
 pub fn unmask(masked: u32) -> u32 {
     let rot = masked.wrapping_sub(MASK_DELTA);
-    (rot >> 17) | (rot << 15)
+    (rot >> 17) | rot.rotate_left(15)
 }
 
 #[cfg(test)]

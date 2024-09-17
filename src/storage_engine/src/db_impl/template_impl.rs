@@ -1153,7 +1153,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> DBImpl<S, C> {
         let mut mem_compaction_duration = 0;
         input_iter.seek_to_first();
 
-        let mut last_sequence_for_key = u64::max_value();
+        let mut last_sequence_for_key = u64::MAX;
         // TODO: Use Option<&[u8]> instead
         let mut current_ukey: Option<Vec<u8>> = None;
         while input_iter.valid() && !self.is_shutting_down.load(Ordering::Acquire) {
@@ -1178,7 +1178,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> DBImpl<S, C> {
                     {
                         // First occurrence of this user key
                         current_ukey = Some(key.user_key.to_vec());
-                        last_sequence_for_key = u64::max_value();
+                        last_sequence_for_key = u64::MAX;
                     }
                     // Keep the still-in-use old key or not
                     if last_sequence_for_key <= c.oldest_snapshot_alive
@@ -1222,7 +1222,7 @@ impl<S: Storage + Clone + 'static, C: Comparator + 'static> DBImpl<S, C> {
                 }
                 None => {
                     current_ukey = None;
-                    last_sequence_for_key = u64::max_value();
+                    last_sequence_for_key = u64::MAX;
                 }
             }
             input_iter.next();

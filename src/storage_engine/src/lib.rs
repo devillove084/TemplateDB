@@ -11,6 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #![deny(clippy::all)]
+#![allow(clippy::too_long_first_doc_paragraph)]
 #![allow(clippy::field_reassign_with_default)]
 #![allow(clippy::module_inception)]
 #![allow(clippy::needless_range_loop)]

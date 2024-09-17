@@ -8,10 +8,6 @@ use std::{
 
 use crate::util::hash::hash;
 
-/// Slice is a simple structure containing a pointer into some external
-/// storage and a size.  The user of a Slice must ensure that the slice
-/// is not used after the corresponding external storage has been
-/// deallocated.
 #[derive(Clone, Eq)]
 pub struct Slice {
     data: *const u8,
@@ -89,7 +85,7 @@ impl Hash for Slice {
     fn hash<H: Hasher>(&self, state: &mut H) {
         let hash = hash(self.as_slice(), 0xbc9f_1d34);
         state.write_u32(hash);
-        state.finish();
+        let _ = state.finish();
     }
 }
 

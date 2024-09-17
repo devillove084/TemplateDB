@@ -16,11 +16,6 @@ use crate::{
 // TODO: remove all magic number
 const U32_LEN: usize = std::mem::size_of::<u32>();
 
-/// `Block` is consist of one or more key/value entries and a block trailer.
-/// Block entry shares key prefix with its preceding key until a `restart`
-/// point reached. A block should contains at least one restart point.
-/// First restart point are always zero.
-///
 /// Block Key/value entry:
 ///
 /// ```text

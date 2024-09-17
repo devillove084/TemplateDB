@@ -50,7 +50,7 @@ impl Binder {
             let val = ExpressionExecutor::execute_scalar(limit_expr)?;
             Self::cast_delimiter_val(val)
         } else {
-            u64::max_value()
+            u64::MAX
         };
 
         let offset = query

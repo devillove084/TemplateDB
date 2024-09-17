@@ -1,5 +1,6 @@
 #![deny(clippy::all)]
 #![allow(clippy::enum_variant_names)]
+#![allow(clippy::mutable_key_type)]
 #![feature(async_closure)]
 #![feature(btree_extract_if)]
 #![feature(hash_extract_if)]
@@ -8,7 +9,6 @@
 #![feature(allocator_api)]
 #![feature(vec_into_raw_parts)]
 #![feature(type_alias_impl_trait)]
-#![feature(associated_type_bounds)]
 #![allow(incomplete_features)]
 
 pub mod consensus;

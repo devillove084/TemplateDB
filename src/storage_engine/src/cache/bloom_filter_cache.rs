@@ -12,11 +12,7 @@ impl BloomFilter {
     pub fn new(bits_per_key: usize) -> Self {
         // 0.69 =~ ln(2) and we intentionally round down to reduce probing cost a little bit
         let mut k = bits_per_key as f32 * 0.69;
-        if k > 30f32 {
-            k = 30f32;
-        } else if k < 1f32 {
-            k = 1f32;
-        }
+        k = k.clamp(1f32, 30f32);
         Self {
             k: k as usize,
             bits_per_key,
@@ -48,7 +44,7 @@ impl FilterPolicy for BloomFilter {
             return true;
         };
         let mut h = Self::bloom_hash(key);
-        let delta = (h >> 17) | (h << 15); // rotate right 17 bits
+        let delta = (h >> 17) | h.rotate_left(15); // rotate right 17 bits
         for _ in 0..k {
             let bit_pos = h % u32::try_from(bits).expect("truncate error");
             if (filter[(bit_pos / 8) as usize] & (1 << (bit_pos % 8))) == 0 {
@@ -76,7 +72,7 @@ impl FilterPolicy for BloomFilter {
 
         for key in keys {
             let mut h = Self::bloom_hash(key.as_slice());
-            let delta = (h >> 17) | (h << 15); // rotate right 17 bits
+            let delta = (h >> 17) | h.rotate_left(15); // rotate right 17 bits
             for _ in 0..self.k {
                 let bit_pos = h % (bits as u32);
                 dst[(bit_pos / 8) as usize] |= 1 << (bit_pos % 8);

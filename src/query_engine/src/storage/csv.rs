@@ -1,7 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
 use std::sync::{Arc, Mutex};
-use std::usize;
 
 use arrow::array::StringArray;
 use arrow::csv::{reader, Reader, ReaderBuilder};

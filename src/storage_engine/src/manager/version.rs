@@ -621,11 +621,6 @@ fn key_is_before_file<C: Comparator>(
 /// file number and file size are both u64, so 2 * size_of(u64)
 pub const FILE_META_LENGTH: usize = 2 * mem::size_of::<u64>();
 
-/// An internal iterator.  For a given version/level pair, yields
-/// information about the files in the level.  For a given entry, key()
-/// is the largest key that occurs in the file, and value() is an
-/// 16-byte value containing the file number and file size, both
-/// encoded using `encode_fixed_u64`
 pub struct LevelFileNumIterator<C: Comparator> {
     files: Vec<Arc<FileMetaData>>,
     icmp: InternalKeyComparator<C>,

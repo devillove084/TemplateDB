@@ -5,10 +5,11 @@ use super::{BoundExpression, BoundExpressionBase, ColumnBinding};
 use crate::planner::{BindError, ExpressionBinder, SqlparserResolver, LOGGING_TARGET};
 use crate::types::LogicalType;
 
-/// A BoundColumnRef expression represents a ColumnRef expression that was bound to an actual table
-/// and column index. It is not yet executable, however. The ColumnBindingResolver transforms the
-/// BoundColumnRefExpressions into BoundReferenceExpressions, which refer to indexes into the
-/// physical chunks that pass through the executor.
+/// A BoundColumnRef expression represents a ColumnRef expression.
+///
+/// Be bounded to an actual table and column index. It is not yet executable, however.
+/// The ColumnBindingResolver transforms the BoundColumnRefExpressions into BoundReferenceExpressions,
+/// which refer to indexes into the physical chunks that pass through the executor.
 #[derive(new, Debug, Clone)]
 pub struct BoundColumnRefExpression {
     pub(crate) base: BoundExpressionBase,

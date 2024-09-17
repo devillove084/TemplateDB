@@ -59,6 +59,7 @@ mod rule_test_util {
     use crate::parser::parse;
     use crate::planner_test::Planner;
 
+    #[allow(dead_code)]
     pub struct RuleTest {
         pub name: &'static str,
         pub sql: &'static str,
